@@ -1,15 +1,15 @@
 "use client";
 import React from "react";
-import { Label } from "../components/ui/label";
-import { Input } from "../components/ui/input";
+import { Label } from "@components/ui/aceternity/label";
+import { Input } from "@components/ui/aceternity/input";
 import { cn } from "../lib/utils";
 import {
     IconBrandGoogle,
 } from "@tabler/icons-react";
 
 import logo from "../assets/hyperlocalsvg.svg"
-import { ShootingStars } from "../components/ui/shooting-stars";
-import { StarsBackground } from "../components/ui/stars-background";
+import { ShootingStars } from "../components/ui/aceternity/shooting-stars";
+import { StarsBackground } from "../components/ui/aceternity/stars-background";
 
 export function SignupFormDemo() {
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {

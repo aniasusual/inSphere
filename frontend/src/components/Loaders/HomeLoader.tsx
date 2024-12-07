@@ -1,6 +1,6 @@
-import logo from "../../assets/hyperlocalsvg.svg"
-import { ShootingStars } from "../ui/shooting-stars";
-import { StarsBackground } from "../ui/stars-background";
+import logo from "@assets/hyperlocalsvg.svg"
+import { ShootingStars } from "@components/ui/aceternity/shooting-stars";
+import { StarsBackground } from "@components/ui/aceternity/stars-background";
 import BasicLoader from "./BasicLoader/BasicLoader";
 
 function HomeLoader() {

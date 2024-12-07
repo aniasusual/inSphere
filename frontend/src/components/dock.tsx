@@ -1,4 +1,4 @@
-import { FloatingDock } from "../components/ui/floating-dock";
+import { FloatingDock } from "@components/ui/aceternity/floating-dock";
 import {
     IconBrandGithub,
     IconBrandX,
