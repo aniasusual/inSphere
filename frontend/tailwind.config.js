@@ -1,7 +1,19 @@
 /** @type {import('tailwindcss').Config} */
 import tailwindcssAnimate from "tailwindcss-animate";
 
-export default {
+// const defaultTheme = require("tailwindcss/defaultTheme");
+import defaultTheme from "tailwindcss/defaultTheme";
+// const colors = require("tailwindcss/colors");
+import colors from "tailwindcss/colors";
+
+const withMT = require("@material-tailwind/react/utils/withMT");
+
+const {
+	default: flattenColorPalette,
+} = require("tailwindcss/lib/util/flattenColorPalette");
+
+/** @type {import('tailwindcss').Config} */
+export default withMT({
 	darkMode: ["class"],
 	content: [
 		"./index.html",
@@ -68,6 +80,18 @@ export default {
 			}
 		}
 	},
-	plugins: [tailwindcssAnimate]
+	plugins: [tailwindcssAnimate, addVariablesForColors]
+})
+
+// This plugin adds each Tailwind color as a global CSS variable, e.g. var(--gray-200).
+function addVariablesForColors({ addBase, theme }) {
+	let allColors = flattenColorPalette(theme("colors"));
+	let newVars = Object.fromEntries(
+		Object.entries(allColors).map(([key, val]) => [`--${key}`, val])
+	);
+
+	addBase({
+		":root": newVars,
+	});
 }
 
