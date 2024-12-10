@@ -1,15 +1,16 @@
-import { TracingBeam } from "@components/ui/aceternity/tracing-beam";
 import { Post } from "@components/Post";
 function Home() {
     return (
         <div className="flex justify-center w-full">
-            <div>
+            <div className="!w-full border-2 border-rose-200">
+                loda
+                <Post />
+                <Post />
                 <Post />
             </div>
-            <div>
+            {/* <div>
                 ads
-            </div>
-
+            </div> */}
         </div>
     )
 }
