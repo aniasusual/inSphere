@@ -1,17 +1,15 @@
-import Post from "@components/Post";
-
+import { TracingBeam } from "@components/ui/aceternity/tracing-beam";
+import { Post } from "@components/Post";
 function Home() {
     return (
-        <div >
-            <div >
-                User Cred
-            </div>
+        <div className="flex justify-center w-full">
             <div>
                 <Post />
             </div>
             <div>
                 ads
             </div>
+
         </div>
     )
 }

@@ -57,6 +57,11 @@ export const FloatingNav = ({
     }, [darkMode]);
     const navItems = [
         {
+            name: "My feed",
+            link: "/",
+            icon: <IconHome className="h-4 w-4 text-neutral-500 dark:text-white" />,
+        },
+        {
             name: "Communities",
             link: "/communities",
             icon: <IconHome className="h-4 w-4 text-neutral-500 dark:text-white" />,
@@ -94,6 +99,10 @@ export const FloatingNav = ({
                     className
                 )}
             >
+                <button className="border text-sm font-small relative border-neutral-100 dark:border-white/[0.2] text-black dark:text-white px-1 py-1 rounded-full">
+                    <span>{darkMode ? (<IconBrightnessDown onClick={() => setdarkmode(false)} />) : (<IconMoon onClick={() => setdarkmode(true)} />)}</span>
+                    <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
+                </button>
 
                 {navItems.map((navItem: any, idx: number) => (
                     <Link
@@ -108,13 +117,10 @@ export const FloatingNav = ({
                     </Link>
                 ))}
                 <button className="border text-sm font-medium relative border-neutral-200 dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full">
-                    <span>{darkMode ? (<IconBrightnessDown onClick={() => setdarkmode(false)} />) : (<IconMoon onClick={() => setdarkmode(true)} />)}</span>
-                    <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
-                </button>
-                <button className="border text-sm font-medium relative border-neutral-200 dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full">
                     <span>Login</span>
                     <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
                 </button>
+
             </motion.div>
         </AnimatePresence>
     );
