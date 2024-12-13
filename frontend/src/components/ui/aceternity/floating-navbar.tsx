@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import { useState } from "react";
 import {
     motion,
     AnimatePresence,
@@ -9,7 +9,8 @@ import {
 import { cn } from "@lib/utils";
 import { Link } from "react-router-dom";
 
-import { IconMoon, IconBrightnessDown, IconHome, IconUser, IconMessage } from "@tabler/icons-react";
+import { IconHome, IconUser, IconMessage } from "@tabler/icons-react";
+import logo from "@assets/hyperlocalNobg.png"
 
 
 export const FloatingNav = ({
@@ -26,8 +27,6 @@ export const FloatingNav = ({
     const { scrollYProgress } = useScroll();
 
     const [visible, setVisible] = useState(false);
-
-    const [darkMode, setdarkmode] = useState(true);
 
     useMotionValueEvent(scrollYProgress, "change", (current) => {
         // Check if current is not undefined and is a number
@@ -46,15 +45,6 @@ export const FloatingNav = ({
         }
     });
 
-    // Toggle the 'dark' class on the root HTML element
-    useEffect(() => {
-        const root = document.documentElement; // `html` element
-        if (darkMode) {
-            root.classList.add("dark");
-        } else {
-            root.classList.remove("dark");
-        }
-    }, [darkMode]);
     const navItems = [
         {
             name: "My feed",
@@ -99,6 +89,9 @@ export const FloatingNav = ({
                     className
                 )}
             >
+                <a href="/" className="mr-4 block cursor-pointer py-1.5 text-base text-slate-800 font-semibold">
+                    <img src={logo} alt="hyperlocal" className=" max-w-8" />
+                </a>
 
                 {navItems.map((navItem: any, idx: number) => (
                     <Link
@@ -114,10 +107,6 @@ export const FloatingNav = ({
                 ))}
                 <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full">
                     <span>Login</span>
-                    <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
-                </button>
-                <button className="border text-sm font-small relative dark:border-white/[0.2] text-black dark:text-white px-1 py-1 rounded-full">
-                    <span>{darkMode ? (<IconBrightnessDown onClick={() => setdarkmode(false)} />) : (<IconMoon onClick={() => setdarkmode(true)} />)}</span>
                     <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
                 </button>
 
