@@ -51,22 +51,22 @@ export const FloatingNav = ({
             link: "/",
             icon: <IconHome className="h-4 w-4 text-neutral-500 dark:text-white" />,
         },
+        // {
+        //     name: "Communities",
+        //     link: "/communities",
+        //     icon: <IconHome className="h-4 w-4 text-neutral-500 dark:text-white" />,
+        // },
         {
-            name: "Communities",
-            link: "/communities",
-            icon: <IconHome className="h-4 w-4 text-neutral-500 dark:text-white" />,
+            name: "Go Local",
+            link: "/go-local",
+            icon: (
+                <IconMessage className="h-4 w-4 text-neutral-500 dark:text-white" />
+            ),
         },
         {
             name: "Search",
             link: "/search",
             icon: <IconUser className="h-4 w-4 text-neutral-500 dark:text-white" />,
-        },
-        {
-            name: "GoLocal",
-            link: "/go-local",
-            icon: (
-                <IconMessage className="h-4 w-4 text-neutral-500 dark:text-white" />
-            ),
         },
     ];
 
@@ -105,9 +105,13 @@ export const FloatingNav = ({
                         <span className="hidden sm:block text-sm">{navItem.name}</span>
                     </Link>
                 ))}
-                <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full">
-                    <span>Login</span>
+                <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full !mx-2">
+                    <Link to={"/login"}><span>Login</span></Link>
                     <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
+                </button>
+                <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full !mx-0">
+                    <Link to={"/register"}><span>Register</span></Link>
+                    <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent h-px" />
                 </button>
 
             </motion.div>
