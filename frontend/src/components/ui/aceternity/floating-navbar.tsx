@@ -9,8 +9,11 @@ import {
 import { cn } from "@lib/utils";
 import { Link } from "react-router-dom";
 
-import { IconHome, IconUser, IconMessage } from "@tabler/icons-react";
+import { IconHome } from "@tabler/icons-react";
 import logo from "@assets/hyperlocalNobg.png"
+import { LuRadar } from "react-icons/lu";
+import { CiSearch } from "react-icons/ci";
+
 
 
 export const FloatingNav = ({
@@ -49,24 +52,19 @@ export const FloatingNav = ({
         {
             name: "My feed",
             link: "/",
-            icon: <IconHome className="h-4 w-4 text-neutral-500 dark:text-white" />,
+            icon: <IconHome size={27} />,
         },
-        // {
-        //     name: "Communities",
-        //     link: "/communities",
-        //     icon: <IconHome className="h-4 w-4 text-neutral-500 dark:text-white" />,
-        // },
         {
             name: "Go Local",
             link: "/go-local",
             icon: (
-                <IconMessage className="h-4 w-4 text-neutral-500 dark:text-white" />
+                <LuRadar size={27} />
             ),
         },
         {
             name: "Search",
             link: "/search",
-            icon: <IconUser className="h-4 w-4 text-neutral-500 dark:text-white" />,
+            icon: <CiSearch size={27} />,
         },
     ];
 
