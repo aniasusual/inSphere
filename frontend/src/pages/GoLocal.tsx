@@ -1,36 +1,55 @@
-// import { Post } from "@components/Post";
 import { SegmentedControl } from "@components/ui/segmented-control";
 import { IconListDetails } from "@tabler/icons-react";
 import { useState } from "react";
+import { IconMap } from "@tabler/icons-react";
+import { Slider } from "@components/ui/slider"
+import { RadioCard } from "@components/RadioCard";
+
+
 
 export function Golocal() {
+    const [value, setValue] = useState("List"); // For SegmentedControl
+    const initialValue = [50];
 
-    const [value, setValue] = useState("List")
+    const [sliderValue, setSliderValue] = useState(initialValue); // For Slider
 
     const handleValueChange = async (e) => {
         setValue(e.value);
-        console.log(value)
-    }
+        console.log(value);
+    };
 
 
     return (
-        <div>
-            <div className="fixed top-25 left-1/2 transform -translate-x-1/2 z-50 text-white max-w-xl w-full flex flex-col justify-center items-center gap-2 rounded-lg text-sm md:text-md text-left bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500/200 p-2 sm:p-2">
-                {value === "List" ? (
-                    <div className="flex flex-row gap-2">
-                        <IconListDetails stroke={1.5} size={25} className="sm:size-35" />
-                        <span className="text-xs md:text-sm lg:text-md text-center sm:text-left">Custom built feed based on the communities, channels, and people you follow</span>
+        <div className="flex flex-col justify-center items-center">
+            <div className="flex flex-col justify-center items-center gap-7">
+
+                <div className="w-fit flex flex-row justify-center items-center gap-2 text-white rounded-lg text-md md:text-md text-left bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500/200 p-2">
+                    <IconMap stroke={1.2} size={30} className="sm:size-35" />
+                    <span className="text-md text-center sm:text-left">Set Radius to explore users, channels, communities or posts in given radius</span>
+                </div>
+
+                <div className="flex flex-col justify-center items-center gap-2">
+                    <div className="flex flex-col justify-center items-center gap-2">
+                        <Slider defaultValue={[0]} max='4' step='0.1' variant='outline' size="md" label="" colorPalette="red" width="250px" value={sliderValue} onValueChange={(e) => setSliderValue(e.value)} />
+                        <span className="w-80 text-lg md:text-md text-gray-700">
+                            Radius (Kilometers): {sliderValue}
+                        </span>
+                    </div>
+                    <div>
+                        <RadioCard />
                     </div>
 
-                ) : (
-                    <div className="flex flex-row gap-2">
-                        <IconListDetails stroke={1.5} size={25} className="sm:size-35" />
-                        <span className="text-xs md:text-sm lg:text-md text-center sm:text-left">Custom built feed based on the communities, channels, and people you follow</span>
-                    </div>
-                )}
-                <SegmentedControl value={value} items={["List", "Map"]} onValueChange={(e) => handleValueChange(e)} />
+                </div>
+
+                <div className="w-fit border-2 border-rose-600 gap-2 text-white rounded-lg text-sm md:text-md text-left bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500/200 p-1">
+                    <SegmentedControl
+                        value={value}
+                        items={["List", "Map"]}
+                        orientation='vertical'
+                        onValueChange={(e) => handleValueChange(e)}
+                    />
+                </div>
             </div>
-
         </div>
-    )
+    );
 }
