@@ -4,12 +4,15 @@ import './index.css'
 import App from './App.tsx'
 import { ThemeProvider } from '@material-tailwind/react'
 import { Provider } from "@components/ui/provider"
+import { GlobalProvider } from '@lib/GlobalContext.tsx'
 
 createRoot(document.getElementById('root')!).render(
   // <StrictMode>
   <ThemeProvider>
     <Provider>
-      <App />
+      <GlobalProvider>
+        <App />
+      </GlobalProvider>
     </Provider>
   </ThemeProvider>
   // </StrictMode>,
