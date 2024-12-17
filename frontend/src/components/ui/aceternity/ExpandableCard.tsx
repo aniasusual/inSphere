@@ -358,8 +358,8 @@ const cards = [
         },
     },
     {
-        description: "Lolu ram",
-        title: "Lolu ram",
+        description: "Gravity",
+        title: "John Mayer",
         src: "https://assets.aceternity.com/demos/aap-ka-suroor.jpeg",
         ctaText: "Join",
         ctaLink: "https://ui.aceternity.com/templates",
