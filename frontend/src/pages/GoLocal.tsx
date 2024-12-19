@@ -41,14 +41,14 @@ export function Golocal() {
                 <div className="flex flex-col justify-center items-center gap-10 lg:flex-row">
                     <div>
                         <Slider defaultValue={[0]} max='4' step='0.1' variant='outline' size="md" label="" colorPalette="red" width="250px" value={sliderValue} onValueChange={(e) => setSliderValue(e.value)} />
-                        <span className="w-80 text-lg md:text-md text-white-700">
+                        <span className="w-80 text-md md:text-md text-white-700">
                             Radius: {sliderValue} Kilometers
                         </span>
                     </div>
                     <div>
                         <Select>
                             <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Explore" />
+                                <SelectValue placeholder="Explore In" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
