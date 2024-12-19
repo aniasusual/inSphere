@@ -3,41 +3,40 @@ import React from "react";
 const BentoGrid = () => {
 
     const images = [
-        { url: "https://picsum.photos/300/300?random=1" },
-        { url: "https://picsum.photos/300/400?random=2" },
-        { url: "https://picsum.photos/400/300?random=3" },
-        { url: "https://picsum.photos/500/300?random=4" },
-        { url: "https://picsum.photos/300/500?random=5" },
-        { url: "https://picsum.photos/400/500?random=6" },
-        { url: "https://picsum.photos/300/300?random=7" },
-        { url: "https://picsum.photos/300/300?random=7" },
-        { url: "https://picsum.photos/400/300?random=8" },
+        { url: "https://images.pexels.com/photos/2564841/pexels-photo-2564841.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/951408/pexels-photo-951408.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3049394/pexels-photo-3049394.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/10230612/pexels-photo-10230612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/10230612/pexels-photo-10230612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3450887/pexels-photo-3450887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3049394/pexels-photo-3049394.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3450887/pexels-photo-3450887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/10230612/pexels-photo-10230612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+
     ];
 
 
     const structuredImages = images.map((image, index) => ({
         ...image,
         gridClass:
-            index % 8 === 0
-                ? "col-span-2 row-span-2" // Large square
-                : index % 8 === 1
-                    ? "col-span-1 row-span-1" // Small square
-                    : index % 8 === 2
-                        ? "col-span-1 row-span-1" // Small square
-                        : index % 8 === 3
-                            ? "col-span-1 row-span-2" // Tall rectangle
-                            : index % 8 === 4
-                                ? "col-span-2 row-span-1" // Wide rectangle
-                                : index % 8 === 5
-                                    ? "col-span-1 row-span-2" // Tall rectangle (new condition)
-                                    : index % 8 === 6
-                                        ? "col-span-2 row-span-2" // Extra large square (new condition)
-                                        : "col-span-1 row-span-1", // Small square (default case)
+            index % 6 === 0
+                ? "col-span-2 row-span-2"
+                : index % 6 === 1
+                    ? "col-span-1 row-span-1"
+                    : index % 6 === 2
+                        ? "col-span-1 row-span-1"
+                        : index % 6 === 3
+                            ? "col-span-1 row-span-1"
+                            : index % 6 === 4
+                                ? "col-span-2 row-span-2"
+                                : index % 6 === 5
+                                    ? "col-span-1 row-span-1"
+                                    : "col-span-1 row-span-2"
     }));
 
 
     return (
-        <div className="grid grid-cols-3 gap-2 sm:gap-6 lg:gap-1 p-2 max-w-screen-md mx-auto">
+        <div className="grid grid-cols-3 grid-rows-2 gap-1 sm:gap-1 lg:gap-2 p-2 lg:max-w-lg mx-auto">
             {structuredImages.map((image, index) => (
                 <div
                     key={index}
