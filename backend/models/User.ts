@@ -1,117 +1,144 @@
-import mongoose from "mongoose";
+import mongoose, { Document, Schema, Model } from "mongoose";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import validator from "validator";
 
-const userSchema = new mongoose.Schema({
-    firstName: {
-        type: String,
-        required: [false, "Please Enter Your Name"],
-        maxLength: [30, "Name cannot exceed 30 characters"],
-    },
-    lastName: {
-        type: String,
-        required: [false, "Please Enter Your Last Name"],
-        maxLength: [30, "Name cannot exceed 30 characters"],
-    },
-    email: {
-        type: String,
-        required: [true, "Please Enter Your Email"],
-        unique: true,
-        validate: [validator.isEmail, "Please Enter a valid Email"],
-    },
-    username: {
-        type: String,
-        required: [true, "Please Enter Your Password"],
-        unique: true,
-    },
-    password: {
-        type: String,
-        required: [true, "Please Enter Your Password"],
-        minLength: [8, "Password should be greater than 8 characters"],
-        select: false,
-    },
-    phoneNumber: {
-        type: Number,
-        // required: [true, "Please Enter Your Phone Number"],
-        // unique: true,
-        // default: 8734599272,
-        maxLength: [10, "Phone Number cannot exceed 10 digits"],
-    },
-    userPosts: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Post",
-        },
-    ],
-    channelsFollowed: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Channel",
-        },
-    ],
-    communitiesFollowed: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "Community",
-        },
-    ],
-    usersFollowed: [
-        {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: "User",
-        }
-    ],
-    avatar: {
-        public_id: {
-            type: String,
-            // required: true,
-        },
-        url: {
-            type: String,
-            // required: true,
-        },
-    },
+interface IUser extends Document {
+    _id: mongoose.Types.ObjectId;
+
+    firstName?: string;
+    lastName?: string;
+    email: string;
+    username: string;
+    password: string;
+    phoneNumber?: number;
+    userPosts: mongoose.Types.ObjectId[];
+    channelsFollowed: mongoose.Types.ObjectId[];
+    communitiesFollowed: mongoose.Types.ObjectId[];
+    usersFollowed: mongoose.Types.ObjectId[];
+    avatar?: {
+        public_id: string;
+        url: string;
+    };
     location: {
-        type: {
+        type: string;
+        coordinates: [number, number];
+    };
+    fcmToken?: string;
+    createdAt: Date;
+    verificationToken?: string;
+    isVerified: boolean;
+    resetPasswordToken?: string;
+    resetPasswordExpire?: Date;
+    getJWTToken: () => string;
+    comparePassword: (password: string) => Promise<boolean>;
+}
+
+// User Schema
+const userSchema: Schema<IUser> = new mongoose.Schema(
+    {
+        firstName: {
             type: String,
-            enum: ["Point"], // GeoJSON type
-            default: "Point",
+            required: [false, "Please Enter Your Name"],
+            maxLength: [30, "Name cannot exceed 30 characters"],
         },
-        coordinates: {
-            type: [Number], // Array of [longitude, latitude]
-            index: "2dsphere", // Create 2dsphere index for geospatial queries
-            default: [0, 0],
+        lastName: {
+            type: String,
+            required: [false, "Please Enter Your Last Name"],
+            maxLength: [30, "Name cannot exceed 30 characters"],
         },
+        email: {
+            type: String,
+            required: [true, "Please Enter Your Email"],
+            unique: true,
+            validate: [validator.isEmail, "Please Enter a valid Email"],
+        },
+        username: {
+            type: String,
+            required: [true, "Please Enter Your Username"],
+            unique: true,
+        },
+        password: {
+            type: String,
+            required: [true, "Please Enter Your Password"],
+            minLength: [8, "Password should be greater than 8 characters"],
+            select: false,
+        },
+        phoneNumber: {
+            type: Number,
+            maxLength: [10, "Phone Number cannot exceed 10 digits"],
+        },
+        userPosts: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Post",
+            },
+        ],
+        channelsFollowed: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Channel",
+            },
+        ],
+        communitiesFollowed: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Community",
+            },
+        ],
+        usersFollowed: [
+            {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "User",
+            },
+        ],
+        avatar: {
+            public_id: {
+                type: String,
+            },
+            url: {
+                type: String,
+            },
+        },
+        location: {
+            type: {
+                type: String,
+                enum: ["Point"],
+                default: "Point",
+            },
+            coordinates: {
+                type: [Number],
+                index: "2dsphere",
+                default: [0, 0],
+            },
+        },
+        fcmToken: {
+            type: String,
+        },
+        createdAt: {
+            type: Date,
+            default: Date.now,
+        },
+        verificationToken: {
+            type: String,
+        },
+        isVerified: {
+            type: Boolean,
+            default: false,
+        },
+        resetPasswordToken: String,
+        resetPasswordExpire: Date,
     },
-    fcmToken: {
-        type: String
-    },
-
-    createdAt: {
-        type: Date,
-        default: Date.now,
-    },
-    verificationToken: {
-        type: String,
-    },
-    isVerified: {
-        type: Boolean,
-        default: false,
-    },
-
-    resetPasswordToken: String,
-    resetPasswordExpire: Date,
-
-},
     {
         timestamps: true,
     }
-)
+);
 
+// Index for geospatial queries
 userSchema.index({ location: "2dsphere" });
 
-userSchema.methods.getJWTToken = function () {
+// JWT Token Method
+userSchema.methods.getJWTToken = function (): string {
     if (!process.env.JWT_SECRET) {
         throw new Error("JWT_SECRET is not defined in environment variables");
     }
@@ -123,20 +150,22 @@ userSchema.methods.getJWTToken = function () {
     );
 };
 
-
-userSchema.methods.comparePassword = async function (password: string) {
+// Compare Password Method
+userSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
     return await bcrypt.compare(password, this.password);
 };
 
+// Password Hashing Middleware
 userSchema.pre("save", async function (next) {
     if (!this.isModified("password")) {
-        next();
+        return next();
     }
 
     this.password = await bcrypt.hash(this.password, 10);
+    next();
 });
 
-const userModel = mongoose.model("User", userSchema);
+// User Model
+const userModel: Model<IUser> = mongoose.model<IUser>("User", userSchema);
 
 export default userModel;
-
