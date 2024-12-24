@@ -1,0 +1,50 @@
+<!-- welcomeMessage.hbs -->
+<p>Hello {{firstName}},</p>
+
+<p style="font-size: 18px; color: #333; animation: fadeIn 2s ease;">Welcome to Hyperlocal! We're excited to have you as
+    part of our community. Hyperlocal helps you connect with people and communities nearby, enabling real-time
+    interactions based on your location.</p>
+
+<p style="font-size: 18px; color: #333; animation: fadeIn 2.5s ease;">We believe in making meaningful connections with
+    your local community, whether it’s through posts, chats, or exploring nearby channels. The possibilities are
+    endless!</p>
+
+<p style="font-size: 18px; color: #333; animation: fadeIn 3s ease;">Please click the link below to verify your email and
+    complete your registration:</p>
+
+<p style="text-align: center; animation: scaleIn 1s ease;">
+    <a href="{{verificationUrl}}"
+        style="background-color: #c30303; padding: 10px 20px; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; font-size: 16px;">Verify
+        Your Email</a>
+</p>
+
+<p style="font-size: 18px; animation: fadeIn 3.5s ease;">If you have any questions or need assistance, feel free to
+    reach out to our support team at <a href="mailto:support@hyperlocal.app">support@hyperlocal.app</a>.</p>
+
+<p style="font-size: 18px; animation: fadeIn 4s ease;">Thanks,</p>
+<p style="font-size: 18px; animation: fadeIn 4.5s ease;">The Hyperlocal Team</p>
+
+<!-- Keyframes for animations -->
+<style>
+    @keyframes fadeIn {
+        0% {
+            opacity: 0;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes scaleIn {
+        0% {
+            transform: scale(0.8);
+            opacity: 0;
+        }
+
+        100% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
+</style>

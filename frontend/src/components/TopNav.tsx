@@ -4,7 +4,7 @@ import { checkLocationPermission } from "@lib/utils";
 
 import { IconMoon, IconBrightnessDown } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
-import { Toaster, toaster } from "@components/ui/toaster"
+// import { Toaster, toaster } from "@components/ui/toaster"
 
 
 
@@ -31,7 +31,7 @@ export function TopNav() {
     return (
         <nav className="flex justify-between items-center w-full px-4 py-2 mx-auto bg-white dark:bg-black rounded-md lg:px-8">
             {/* <div className="container flex flex-wrap items-center text-slate-800"> */}
-            <Toaster />
+            {/* <Toaster /> */}
             <a href="/" className="mr-4 block cursor-pointer py-1.5 text-base text-slate-800 font-semibold">
                 <img src={logo} alt="hyperlocal" className=" max-w-14" />
             </a>

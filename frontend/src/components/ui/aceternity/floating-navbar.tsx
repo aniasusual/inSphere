@@ -13,6 +13,10 @@ import { IconHome } from "@tabler/icons-react";
 import logo from "@assets/hyperlocalNobg.png"
 import { LuRadar } from "react-icons/lu";
 import { CiSearch } from "react-icons/ci";
+import { useSelector } from "react-redux";
+import { RootState } from "store";
+import { Avatar } from "@material-tailwind/react";
+
 
 
 
@@ -68,6 +72,12 @@ export const FloatingNav = ({
         },
     ];
 
+
+    const { isAuthenticated, user } = useSelector((state: RootState) => state.user);
+
+
+
+
     return (
         <AnimatePresence mode="wait">
             <motion.div
@@ -103,14 +113,23 @@ export const FloatingNav = ({
                         <span className="hidden sm:block text-sm">{navItem.name}</span>
                     </Link>
                 ))}
-                <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full !mx-2">
-                    <Link to={"/login"}><span>Login</span></Link>
-                    <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
-                </button>
-                <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full !mx-0">
-                    <Link to={"/register"}><span>Register</span></Link>
-                    <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent h-px" />
-                </button>
+                {isAuthenticated ? (
+                    <div className="">
+                        <Avatar src="https://docs.material-tailwind.com/img/face-2.jpg" alt="avatar" />
+                    </div>
+                ) : (
+
+                    <div>
+                        <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full !mx-2">
+                            <Link to={"/login"}><span>Login</span></Link>
+                            <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
+                        </button>
+                        <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full !mx-0">
+                            <Link to={"/register"}><span>Register</span></Link>
+                            <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent h-px" />
+                        </button>
+                    </div>
+                )}
 
             </motion.div>
         </AnimatePresence>

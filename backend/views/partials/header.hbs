@@ -1,0 +1,41 @@
+<!-- header.hbs -->
+<header style="background-color: #050101; padding: 20px; text-align: center; color: white; position: relative;">
+    <!-- Logo with animation -->
+    <img src="https://res.cloudinary.com/dzgn0vraq/image/upload/v1734723300/hyperlocalNobg_ch9ir1.png" alt="Hyperlocal Logo"
+        style="max-width: 120px; animation: fadeIn 2s ease;">
+
+    <h1 style="margin-top: 10px; animation: slideIn 1.5s ease; color: #fff;">Welcome to Hyperlocal!</h1>
+    <p style="text-align:center; font-size: 18px; animation: fadeIn 3s ease; color: #fff;">Your community, your connection, right where you
+        are.</p>
+    <nav>
+        <a href="https://hyperlocal.app"
+            style="color: white; margin-right: 15px; text-decoration: none; font-weight: bold;">Home</a>
+        <a href="https://hyperlocal.app/community"
+            style="color: white; text-decoration: none; font-weight: bold;">Explore Communities</a>
+    </nav>
+</header>
+
+<!-- Add some keyframe animations -->
+<style>
+    @keyframes fadeIn {
+        0% {
+            opacity: 0;
+        }
+
+        100% {
+            opacity: 1;
+        }
+    }
+
+    @keyframes slideIn {
+        0% {
+            transform: translateX(-100%);
+            opacity: 0;
+        }
+
+        100% {
+            transform: translateX(0);
+            opacity: 1;
+        }
+    }
+</style>
