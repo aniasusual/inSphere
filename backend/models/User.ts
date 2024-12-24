@@ -168,4 +168,4 @@ userSchema.pre("save", async function (next) {
 // User Model
 const userModel: Model<IUser> = mongoose.model<IUser>("User", userSchema);
 
-export default userModel;
+export { userModel, IUser };

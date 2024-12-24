@@ -1,5 +1,5 @@
 import { NextFunction, Request, Response } from "express"
-import userModel from "../models/User";
+import { userModel } from "../models/User";
 import { ErrorHandler } from "../utils/errorHandler";
 import { sendEmail } from "../utils/apifeatures";
 import crypto from "crypto";

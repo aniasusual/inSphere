@@ -6,6 +6,6 @@ const userRouter = Router();
 
 userRouter.route("/register").post(registerUser);
 userRouter.route("/login").post(loginUser);
-userRouter.route("/load-user").post(isAuthenticated, getUserDetails);
+userRouter.route("/load-user").get(isAuthenticated, getUserDetails);
 
 export default userRouter;

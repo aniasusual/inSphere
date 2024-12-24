@@ -1,10 +1,7 @@
 import { Response } from "express";
+import { IUser } from "../models/User";
 
-interface User {
-    getJWTToken: () => string;
-}
-
-const sendToken = (user: User, statusCode: number, res: Response): void => {
+const sendToken = (user: IUser, statusCode: number, res: Response): void => {
     const token = user.getJWTToken();
 
     const options = {
@@ -19,6 +16,7 @@ const sendToken = (user: User, statusCode: number, res: Response): void => {
     res.status(statusCode).cookie("token", token, options).json({
         success: true,
         user,
+        token: `Bearer ${token}`
     });
 };
 
