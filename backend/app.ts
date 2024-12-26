@@ -4,6 +4,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import { errorMiddleware } from "./middleware/error";
 import userRouter from "./routers/userRouter";
+import "./config/passport";
 
 
 const app = express();
