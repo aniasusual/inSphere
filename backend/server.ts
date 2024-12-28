@@ -1,6 +1,10 @@
 import app from "./app";
 import connectDatabase from "./config/database";
 import dotenv from 'dotenv';
+// Config
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config({ path: 'backend/config/config.env' });
+}
 import cloudinary from "cloudinary";
 
 process.on("uncaughtException", (err: Error) => {
@@ -9,10 +13,6 @@ process.on("uncaughtException", (err: Error) => {
     process.exit(1);
 });
 
-// Config
-if (process.env.NODE_ENV !== 'production') {
-    dotenv.config({ path: 'backend/config/config.env' });
-}
 
 cloudinary.v2.config({
     cloud_name: process.env.CLOUDINARY_NAME as string,

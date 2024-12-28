@@ -1,6 +1,7 @@
 import { Post } from "@components/Post";
 import { IconListDetails } from '@tabler/icons-react';
 function Home() {
+
     return (
         <div className="flex justify-center w-full">
             <div className="">
