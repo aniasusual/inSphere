@@ -19,14 +19,16 @@ declare global {
 export const isAuthenticated = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
         const { token } = req.cookies;
+        const googleToken = req.cookies["connect.sid"];
 
-        if (!token) {
-            return next(new ErrorHandler("Please Login to access this resource", 401));
+        if (token) {
+            const decodedData = jwt.verify(token, process.env.JWT_SECRET as string) as DecodedData;
+            req.user = await userModel.findById(decodedData.id);
         }
 
-        const decodedData = jwt.verify(token, process.env.JWT_SECRET as string) as DecodedData;
-
-        req.user = await userModel.findById(decodedData.id);
+        if (!token && !googleToken) {
+            return next(new ErrorHandler("Please Login to access this resource", 401));
+        }
 
         next();
     } catch (error) {

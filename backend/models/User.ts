@@ -5,6 +5,7 @@ import validator from "validator";
 
 interface IUser extends Document {
     _id: mongoose.Types.ObjectId;
+    googleId: string;
     firstName?: string;
     lastName?: string;
     email: string;
@@ -36,6 +37,10 @@ interface IUser extends Document {
 // User Schema
 const userSchema: Schema<IUser> = new mongoose.Schema(
     {
+        googleId: {
+            type: String,
+            unique: true
+        },
         firstName: {
             type: String,
             required: [false, "Please Enter Your Name"],
@@ -48,18 +53,18 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
         },
         email: {
             type: String,
-            required: [true, "Please Enter Your Email"],
-            unique: true,
+            // required: [true, "Please Enter Your Email"],
+            // unique: true,
             validate: [validator.isEmail, "Please Enter a valid Email"],
         },
         username: {
             type: String,
-            required: [true, "Please Enter Your Username"],
+            // required: [true, "Please Enter Your Username"],
             unique: true,
         },
         password: {
             type: String,
-            required: [true, "Please Enter Your Password"],
+            // required: [true, "Please Enter Your Password"],
             minLength: [8, "Password should be greater than 8 characters"],
             select: false,
         },
