@@ -77,26 +77,26 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 
         }
 
-        if (!user.isVerified) {
-            const verificationToken = crypto.randomBytes(32).toString('hex');
+        // if (!user.isVerified) {
+        //     const verificationToken = crypto.randomBytes(32).toString('hex');
 
-            const verificationUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/verify-email/${verificationToken}`;
-            const message = `Please verify your email by clicking on the link: \n\n ${verificationUrl}`;
+        //     const verificationUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/verify-email/${verificationToken}`;
+        //     const message = `Please verify your email by clicking on the link: \n\n ${verificationUrl}`;
 
-            await sendEmail({
-                email: user.email,
-                subject: 'Email Verification',
-                message,
-            });
-            // return next(new ErrorHandler("Please verify your email to login", 401));
-            res.status(500).json({
-                status: "verification",
-                message: "You are not verified. Email Sent for Verification. Please verify 🙄"
-            })
+        //     await sendEmail({
+        //         email: user.email,
+        //         subject: 'Email Verification',
+        //         message,
+        //     });
+        //     // return next(new ErrorHandler("Please verify your email to login", 401));
+        //     res.status(500).json({
+        //         status: "verification",
+        //         message: "You are not verified. Email Sent for Verification. Please verify 🙄"
+        //     })
 
-        }
-        else
-            sendToken(user, 200, res);
+        // }
+        // else
+        sendToken(user, 200, res);
     } catch (error: unknown) {
         if (error instanceof Error) {
             res.status(500).json({
@@ -114,7 +114,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 
 export const getUserDetails = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const user = await userModel.findById(req.user?._id);
+        const user = req.user;
 
         res.status(200).json({
             status: "success",
@@ -136,3 +136,17 @@ export const getUserDetails = async (req: Request, res: Response, next: NextFunc
         }
     }
 }
+
+export const logout = (req: Request, res: Response, next: NextFunction) => {
+    req.session.destroy((err) => {
+        if (err) return next(err);
+        res.clearCookie("connect.sid", {
+            secure: process.env.NODE_ENV === "production" ? true : false,
+            httpOnly: process.env.NODE_ENV === "production" ? true : false,
+            sameSite: process.env.NODE_ENV === "production" ? "none" : false,
+        });
+        res.status(200).json({
+            message: "Logged Out",
+        });
+    });
+};

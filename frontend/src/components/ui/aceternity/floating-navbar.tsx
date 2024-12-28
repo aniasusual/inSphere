@@ -120,11 +120,11 @@ export const FloatingNav = ({
                 ) : (
 
                     <div>
-                        <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full !mx-2">
+                        <button className="border font-medium sm: text-xs relative border-black dark:border-white/[0.2] text-black dark:text-white px-2 py-2 rounded-full !mx-2">
                             <Link to={"/login"}><span>Login</span></Link>
                             <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
                         </button>
-                        <button className="border text-sm font-medium relative border-black dark:border-white/[0.2] text-black dark:text-white px-4 py-2 rounded-full !mx-0">
+                        <button className="border font-medium sm: text-xs relative border-black dark:border-white/[0.2] text-black dark:text-white px-2 py-2 rounded-full !mx-0">
                             <Link to={"/register"}><span>Register</span></Link>
                             <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent h-px" />
                         </button>

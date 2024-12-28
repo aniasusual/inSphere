@@ -18,6 +18,7 @@ import { toaster } from "@components/ui/toaster";
 import { Typography } from "@material-tailwind/react";
 
 import { Spinner } from "@material-tailwind/react";
+import { Link } from "react-router-dom";
 
 
 
@@ -105,7 +106,7 @@ export function SignupFormDemo() {
                     <img src={logo} alt="" className="w-16 h-auto mb-1 my-2 lg:w-24" />
                 </div>
 
-                <form className="my-8" onSubmit={handleSubmit}>
+                <form className="my-8 w-full" onSubmit={handleSubmit}>
                     <div className="flex flex-col md:flex-row space-y-2 md:space-y-0 md:space-x-2 mb-4">
                         <LabelInputContainer>
                             <Label htmlFor="firstName" className="text-white">First name</Label>
@@ -172,7 +173,8 @@ export function SignupFormDemo() {
 
 
                     <div className="bg-gradient-to-r from-transparent via-neutral-300 dark:via-neutral-700 to-transparent my-4 h-[1px] w-full" />
-
+                </form>
+                <Link to={`${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/google`} className="w-[100%]">
                     <div className="flex flex-col space-y-4">
                         <button
                             className=" relative group/btn flex space-x-2 items-center justify-start px-4 w-full text-black rounded-md h-10 font-medium shadow-input bg-gray-50 dark:bg-zinc-900 dark:shadow-[0px_0px_1px_1px_var(--neutral-800)]"
@@ -185,7 +187,7 @@ export function SignupFormDemo() {
                             <BottomGradient />
                         </button>
                     </div>
-                </form>
+                </Link>
             </div>
 
             <ShootingStars />

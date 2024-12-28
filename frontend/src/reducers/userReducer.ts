@@ -5,9 +5,6 @@ import {
     LOAD_USER_REQUEST,
     LOAD_USER_SUCCESS,
     LOAD_USER_FAIL,
-    USER_STATUS_REQUEST,
-    USER_STATUS_SUCCESS,
-    USER_STATUS_FAIL,
     LOGOUT_SUCCESS,
     LOGOUT_FAIL,
     CLEAR_ERRORS,
@@ -51,7 +48,7 @@ export const userReducer = createReducer(initialState, (builder) => {
         .addCase(LOAD_USER_SUCCESS, (state, action: Action) => {
             state.loading = false;
             state.isAuthenticated = true;
-            state.user = action.payload.user;
+            state.user = action.payload;
         })
         .addCase(LOAD_USER_FAIL, (state, action: Action) => {
             state.loading = false;

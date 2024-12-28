@@ -32,6 +32,8 @@ export const login = (username: string, password: string) =>
             );
 
             dispatch({ type: LOGIN_SUCCESS, payload: data.user });
+            sessionStorage.setItem('loginRedirect', 'true');
+
 
             if (data) {
                 if (data.status === "verification") {
@@ -41,7 +43,8 @@ export const login = (username: string, password: string) =>
                     })
                 }
                 toaster.create({
-                    description: `Welcome to hyperlocal ${data.user.firstName}`,
+                    title: `Welcome to hyperlocal ${data.user.firstName}`,
+                    description: "You have successfully logged in",
                     type: "success",
                 })
             }
@@ -61,16 +64,22 @@ export const loaduser = () => async (dispatch: Dispatch<LoginAction>) => {
     try {
         dispatch({ type: LOAD_USER_REQUEST });
 
-        const { data } = await axios.get(`${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/me`, { withCredentials: true });
+        const { data } = await axios.get(`${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/load-user`, { withCredentials: true });
 
         dispatch({ type: LOAD_USER_SUCCESS, payload: data.user });
 
-        toaster.create({
-            description: `User Loaded ${data.user.firstName}`,
-            type: "success",
-        })
+        if (data.status === 'success') {
+            toaster.create({
+                title: `Welcome to hyperlocal ${data.user.firstName}`,
+                description: "You have successfully logged in",
+                type: "success",
+            })
+        }
     } catch (error: any) {
         dispatch({ type: LOAD_USER_FAIL, payload: error.response.data.message });
-
+        // toaster.create({
+        //     description: error.response.data.message,
+        //     type: "error",
+        // })
     }
 }
