@@ -7,12 +7,27 @@ import MainLayout from '@components/layouts/MainLayout';
 import Home from '@pages/Home';
 import { Search } from '@pages/SearchPage';
 import { Golocal } from '@pages/GoLocal';
+import { Toaster } from "@components/ui/toaster"
+import { useEffect } from 'react';
+import { useDispatch } from 'react-redux';
+import { loaduser } from 'actions/userActions';
+import { AppDispatch } from 'store';
+
 
 
 function App() {
 
+  const dispatch = useDispatch<AppDispatch>();
+
+  useEffect(() => {
+    console.log("dispatching");
+    dispatch(loaduser());
+  }, [dispatch]);
+
   return (
     <BrowserRouter>
+      <Toaster />
+
       <Routes>
         <Route path="/" element={<MainLayout><Home /></MainLayout>} />
         <Route path="/register" element={<SignupFormDemo />} />

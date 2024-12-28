@@ -1,6 +1,6 @@
 "use client";
 import { CarouselDefault } from "@components/Carousels/carouselDefault";
-import { Avatar } from "./ui/avatar";
+import { Avatar } from "@material-tailwind/react";
 import { IconHeart } from '@tabler/icons-react';
 import { IconHeartFilled } from '@tabler/icons-react';
 import { IconMessage2 } from '@tabler/icons-react';
@@ -17,12 +17,7 @@ export function Post() {
                         )}
                         <div className="flex flex-row justify-between items-center text-left">
                             <div className="flex flex-row justify-center items-center w-fit text-left">
-                                <Avatar
-                                    name="Sage Adebayo"
-                                    src="https://bit.ly/sage-adebayo"
-                                    shape="rounded"
-                                    size="lg"
-                                />
+                                <Avatar src="https://docs.material-tailwind.com/img/face-2.jpg" alt="avatar" />
                                 <p className="text-xl p-5">
                                     {item.name}
                                     <div className="text-sm text-red-500">following</div>
