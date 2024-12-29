@@ -97,29 +97,49 @@ const BentoGrid = () => {
     const [selectedImage, setSelectedImage] = useState(null);
 
     const images = [
-        { url: "https://images.pexels.com/photos/2564841/pexels-photo-2564841.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3049394/pexels-photo-3049394.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3049394/pexels-photo-3049394.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3450887/pexels-photo-3450887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
         { url: "https://images.pexels.com/photos/951408/pexels-photo-951408.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/2564841/pexels-photo-2564841.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3049394/pexels-photo-3049394.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3049394/pexels-photo-3049394.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
         { url: "https://images.pexels.com/photos/3049394/pexels-photo-3049394.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
         { url: "https://images.pexels.com/photos/10230612/pexels-photo-10230612.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
         { url: "https://images.pexels.com/photos/3450887/pexels-photo-3450887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3450887/pexels-photo-3450887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3450887/pexels-photo-3450887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3450887/pexels-photo-3450887.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
+        { url: "https://images.pexels.com/photos/3049394/pexels-photo-3049394.jpeg?auto=compress&cs=tinysrgb&w=1260&h=750&dpr=2" },
     ];
 
-    const structuredImages = images.map((image, index) => ({
-        ...image,
-        gridClass:
-            index % 6 === 0
-                ? "col-span-2 row-span-2"
-                : "col-span-1 row-span-1",
-    }));
+    const structuredImages = images.map((image, index) => {
+        const setIndex = Math.floor(index / 6); // Determine which set of 6 images this belongs to
+        const withinSetIndex = index % 6; // Index within the current set of 6 images
+
+        return {
+            ...image,
+            gridClass:
+                (setIndex % 2 === 0) // Even set: big image on the left
+                    ? (withinSetIndex === 0
+                        ? "col-span-2 row-span-2"
+                        : "col-span-1 row-span-1")
+                    : (withinSetIndex === 0 // Odd set: big image on the right
+                        ? "col-span-1 row-span-1"
+                        : withinSetIndex === 1
+                            ? "col-span-2 row-span-2"
+                            : "col-span-1 row-span-1")
+        };
+    });
 
     return (
         <div className="relative">
-            <div className="grid grid-cols-3 grid-rows-2 gap-1 sm:gap-1 lg:gap-2 p-2 lg:max-w-lg mx-auto">
+            <div className="grid grid-cols-3 grid-rows-2 gap-1 sm:gap-1 lg:gap-2 p-2 lg:max-w-xl mx-auto">
                 {structuredImages.map((image, index) => (
                     <motion.div
                         key={index}
                         className={`relative overflow-hidden rounded-lg shadow-lg cursor-pointer ${image.gridClass}`}
-                        whileHover={{ scale: 1.05 }}
+                        whileHover={{ scale: 1.02 }}
                         onClick={() => setSelectedImage(image)}
                     >
                         <img

@@ -12,6 +12,7 @@
   "dependencies": {
     "@bradgarropy/next-link": "^1.1.0",
     "@chakra-ui/react": "^3.2.3",
+    "@docsearch/react": "^3.8.2",
     "@emotion/react": "^11.14.0",
     "@material-tailwind/react": "^2.1.10",
     "@radix-ui/react-collapsible": "^1.1.1",

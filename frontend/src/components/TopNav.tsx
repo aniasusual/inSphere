@@ -39,7 +39,7 @@ export function TopNav() {
             <div className="flex flex-row justify-center items-center">
 
                 {/* <Switch className="mr-5">Location</Switch> */}
-                <button className="text-sm font-small relative dark:border-white/[0.2] text-black dark:text-white px-2 py-2 mx-5 rounded-full">
+                <button className="text-sm font-small relative dark:border-white/[0.2] text-black dark:text-white px-2 py-2 mx-8 rounded-full">
                     <span>{darkMode ? (<IconBrightnessDown onClick={() => setdarkmode(false)} />) : (<IconMoon onClick={() => setdarkmode(true)} />)}</span>
                     <span className="absolute inset-x-0 w-1/2 mx-auto -bottom-px bg-gradient-to-r from-transparent via-blue-500 to-transparent  h-px" />
                 </button>
