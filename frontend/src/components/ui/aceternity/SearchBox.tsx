@@ -21,7 +21,7 @@ export function SearchBox() {
     return (
         <div className="h-[15rem] flex flex-col justify-center  items-center px-4">
             <h2 className="mb-5 sm:mb-10 text-lg text-center sm:text-3xl dark:text-white text-black">
-                Search communities, channels or users
+                Search channels, users or hashtags
             </h2>
             <PlaceholdersAndVanishInput
                 placeholders={placeholders}

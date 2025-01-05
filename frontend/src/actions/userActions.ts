@@ -77,9 +77,9 @@ export const loaduser = () => async (dispatch: Dispatch<LoginAction>) => {
         }
     } catch (error: any) {
         dispatch({ type: LOAD_USER_FAIL, payload: error.response.data.message });
-        // toaster.create({
-        //     description: error.response.data.message,
-        //     type: "error",
-        // })
+        toaster.create({
+            description: error.response.data.message,
+            type: "warning",
+        })
     }
 }
