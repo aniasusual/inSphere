@@ -12,6 +12,7 @@ if (process.env.NODE_ENV !== 'production') {
 import session from "express-session"
 import "./config/passport";
 import passport from "passport";
+import channelRouter from "./routers/channelRouter";
 
 
 const app = express();
@@ -41,6 +42,7 @@ app.use(cors({
 }));
 
 app.use("/api/v1/user", userRouter)
+app.use("/api/v1/channel", channelRouter)
 
 app.use(errorMiddleware)
 

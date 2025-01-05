@@ -69,7 +69,6 @@ export function Golocal() {
                                     {/* <SelectLabel></SelectLabel> */}
                                     <SelectItem value="users">Users</SelectItem>
                                     <SelectItem value="posts">Posts</SelectItem>
-                                    <SelectItem value="communities">Communities</SelectItem>
                                     <SelectItem value="channels">Channels</SelectItem>
                                 </SelectGroup>
                             </SelectContent>
@@ -95,7 +94,7 @@ export function Golocal() {
                         <CryptoCard />
                     </div>
                 )}
-                {selectedCategory === "communities" && (
+                {selectedCategory === "channels" && (
                     <div className="w-full">
                         <div className="flex justify-end p-4">
                             <HStack>
