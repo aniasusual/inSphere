@@ -20,7 +20,6 @@ function App() {
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
-    console.log("dispatching");
     dispatch(loaduser());
   }, [dispatch]);
 

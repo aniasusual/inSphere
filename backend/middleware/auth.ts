@@ -27,7 +27,7 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
         }
 
         if (!token && !googleToken) {
-            return next(new ErrorHandler("Please Login to access this resource", 401));
+            return next(new ErrorHandler("You are not logged in", 401));
         }
 
         next();

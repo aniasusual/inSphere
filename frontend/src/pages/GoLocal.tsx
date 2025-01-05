@@ -13,6 +13,12 @@ import {
     SelectValue,
 } from "@components/ui/select"
 import BentoGrid from "@components/Grid";
+import CryptoCard from "@components/UserCard";
+import { ExpandableCard } from "@components/ui/aceternity/ExpandableCard";
+
+import { HStack } from "@chakra-ui/react"
+import { Button } from "@components/ui/button"
+import { RiArrowRightLine } from "react-icons/ri"
 
 
 
@@ -23,9 +29,17 @@ export function Golocal() {
 
     const [sliderValue, setSliderValue] = useState(initialValue); // For Slider
 
+    const [selectedCategory, setSelectedCategory] = useState("users"); // For Select dropdown
+    const [listView, setlistView] = useState(false) //for expandable card list/grid view
+
+
     const handleValueChange = async (e) => {
         setValue(e.value);
         console.log(value);
+    };
+
+    const handleCategoryChange = (e) => {
+        setSelectedCategory(e); // Updates selected category
     };
 
 
@@ -46,17 +60,16 @@ export function Golocal() {
                         </span>
                     </div>
                     <div>
-                        <Select>
+                        <Select onValueChange={handleCategoryChange}>
                             <SelectTrigger className="w-[180px]">
-                                <SelectValue placeholder="Explore In" />
+                                <SelectValue placeholder="Explore" />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectGroup>
-                                    <SelectLabel></SelectLabel>
+                                    {/* <SelectLabel></SelectLabel> */}
                                     <SelectItem value="users">Users</SelectItem>
-                                    <SelectItem value="Posts">Posts</SelectItem>
-                                    <SelectItem value="Communities">Communities</SelectItem>
-                                    <SelectItem value="Channels">Channels</SelectItem>
+                                    <SelectItem value="posts">Posts</SelectItem>
+                                    <SelectItem value="channels">Channels</SelectItem>
                                 </SelectGroup>
                             </SelectContent>
                         </Select>
@@ -72,9 +85,34 @@ export function Golocal() {
                     />
                 </div>
             </div>
-            <div>
-                <BentoGrid />
+            <div className="w-full lg:w-[42%] md:w-[70%] mt-10">
+                {selectedCategory === "users" && (
+                    <div className="w-full gap-2 flex flex-col justify-center items-center">
+                        <CryptoCard />
+                        <CryptoCard />
+                        <CryptoCard />
+                        <CryptoCard />
+                    </div>
+                )}
+                {selectedCategory === "channels" && (
+                    <div className="w-full">
+                        <div className="flex justify-end p-4">
+                            <HStack>
+                                <Button colorPalette="red" variant="outline" onClick={() => setlistView(!listView)} className="text-sm p-4 outline-none">
+                                    {listView ? "List" : "Grid"} <RiArrowRightLine />
+                                </Button>
+                            </HStack>
+                        </div>
+                        <ExpandableCard listView={listView} />
+                    </div>
+                )}
+                {selectedCategory === "posts" && (
+                    <div className="w-full">
+                        <BentoGrid />
+                    </div>
+                )}
             </div>
+
         </div>
     );
 }
