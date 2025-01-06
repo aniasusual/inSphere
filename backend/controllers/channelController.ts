@@ -3,7 +3,9 @@ import { Channel } from "../models/Channel";
 
 export const createChannel = async (req: Request, res: Response): Promise<void> => {
     try {
-        const { name, description, createdBy, hashtags } = req.body;
+        const { name, description, isGlobal, hashtags, radius } = req.body;
+
+        const createdBy = req.user._id;
 
         // Validate input
         if (!name || !createdBy) {
@@ -16,7 +18,9 @@ export const createChannel = async (req: Request, res: Response): Promise<void> 
             name,
             description,
             createdBy,
-            hashtags: hashtags || [] // Default to an empty array if no hashtags are provided
+            isGlobal: isGlobal || false,
+            hashtags: hashtags || [],
+            visibilityRadius: radius || 0
         });
 
         // Save the channel to the database

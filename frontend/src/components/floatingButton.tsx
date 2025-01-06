@@ -1,8 +1,8 @@
 import React, { useState } from 'react';
-import { Plus, MessageSquarePlus, Users, X } from 'lucide-react';  // Importing X icon for close
+import { Plus, MessageSquarePlus, Users } from 'lucide-react';  // Importing X icon for close
 import ChannelCreationForm from './CreateChannel';
 import { XCircle } from 'lucide-react'; // Import the XCircle icon
-import PostCreationForm from './ui/CreatePost';
+import PostCreationForm from './CreatePost';
 
 const FloatingActionMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -39,9 +39,9 @@ const FloatingActionMenu = () => {
     };
 
     return (
-        <div className="fixed bottom-6 left-6 z-50">
+        <div className="fixed bottom-10 left-6 z-20 ">
             {/* Menu Items */}
-            <div className={`flex flex-col-reverse justify-between gap-2 mb-4 transition-all duration-200 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none'}`}>
+            <div className={`flex flex-col-reverse justify-between gap-2 mb-4 transition-all duration-200 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-10 pointer-events-none w-0 h-0'}`}>
                 {menuItems.map((item) => (
                     <button
                         key={item.id}
@@ -84,7 +84,7 @@ const FloatingActionMenu = () => {
                     className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 backdrop"
                     onClick={handleBackdropClick} // Handle backdrop click
                 >
-                    <div className="relative p-6 rounded-lg lg:w-[50%] w-[100%]">
+                    <div className="relative p-6 rounded-lg lg:w-[50%] w-[100%] z-50">
                         {/* Close Button */}
                         <button
                             onClick={closeModal}
