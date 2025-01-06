@@ -12,7 +12,8 @@ import {
     ChevronLeft,
     ChevronRight,
     Search,
-    ChevronDown
+    ChevronDown,
+    Hash
 } from 'lucide-react';
 
 interface Channel {
@@ -25,10 +26,10 @@ interface PostFormData {
     content: string;
     channelId: string;
     images: File[];
+    hashtags: string[];
 }
 
 const sampleChannels: Channel[] = [
-    { id: 'general', name: 'General Post' },
     { id: '1', name: 'Local Events' },
     { id: '2', name: 'Community Discussions' },
     { id: '3', name: 'Buy & Sell' },
@@ -45,12 +46,14 @@ const PostCreationForm = () => {
         content: '',
         channelId: 'general',
         images: [],
+        hashtags: [],
     });
 
     const [showSuccess, setShowSuccess] = useState(false);
     const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isSelectOpen, setIsSelectOpen] = useState(false);
+    const [hashtagInput, setHashtagInput] = useState('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const selectRef = useRef<HTMLDivElement>(null);
 
@@ -89,6 +92,30 @@ const PostCreationForm = () => {
         setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
     };
 
+    const handleAddHashtag = (e: React.KeyboardEvent<HTMLInputElement>) => {
+        if (e.key === 'Enter' && hashtagInput.trim()) {
+            e.preventDefault();
+            const newTag = hashtagInput.trim().startsWith('#')
+                ? hashtagInput.trim()
+                : `#${hashtagInput.trim()}`;
+
+            if (!formData.hashtags.includes(newTag)) {
+                setFormData({
+                    ...formData,
+                    hashtags: [...formData.hashtags, newTag],
+                });
+            }
+            setHashtagInput('');
+        }
+    };
+
+    const removeHashtag = (tagToRemove: string) => {
+        setFormData({
+            ...formData,
+            hashtags: formData.hashtags.filter(tag => tag !== tagToRemove),
+        });
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         setShowSuccess(true);
@@ -116,7 +143,7 @@ const PostCreationForm = () => {
     const selectedChannel = sampleChannels.find(channel => channel.id === formData.channelId);
 
     return (
-        <div className="w-full max-w-2xl mx-auto p-2 sm:p-4 space-y-4 sm:space-y-6">
+        <div className="w-full max-w-2xl mx-auto p-2 sm:p-4 space-y-4 sm:space-y-6 z-20">
             {showSuccess && (
                 <Alert className="bg-green-500/10 border-green-500 text-green-500 animate-in slide-in-from-top duration-300">
                     <AlertDescription>
@@ -163,6 +190,19 @@ const PostCreationForm = () => {
                                             </div>
                                         </div>
                                         <div className="max-h-48 overflow-y-auto">
+                                            <div
+                                                key="general"
+                                                className={`p-2 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors
+                                                              ${formData.channelId === "general" ? 'bg-blue-50 dark:bg-blue-900/50' : ''}`}
+                                                onClick={() => {
+                                                    setFormData({ ...formData, channelId: "general" });
+                                                    setIsSelectOpen(false);
+                                                    setSearchTerm('');
+                                                }}
+                                            >
+                                                General Post
+                                            </div>
+                                            <hr className="border-t border-gray-200 dark:border-gray-700 my-1" />
                                             {filteredChannels.map(channel => (
                                                 <div
                                                     key={channel.id}
@@ -205,6 +245,41 @@ const PostCreationForm = () => {
                                 className="min-h-[120px] sm:min-h-[150px] transition-all duration-200 focus:scale-[1.01]"
                                 required
                             />
+                        </div>
+
+                        {/* Hashtags Section */}
+                        <div className="space-y-2">
+                            <Label htmlFor="hashtags">Hashtags</Label>
+                            <div className="relative">
+                                <Hash className="absolute left-2 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+                                <Input
+                                    id="hashtags"
+                                    placeholder="Add hashtags and press Enter..."
+                                    value={hashtagInput}
+                                    onChange={(e) => setHashtagInput(e.target.value)}
+                                    onKeyDown={handleAddHashtag}
+                                    className="pl-9 transition-all duration-200 focus:scale-[1.01]"
+                                />
+                            </div>
+                            {formData.hashtags.length > 0 && (
+                                <div className="flex flex-wrap gap-2 mt-2">
+                                    {formData.hashtags.map((tag) => (
+                                        <span
+                                            key={tag}
+                                            className="inline-flex items-center gap-1 px-3 py-1 bg-primary/10 text-primary rounded-full text-sm group hover:bg-primary/20 transition-colors"
+                                        >
+                                            {tag}
+                                            <button
+                                                type="button"
+                                                onClick={() => removeHashtag(tag)}
+                                                className="opacity-0 group-hover:opacity-100 transition-opacity"
+                                            >
+                                                <X className="h-4 w-4" />
+                                            </button>
+                                        </span>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         <div className="space-y-4">

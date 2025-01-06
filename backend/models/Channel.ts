@@ -6,6 +6,8 @@ export interface IChannel extends Document {
     description?: string;
     createdBy: Schema.Types.ObjectId;
     members: Schema.Types.ObjectId[];
+    isGlobal: boolean;
+    visibilityRadius: number;
     posts: Schema.Types.ObjectId[];
     chat?: Schema.Types.ObjectId;
     hashtags: string[];
@@ -37,6 +39,10 @@ const channelSchema = new Schema<IChannel>(
                 ref: "User"
             }
         ],
+        isGlobal: {
+            type: Boolean,
+            default: false
+        },
         posts: [
             {
                 type: Schema.Types.ObjectId,
@@ -53,7 +59,11 @@ const channelSchema = new Schema<IChannel>(
                 trim: true,
                 lowercase: true
             }
-        ]
+        ],
+        visibilityRadius: {
+            type: Number,
+            default: 1
+        }
     },
     {
         timestamps: true
