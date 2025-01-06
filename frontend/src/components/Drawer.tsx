@@ -19,7 +19,7 @@ export const Drawer = () => {
         <DrawerRoot>
             <DrawerBackdrop />
             <DrawerTrigger asChild>
-                <Button variant="outline" size="sm" className="fixed right-6 z-10">
+                <Button variant="outline" size="sm" className="fixed right-6 z-20">
                     <IconMenu stroke={3} />
                 </Button>
             </DrawerTrigger>
