@@ -101,7 +101,7 @@ const ChannelCreationForm = () => {
     };
 
     return (
-        <div className="w-full mx-auto p-4 space-y-6 overflow-x-auto h-[700px]">
+        <div className="w-full mx-auto p-4 space-y-6 overflow-x-auto h-[calc(100vh-8rem)]">
             {showSuccess && (
                 <Alert className="bg-green-500/10 border-green-500 text-green-500 animate-in slide-in-from-top duration-300">
                     <AlertDescription>

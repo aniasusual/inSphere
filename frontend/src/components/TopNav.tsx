@@ -24,9 +24,9 @@ export function TopNav() {
         }
     }, [darkMode]);
 
-    useEffect(() => {
-        checkLocationPermission();
-    }, [])
+    // useEffect(() => {
+    //     checkLocationPermission();
+    // }, [])
 
     return (
         <nav className="flex justify-between items-center w-full px-4 py-2 mx-auto bg-white dark:bg-black rounded-md lg:px-8">
