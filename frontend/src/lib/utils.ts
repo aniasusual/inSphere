@@ -49,35 +49,60 @@ export async function checkLocationPermission() {
   });
 }
 
+const options: PositionOptions = {
+  enableHighAccuracy: true,
+  timeout: 10000,
+};
 
-
-export const fetchCoords = async (options) => {
+export const fetchCoords = async (): Promise<(() => void) | undefined> => {
   try {
-    const watchId = await new Promise((resolve, reject) => {
-      const successCallback = (position) => {
+
+    if (sessionStorage.getItem("locationEnabled") !== "true") {
+      toaster.create({
+        title: `Please give location permission from browser`,
+        description: `Location permission denied from browser`,
+        type: "warning",
+      })
+      return undefined;
+    }
+
+    const watchId = await new Promise<number>((resolve, reject) => {
+      const successCallback = (position: GeolocationPosition) => {
         const { latitude, longitude } = position.coords;
-        console.log("Coordinates fetched successfully", { latitude, longitude });
-        localStorage.setItem('userCoordinates', JSON.stringify({ latitude, longitude }));
-        resolve(position);
+        // console.log("Coordinates fetched successfully", { latitude, longitude });
+        localStorage.setItem(
+          "userCoordinates",
+          JSON.stringify({ latitude, longitude })
+        );
+
+        // toaster.create({
+        //   title: `Location tracking successfully started`,
+        //   description: `Location updated: (${latitude}, ${longitude})`,
+        //   type: "success",
+        // })
+
+        resolve(position.timestamp);
       };
 
-      const errorCallback = (error) => {
-        console.log("Error occurred while fetching user location", error);
+      const errorCallback = (error: GeolocationPositionError) => {
+        console.error("Error occurred while fetching user location", error);
         reject(error);
       };
 
-      // Start watching position with provided options
-      // const id = navigator.geolocation.watchPosition(successCallback, errorCallback, options);
-      const id = navigator.geolocation.getCurrentPosition(successCallback, errorCallback, options);
-
-      // Resolve the promise with the watchId
-      resolve(id);
+      // Start watching the user's position
+      const id = navigator.geolocation.watchPosition(
+        successCallback,
+        errorCallback,
+        options
+      );
+      resolve(id); // Resolve with the watchId
     });
 
-    // Return a cleanup function to clear the watcher when component unmounts
+    // Return a cleanup function to clear the watcher
     return () => navigator.geolocation.clearWatch(watchId);
   } catch (error) {
-    console.log("Failed to fetch user location", error);
+    console.error("Failed to fetch user location", error);
+    return undefined; // Return undefined in case of an error
   }
 };
 

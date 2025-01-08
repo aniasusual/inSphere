@@ -152,7 +152,7 @@ const PostCreationForm = () => {
                 </Alert>
             )}
 
-            <Card className="transition-all duration-300 hover:shadow-lg backdrop-blur-sm h-[700px] overflow-y-auto">
+            <Card className="transition-all duration-300 hover:shadow-lg backdrop-blur-sm h-[calc(100vh-8rem)] overflow-y-auto">
                 <CardHeader className="space-y-1 p-4 sm:p-6">
                     <CardTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
                         <MessageSquare className="h-5 w-5 sm:h-6 sm:w-6" />
