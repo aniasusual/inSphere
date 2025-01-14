@@ -16,8 +16,7 @@ import { CiSearch } from "react-icons/ci";
 import { useSelector } from "react-redux";
 import { RootState } from "store";
 import { Avatar } from "@material-tailwind/react";
-
-
+import { IconClipboard } from '@tabler/icons-react';
 
 
 export const FloatingNav = ({
@@ -69,6 +68,11 @@ export const FloatingNav = ({
             name: "Search",
             link: "/search",
             icon: <CiSearch size={27} />,
+        },
+        {
+            name: "Notifications",
+            link: "/notifications",
+            icon: <IconClipboard stroke={1} />,
         },
     ];
 

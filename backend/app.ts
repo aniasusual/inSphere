@@ -13,6 +13,7 @@ import session from "express-session"
 import "./config/passport";
 import passport from "passport";
 import channelRouter from "./routers/channelRouter";
+import postRouter from "./routers/postRouter";
 
 
 const app = express();
@@ -43,6 +44,7 @@ app.use(cors({
 
 app.use("/api/v1/user", userRouter)
 app.use("/api/v1/channel", channelRouter)
+app.use("/api/v1/post", postRouter)
 
 app.use(errorMiddleware)
 
