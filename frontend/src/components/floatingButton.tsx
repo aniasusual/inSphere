@@ -3,6 +3,7 @@ import { Plus, MessageSquarePlus, Users } from 'lucide-react';  // Importing X i
 import ChannelCreationForm from './CreateChannel';
 import { XCircle } from 'lucide-react'; // Import the XCircle icon
 import PostCreationForm from './CreatePost';
+import CreateJam from './createJam';
 
 const FloatingActionMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
@@ -86,7 +87,7 @@ const FloatingActionMenu = () => {
             </button>
 
             {/* Modal for Create Channel and Create Post */}
-            {(showCreateChannel || showCreatePost) && (
+            {(showCreateChannel || showCreatePost || showCreateJam) && (
                 <div
                     className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50 backdrop"
                     onClick={handleBackdropClick} // Handle backdrop click
@@ -103,6 +104,7 @@ const FloatingActionMenu = () => {
                         {/* Show appropriate form */}
                         {showCreateChannel && <ChannelCreationForm />}
                         {showCreatePost && <PostCreationForm />}
+                        {showCreateJam && <CreateJam />}
                     </div>
                 </div>
             )}
