@@ -183,11 +183,18 @@ const ChannelCreationForm = () => {
 
                         {/* Global Toggle */}
                         <div className="flex items-center justify-between p-4 bg-secondary/50 rounded-lg">
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-4">
                                 <Globe className="h-5 w-5" />
-                                <div>
-                                    <Label>Global Channel</Label>
-                                    <p className="text-sm text-muted-foreground">Make this channel visible worldwide</p>
+                                <div className='text-left'>
+                                    <Label>Private Channel</Label>
+                                    <p className="text-sm text-muted-foreground">Make this channel private</p>
+                                    {formData.isGlobal ? (
+                                        <span className="text-xs text-muted-foreground text-red-700">Admin permission needed to join the channel</span>
+
+                                    ) : (
+                                        <span className="text-xs text-muted-foreground text-red-700">Anyone can join the channel</span>
+
+                                    )}
                                 </div>
                             </div>
                             <Switch
@@ -198,26 +205,26 @@ const ChannelCreationForm = () => {
                         </div>
 
                         {/* Radius Slider - Only shown if not global */}
-                        {!formData.isGlobal && (
-                            <div className="space-y-4 animate-in slide-in-from-top duration-300">
-                                <div className="flex items-center gap-2">
-                                    <MapPin className="h-5 w-5" />
-                                    <Label>Visibility Radius: {formData.radius} km</Label>
-                                </div>
-                                <Slider
-                                    value={[formData.radius]}
-                                    onValueChange={([value]) => setFormData({ ...formData, radius: value })}
-                                    max={4}
-                                    min={0}
-                                    step={0.1}
-                                    defaultValue={[1]}
-                                    className="transition-all duration-200"
-                                />
-                                <p className="text-sm text-muted-foreground">
-                                    Users within {formData.radius}km will see this channel as "live"
-                                </p>
+                        {/* {!formData.isGlobal && ( */}
+                        {/* <div className="space-y-4 animate-in slide-in-from-top duration-300">
+                            <div className="flex items-center gap-2">
+                                <MapPin className="h-5 w-5" />
+                                <Label>Visibility Radius: {formData.radius} km</Label>
                             </div>
-                        )}
+                            <Slider
+                                value={[formData.radius]}
+                                onValueChange={([value]) => setFormData({ ...formData, radius: value })}
+                                max={4}
+                                min={0}
+                                step={0.1}
+                                defaultValue={[1]}
+                                className="transition-all duration-200"
+                            />
+                            <p className="text-sm text-muted-foreground">
+                                Users within {formData.radius}km will see this channel as "live"
+                            </p>
+                        </div> */}
+                        {/* )} */}
 
                         {/* Submit Button */}
                         <Button

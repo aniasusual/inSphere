@@ -8,6 +8,7 @@ const FloatingActionMenu = () => {
     const [isOpen, setIsOpen] = useState(false);
     const [showCreateChannel, setShowCreateChannel] = useState(false);
     const [showCreatePost, setShowCreatePost] = useState(false);
+    const [showCreateJam, setShowCreateJam] = useState(false);
 
     const menuItems = [
         {
@@ -21,6 +22,12 @@ const FloatingActionMenu = () => {
             label: 'Create New Post',
             icon: <MessageSquarePlus className="h-5 w-5" />,
             onClick: () => setShowCreatePost(true)
+        },
+        {
+            id: 'jam',
+            label: 'Create New Jam',
+            icon: <MessageSquarePlus className="h-5 w-5" />,
+            onClick: () => setShowCreateJam(true)
         }
     ];
 

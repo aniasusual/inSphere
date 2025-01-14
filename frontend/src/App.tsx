@@ -50,7 +50,7 @@ function App() {
         stopTracking();
       }
     };
-  }, [stopTracking]);
+  }, []);
 
   // Handler to manually stop tracking
   const handleStopTracking = () => {

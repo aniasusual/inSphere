@@ -55,6 +55,7 @@ const options: PositionOptions = {
 };
 
 export const fetchCoords = async (): Promise<(() => void) | undefined> => {
+
   try {
 
     if (sessionStorage.getItem("locationEnabled") !== "true") {

@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@components/ui/shadcn/card";
 import { Label } from "@components/ui/shadcn/label";
 import { Input } from "@components/ui/shadcn/input";
@@ -13,20 +13,36 @@ import {
     ChevronRight,
     Search,
     ChevronDown,
-    Hash
+    Hash,
+    Lock,
+    Globe
 } from 'lucide-react';
+import axios from 'axios';
 
 interface Channel {
     id: string;
     name: string;
 }
+interface Location {
+    type: 'Point';
+    coordinates: [number, number];
+}
+
 
 interface PostFormData {
     title: string;
     content: string;
     channelId: string;
-    images: File[];
+    mediaFiles: File[];
     hashtags: string[];
+    isPrivate: boolean;
+    location: Location;
+
+}
+
+interface MediaPreview {
+    url: string;
+    type: 'image' | 'video';
 }
 
 const sampleChannels: Channel[] = [
@@ -40,24 +56,33 @@ const sampleChannels: Channel[] = [
     { id: '8', name: 'Arts & Culture' },
 ];
 
+const MAX_FILE_SIZE = 100 * 1024 * 1024;
+const ALLOWED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+const ALLOWED_VIDEO_TYPES = ['video/mp4', 'video/webm', 'video/quicktime'];
+
 const PostCreationForm = () => {
     const [formData, setFormData] = useState<PostFormData>({
         title: '',
         content: '',
         channelId: 'general',
-        images: [],
+        mediaFiles: [],
         hashtags: [],
+        isPrivate: false,
+        location: {
+            type: 'Point',
+            coordinates: [0, 0]
+        }
     });
 
-    const [showSuccess, setShowSuccess] = useState(false);
-    const [imagePreviewUrls, setImagePreviewUrls] = useState<string[]>([]);
+    const [mediaPreviews, setMediaPreviews] = useState<MediaPreview[]>([]);
     const [searchTerm, setSearchTerm] = useState('');
     const [isSelectOpen, setIsSelectOpen] = useState(false);
     const [hashtagInput, setHashtagInput] = useState('');
+    const [uploadError, setUploadError] = useState<string>('');
     const scrollContainerRef = useRef<HTMLDivElement>(null);
     const selectRef = useRef<HTMLDivElement>(null);
 
-    React.useEffect(() => {
+    useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {
             if (selectRef.current && !selectRef.current.contains(event.target as Node)) {
                 setIsSelectOpen(false);
@@ -68,28 +93,56 @@ const PostCreationForm = () => {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
-    const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const validateFile = (file: File): boolean => {
+        if (file.size > MAX_FILE_SIZE) {
+            setUploadError('File size should not exceed 100MB');
+            return false;
+        }
+
+        const isImage = ALLOWED_IMAGE_TYPES.includes(file.type);
+        const isVideo = ALLOWED_VIDEO_TYPES.includes(file.type);
+
+        if (!isImage && !isVideo) {
+            setUploadError('Invalid file type. Please upload images (JPG, PNG, GIF, WEBP) or videos (MP4, WEBM, MOV)');
+            return false;
+        }
+
+        return true;
+    };
+
+    const handleMediaUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
         const files = Array.from(e.target.files || []);
-        if (files.length + formData.images.length > 10) {
-            alert('Maximum 10 images allowed');
+        setUploadError('');
+
+        if (files.length + formData.mediaFiles.length > 10) {
+            setUploadError('Maximum 10 media files allowed');
             return;
         }
 
+        const validFiles = files.filter(validateFile);
+        if (validFiles.length === 0) return;
+
         setFormData(prev => ({
             ...prev,
-            images: [...prev.images, ...files]
+            mediaFiles: [...prev.mediaFiles, ...validFiles]
         }));
 
-        const newPreviewUrls = files.map(file => URL.createObjectURL(file));
-        setImagePreviewUrls(prev => [...prev, ...newPreviewUrls]);
+        const newPreviews: MediaPreview[] = validFiles.map(file => ({
+            url: URL.createObjectURL(file),
+            type: file.type.startsWith('image/') ? 'image' : 'video'
+        }));
+
+        setMediaPreviews(prev => [...prev, ...newPreviews]);
     };
 
-    const removeImage = (index: number) => {
+    const removeMedia = (index: number) => {
+        URL.revokeObjectURL(mediaPreviews[index].url);
+
         setFormData(prev => ({
             ...prev,
-            images: prev.images.filter((_, i) => i !== index)
+            mediaFiles: prev.mediaFiles.filter((_, i) => i !== index)
         }));
-        setImagePreviewUrls(prev => prev.filter((_, i) => i !== index));
+        setMediaPreviews(prev => prev.filter((_, i) => i !== index));
     };
 
     const handleAddHashtag = (e: React.KeyboardEvent<HTMLInputElement>) => {
@@ -116,10 +169,46 @@ const PostCreationForm = () => {
         });
     };
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const togglePrivacy = () => {
+        setFormData(prev => ({
+            ...prev,
+            isPrivate: !prev.isPrivate
+        }));
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 3000);
+
+        const formDataToSend = new FormData();
+        formDataToSend.append('title', formData.title);
+        formDataToSend.append('description', formData.content);
+        formDataToSend.append('channelId', formData.channelId);
+        formDataToSend.append('isPrivate', String(formData.isPrivate));
+        formDataToSend.append('hashtags', JSON.stringify(formData.hashtags));
+        formDataToSend.append('location', JSON.stringify(formData.location));
+
+        formData.mediaFiles.forEach((file, index) => {
+            formDataToSend.append(`mediaFiles`, file);
+        });
+
+        try {
+
+
+            const { data } = await axios.post(
+                `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/post/create-post`,
+                formDataToSend,
+                {
+                    headers: { "Content-Type": "multipart/form-data" },
+                    withCredentials: true,
+                }
+            );
+
+            console.log("data: ", data);
+        } catch (error) {
+
+            console.error("Error creating post:", error);
+            // Handle error (e.g., show error message)
+        }
     };
 
     const scroll = (direction: 'left' | 'right') => {
@@ -142,16 +231,52 @@ const PostCreationForm = () => {
 
     const selectedChannel = sampleChannels.find(channel => channel.id === formData.channelId);
 
+    const renderMediaPreview = (preview: MediaPreview, index: number) => {
+        return (
+            <div key={index} className="relative flex-none group">
+                {preview.type === 'image' ? (
+                    <img
+                        src={preview.url}
+                        alt={`Preview ${index + 1}`}
+                        className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg"
+                    />
+                ) : (
+                    <video
+                        src={preview.url}
+                        className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg"
+                        controls
+                    />
+                )}
+                <button
+                    type="button"
+                    onClick={() => removeMedia(index)}
+                    className="absolute top-2 right-2 p-1 bg-red-500 rounded-full 
+                             text-white opacity-0 group-hover:opacity-100 
+                             transition-opacity duration-200"
+                >
+                    <X className="h-4 w-4" />
+                </button>
+            </div>
+        );
+    };
+
+    useEffect(() => {
+        const storedLocation = localStorage.getItem('userCoordinates');
+        if (storedLocation) {
+            try {
+                const parsedLocation = JSON.parse(storedLocation);
+                setFormData(prev => ({
+                    ...prev,
+                    location: parsedLocation
+                }));
+            } catch (error) {
+                console.error('Error parsing stored location:', error);
+            }
+        }
+    }, []);
+
     return (
         <div className="w-full max-w-2xl mx-auto p-2 sm:p-4 space-y-4 sm:space-y-6 z-20">
-            {showSuccess && (
-                <Alert className="bg-green-500/10 border-green-500 text-green-500 animate-in slide-in-from-top duration-300">
-                    <AlertDescription>
-                        Post created successfully! It will appear in the selected channel.
-                    </AlertDescription>
-                </Alert>
-            )}
-
             <Card className="transition-all duration-300 hover:shadow-lg backdrop-blur-sm h-[calc(100vh-8rem)] overflow-y-auto">
                 <CardHeader className="space-y-1 p-4 sm:p-6">
                     <CardTitle className="text-xl sm:text-2xl font-bold flex items-center gap-2">
@@ -162,7 +287,28 @@ const PostCreationForm = () => {
 
                 <CardContent className="p-4 sm:p-6">
                     <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
-                        {/* Custom Channel Select */}
+                        {/* Privacy Toggle */}
+                        <div className="flex items-center justify-end space-x-2">
+                            <Button
+                                type="button"
+                                variant={formData.isPrivate ? "outline" : "default"}
+                                onClick={togglePrivacy}
+                                className="flex items-center gap-2"
+                            >
+                                {formData.isPrivate ? (
+                                    <>
+                                        <Lock className="h-4 w-4" />
+                                        Private
+                                    </>
+                                ) : (
+                                    <>
+                                        <Globe className="h-4 w-4" />
+                                        Public
+                                    </>
+                                )}
+                            </Button>
+                        </div>
+
                         <div className="space-y-2" ref={selectRef}>
                             <Label htmlFor="channel">Select Channel</Label>
                             <div className="relative">
@@ -282,8 +428,14 @@ const PostCreationForm = () => {
                             )}
                         </div>
 
+
                         <div className="space-y-4">
-                            <Label>Add Images (up to 10)</Label>
+                            <Label>Add media files (up to 10)</Label>
+                            {uploadError && (
+                                <Alert variant="destructive">
+                                    <AlertDescription>{uploadError}</AlertDescription>
+                                </Alert>
+                            )}
                             <div className="relative">
                                 <Button
                                     type="button"
@@ -308,35 +460,20 @@ const PostCreationForm = () => {
                                     className="flex overflow-x-auto space-x-4 px-0 sm:px-4 py-4 scrollbar-hide scroll-smooth"
                                     style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
                                 >
-                                    {imagePreviewUrls.map((url, index) => (
-                                        <div key={index} className="relative flex-none group">
-                                            <img
-                                                src={url}
-                                                alt={`Preview ${index + 1}`}
-                                                className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg"
-                                            />
-                                            <button
-                                                type="button"
-                                                onClick={() => removeImage(index)}
-                                                className="absolute top-2 right-2 p-1 bg-red-500 rounded-full 
-                                                         text-white opacity-0 group-hover:opacity-100 
-                                                         transition-opacity duration-200"
-                                            >
-                                                <X className="h-4 w-4" />
-                                            </button>
-                                        </div>
-                                    ))}
+                                    {mediaPreviews.map((preview, index) => renderMediaPreview(preview, index))}
 
-                                    {formData.images.length < 10 && (
+                                    {formData.mediaFiles.length < 10 && (
                                         <label className="flex-none border-2 border-dashed border-gray-300 rounded-lg 
                                                        w-24 h-24 sm:w-32 sm:h-32 flex flex-col items-center justify-center gap-2 
                                                        cursor-pointer hover:border-blue-500 transition-colors">
                                             <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-gray-400" />
-                                            <span className="text-xs sm:text-sm text-gray-500">Upload</span>
+                                            <span className="text-xs sm:text-sm text-gray-500 text-center">
+                                                Upload Image/Video
+                                            </span>
                                             <input
                                                 type="file"
-                                                accept="image/*"
-                                                onChange={handleImageUpload}
+                                                accept={[...ALLOWED_IMAGE_TYPES, ...ALLOWED_VIDEO_TYPES].join(',')}
+                                                onChange={handleMediaUpload}
                                                 className="hidden"
                                                 multiple
                                             />
