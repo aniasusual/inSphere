@@ -6,7 +6,7 @@ export interface IChannel extends Document {
     description?: string;
     createdBy: Schema.Types.ObjectId;
     members: Schema.Types.ObjectId[];
-    isGlobal: boolean;
+    isPrivate: boolean;
     visibilityRadius: number;
     posts: Schema.Types.ObjectId[];
     chat?: Schema.Types.ObjectId;
@@ -39,7 +39,7 @@ const channelSchema = new Schema<IChannel>(
                 ref: "User"
             }
         ],
-        isGlobal: {
+        isPrivate: {
             type: Boolean,
             default: false
         },
