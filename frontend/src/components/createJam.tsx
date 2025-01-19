@@ -19,8 +19,10 @@ interface JamFormData {
     newChannelName?: string;
     newChannelDescription?: string;
 }
-
-const CreateJam = () => {
+interface Props {
+    onClose: () => void;
+}
+const CreateJam = ({ onClose }: Props) => {
     // Mock data for channels - in real app would come from API/database
     const sampleChannels: Channel[] = [
         { id: '1', name: 'Music Lovers', description: 'General music discussion' },
@@ -28,7 +30,7 @@ const CreateJam = () => {
         { id: '3', name: 'Rock Band', description: 'Rock music fans' }
     ];
 
-    const [isOpen, setIsOpen] = useState(false);
+    // const [isOpen, setIsOpen] = useState(false);
     const [formData, setFormData] = useState<JamFormData>({
         title: '',
         description: '',
@@ -52,7 +54,7 @@ const CreateJam = () => {
                 maxParticipants: 10,
                 channelOption: 'existing'
             });
-            setIsOpen(false);
+            // setIsOpen(false);
         } catch (error) {
             console.error('Error creating jam:', error);
         }
@@ -84,19 +86,19 @@ const CreateJam = () => {
         mb-2 transition-colors duration-200
     `;
 
-    // Only render the modal if isOpen is true
-    if (!isOpen) {
-        return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 
-                         text-white p-4 rounded-full shadow-lg hover:shadow-xl 
-                         transition-all duration-300 transform hover:scale-105"
-            >
-                <Plus className="w-6 h-6" />
-            </button>
-        );
-    }
+    // // Only render the modal if isOpen is true
+    // if (!isOpen) {
+    //     return (
+    //         <button
+    //             onClick={() => setIsOpen(true)}
+    //             className="fixed bottom-6 right-6 bg-red-500 hover:bg-red-600 
+    //                      text-white p-4 rounded-full shadow-lg hover:shadow-xl 
+    //                      transition-all duration-300 transform hover:scale-105"
+    //         >
+    //             <Plus className="w-6 h-6" />
+    //         </button>
+    //     );
+    // }
 
     return (
         <motion.div
@@ -105,7 +107,7 @@ const CreateJam = () => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 flex items-center justify-center p-6 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-50"
         >
-            <Card className="w-full max-w-3xl">
+            <Card className="w-full max-w-3xl h-[calc(100vh-4rem)] overflow-y-auto">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -126,7 +128,7 @@ const CreateJam = () => {
                             </p>
                         </div>
                         <button
-                            onClick={() => setIsOpen(false)}
+                            onClick={onClose}
                             className="ml-auto p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-all duration-200"
                         >
                             <X className="w-6 h-6 text-gray-400 dark:text-gray-500" />
@@ -320,7 +322,7 @@ const CreateJam = () => {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setIsOpen(false)}
+                                onClick={onClose}
                                 className="flex-1 bg-gray-50 hover:bg-gray-100 
                                     dark:bg-gray-800 dark:hover:bg-gray-700
                                     text-gray-700 dark:text-gray-200 
