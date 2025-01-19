@@ -36,10 +36,11 @@ const FloatingActionMenu = () => {
     const closeModal = () => {
         setShowCreateChannel(false);
         setShowCreatePost(false);
+        setShowCreateJam(false);
     };
 
     // Function to handle clicks outside of the modal
-    const handleBackdropClick = (e) => {
+    const handleBackdropClick = (e: any) => {
         // Close the modal only if the user clicks on the backdrop (not the modal content)
         if (e.target.classList.contains('backdrop')) {
             closeModal();
@@ -102,9 +103,9 @@ const FloatingActionMenu = () => {
                         </button>
 
                         {/* Show appropriate form */}
-                        {showCreateChannel && <ChannelCreationForm />}
-                        {showCreatePost && <PostCreationForm />}
-                        {showCreateJam && <CreateJam />}
+                        {showCreateChannel && <ChannelCreationForm onClose={closeModal} />}
+                        {showCreatePost && <PostCreationForm onClose={closeModal} />}
+                        {showCreateJam && <CreateJam onClose={closeModal} />}
                     </div>
                 </div>
             )}
