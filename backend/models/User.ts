@@ -25,6 +25,7 @@ interface IUser extends Document {
         coordinates: [number, number];
     };
     fcmToken?: string;
+    authToken?: string;
     createdAt: Date;
     verificationToken?: string;
     isVerified: boolean;
@@ -117,6 +118,9 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
             },
         },
         fcmToken: {
+            type: String,
+        },
+        authToken: {
             type: String,
         },
         createdAt: {

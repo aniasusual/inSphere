@@ -96,6 +96,7 @@ export const loginUser = async (req: Request, res: Response, next: NextFunction)
 
         // }
         // else
+
         sendToken(user, 200, res);
     } catch (error: unknown) {
         if (error instanceof Error) {

@@ -1,6 +1,21 @@
 import { Post } from "@components/Post";
 import { IconListDetails } from '@tabler/icons-react';
+import { useEffect } from "react";
+import { useSocket } from "socket";
+
+
+
 function Home() {
+
+    const { socket } = useSocket();
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('connect', () => {
+                console.log('connected to socket');
+            });
+        }
+    }, [socket]);
 
     return (
         <div className="flex justify-center w-full">

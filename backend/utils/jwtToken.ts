@@ -1,8 +1,11 @@
 import { Response } from "express";
 import { IUser } from "../models/User";
 
-const sendToken = (user: IUser, statusCode: number, res: Response): void => {
+const sendToken = async (user: IUser, statusCode: number, res: Response): Promise<void> => {
     const token = user.getJWTToken();
+
+    user.authToken = token;
+    await user.save();
 
     const options = {
         expires: new Date(
@@ -16,7 +19,7 @@ const sendToken = (user: IUser, statusCode: number, res: Response): void => {
     res.status(statusCode).cookie("token", token, options).json({
         success: true,
         user,
-        token: `Bearer ${token}`
+        token
     });
 };
 
