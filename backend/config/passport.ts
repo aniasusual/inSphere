@@ -25,8 +25,15 @@ passport.use(
                     if (!user.googleId) {
                         // Link Google account with the existing user
                         user.googleId = profile.id;
-                        user.save();
+                        // user.save();
                     }
+
+                    const token = user.getJWTToken();
+
+                    user.authToken = token;
+                    await user.save();
+
+
                     return done(null, user); // Log the user in
                 } else {
                     // Create a new user if the email doesn't exist
@@ -36,6 +43,10 @@ passport.use(
                         googleId: profile.id,
                         // Other fields as necessary
                     });
+
+                    const token = user.getJWTToken();
+                    user.authToken = token;
+                    await user.save();
                     return done(null, user);
                 }
             } catch (error) {

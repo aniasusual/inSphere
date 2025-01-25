@@ -15,7 +15,7 @@ import { AppDispatch } from 'store';
 import ChannelPage from '@pages/Channel';
 import { checkLocationPermission, fetchCoords } from '@lib/utils';
 
-
+import { SocketProvider } from './socket'
 
 function App() {
 
@@ -72,20 +72,21 @@ function App() {
   };
 
   return (
-    <BrowserRouter>
-      <Toaster />
+    <SocketProvider>
+      <BrowserRouter>
+        <Toaster />
 
-      <Routes>
-        <Route path="/" element={<MainLayout><Home /></MainLayout>} />
-        <Route path="/register" element={<SignupFormDemo />} />
-        <Route path="/login" element={<LoginFormDemo />} />
-        <Route path="/search" element={<MainLayout><Search /></MainLayout>} />
-        <Route path="/go-local" element={<MainLayout><Golocal /></MainLayout>} />
-        <Route path="/channel/:id" element={<MainLayout><ChannelPage /></MainLayout>} />
-        {/* <Route path="/channel/:id" element={<ChannelPage />} /> */}
-      </Routes>
-    </BrowserRouter>
-
+        <Routes>
+          <Route path="/" element={<MainLayout><Home /></MainLayout>} />
+          <Route path="/register" element={<SignupFormDemo />} />
+          <Route path="/login" element={<LoginFormDemo />} />
+          <Route path="/search" element={<MainLayout><Search /></MainLayout>} />
+          <Route path="/go-local" element={<MainLayout><Golocal /></MainLayout>} />
+          <Route path="/channel/:id" element={<MainLayout><ChannelPage /></MainLayout>} />
+          {/* <Route path="/channel/:id" element={<ChannelPage />} /> */}
+        </Routes>
+      </BrowserRouter>
+    </SocketProvider>
   )
 }
 
