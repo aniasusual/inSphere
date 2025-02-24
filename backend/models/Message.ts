@@ -1,39 +1,40 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
+// Interface for the Message document
 export interface IMessage extends Document {
-    chat: mongoose.Types.ObjectId;
-    sender: mongoose.Types.ObjectId;
+    conversationId: mongoose.Types.ObjectId;
+    senderId: mongoose.Types.ObjectId;
     content: string;
-    contentType: 'text' | 'file' | 'image' | 'audio';
-    fileUrl?: string;
-    fileName?: string;
-    fileSize?: number;
+    contentType: 'text' | 'image' | 'file' | 'voice' | 'video' | 'location';
+    status: 'sent' | 'delivered' | 'read';
+    metadata?: {
+        fileUrl?: string;
+        fileSize?: number;
+        filetype?: string;
+        duration?: number;
+        location?: {
+            latitude: number;
+            longitude: number;
+        };
+    };
     replyTo?: mongoose.Types.ObjectId;
-    readBy: Array<{
-        user: mongoose.Types.ObjectId;
-        readAt: Date;
-    }>;
-    reactions: Array<{
-        user: mongoose.Types.ObjectId;
-        emoji: string;
-    }>;
-    attachments?: Array<{
-        public_id: string;
-        url: string;
-        mediaType: string;
-    }>;
-    isEdited: boolean;
-    isDeleted: boolean;
-    deliveredTo: mongoose.Types.ObjectId[];
+    reactions?: {
+        [emojiCode: string]: mongoose.Types.ObjectId[];
+    };
+    edited: boolean;
+    deleted: boolean;
+    createdAt: Date;
+    updatedAt: Date;
 }
 
-const MessageSchema = new Schema({
-    chat: {
+// Create the Mongoose Schema
+const MessageSchema: Schema = new Schema({
+    conversationId: {
         type: Schema.Types.ObjectId,
-        ref: 'Chat',
+        ref: 'Conversation',
         required: true
     },
-    sender: {
+    senderId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true
@@ -44,59 +45,55 @@ const MessageSchema = new Schema({
     },
     contentType: {
         type: String,
-        enum: ['text', 'file', 'image', 'audio'],
+        enum: ['text', 'image', 'file', 'voice', 'video', 'location'],
         default: 'text'
     },
-    fileUrl: String,
-    fileName: String,
-    fileSize: Number,
+    status: {
+        type: String,
+        enum: ['sent', 'delivered', 'read'],
+        default: 'sent'
+    },
+    metadata: {
+        fileUrl: String,
+        fileSize: Number,
+        filetype: String,
+        duration: Number,
+        location: {
+            latitude: Number,
+            longitude: Number
+        }
+    },
     replyTo: {
         type: Schema.Types.ObjectId,
-        ref: 'Message'
+        ref: 'Message',
+        default: null
     },
-    readBy: [{
-        user: {
+    reactions: {
+        type: Map,
+        of: [{
             type: Schema.Types.ObjectId,
             ref: 'User'
-        },
-        readAt: {
-            type: Date,
-            default: Date.now
-        }
-    }],
-    attachments: [
-        {
-            mediaType: { type: String },
-            public_id: { type: String },
-            url: { type: String },
-        },
-    ],
-    reactions: [{
-        user: {
-            type: Schema.Types.ObjectId,
-            ref: 'User'
-        },
-        emoji: String
-    }],
-    isEdited: {
+        }]
+    },
+    edited: {
         type: Boolean,
         default: false
     },
-    isDeleted: {
+    deleted: {
         type: Boolean,
         default: false
-    },
-    deliveredTo: [{
-        type: Schema.Types.ObjectId,
-        ref: 'User'
-    }]
+    }
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true }
 });
 
-// Create text index for search
+// Text index for message content
 MessageSchema.index({ content: 'text' });
 
+// Compound index for performance
+MessageSchema.index({ conversationId: 1, createdAt: -1 });
+
+// Create the model
 export const Message = mongoose.model<IMessage>('Message', MessageSchema);
