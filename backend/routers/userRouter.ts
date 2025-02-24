@@ -22,6 +22,7 @@ userRouter.get(
     passport.authenticate("google", {
         scope: ["email", "profile"],
     })
+
 );
 
 userRouter.get(
@@ -30,9 +31,8 @@ userRouter.get(
         scope: ["email", "profile"],
         successRedirect: process.env.FRONTEND_URL as string,
         failureRedirect: `${process.env.FRONTEND_URL}/login`,
-        failureMessage: true,
 
-    }),
+    })
 );
 
 

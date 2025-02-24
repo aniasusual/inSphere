@@ -31,6 +31,8 @@ export const login = (username: string, password: string) =>
                 config
             );
 
+            console.log("data: ", data);
+
             dispatch({ type: LOGIN_SUCCESS, payload: data.user });
             sessionStorage.setItem('loginRedirect', 'true');
 

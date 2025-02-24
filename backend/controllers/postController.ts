@@ -4,10 +4,7 @@ import { v2 as cloudinary } from 'cloudinary';
 
 export const createPost = async (req: Request, res: Response): Promise<void> => {
 
-    console.log("reaches here: ", req.body);
-
     try {
-
         const creator = req.user._id;
 
         const {
@@ -57,6 +54,7 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
 
         // Step 6: Respond with success
         res.status(201).json({
+            success: true,
             message: "Post created successfully.",
             post: savedPost,
         });
