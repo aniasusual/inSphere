@@ -22,6 +22,9 @@ cloudinary.v2.config({
     api_secret: process.env.CLOUDINARY_API_SECRET as string,
 });
 
+export const userSocketIDs = new Map();
+
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
@@ -64,6 +67,9 @@ io.use(async (socket, next) => {
 io.on('connection', (socket) => {
 
     const userId = socket.data.user?._id;
+
+    userSocketIDs.set(userId, socket.id);
+
 
     console.log(`User ${userId} connected`);
 

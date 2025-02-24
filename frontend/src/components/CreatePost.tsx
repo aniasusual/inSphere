@@ -520,6 +520,7 @@ import {
     Globe
 } from 'lucide-react';
 import axios from 'axios';
+import { toaster } from './ui/toaster';
 
 interface Channel {
     id: string;
@@ -709,10 +710,19 @@ const PostCreationForm = ({ onClose }: Props) => {
             );
 
             console.log("data: ", data);
-        } catch (error) {
 
-            console.error("Error creating post:", error);
-            // Handle error (e.g., show error message)
+            if (data.success) {
+                toaster.create({
+                    description: data.message,
+                    type: "success",
+                })
+            }
+        } catch (error: any) {
+
+            toaster.create({
+                description: error.response.data.message,
+                type: "error",
+            })
         }
     };
 
@@ -807,7 +817,7 @@ const PostCreationForm = ({ onClose }: Props) => {
             exit={{ opacity: 0 }}
             className="fixed inset-0 flex items-center justify-center p-6 bg-black/30 dark:bg-black/50 backdrop-blur-sm z-50"
         >
-            <Card className="w-full max-w-3xl h-[calc(100vh-4rem)] overflow-y-auto">
+            <Card className="w-full max-w-3xl max-h-[calc(100vh-4rem)] overflow-y-auto h-fit">
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}

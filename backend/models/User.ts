@@ -14,8 +14,26 @@ interface IUser extends Document {
     phoneNumber?: number;
     userPosts: mongoose.Types.ObjectId[];
     channelsFollowed: mongoose.Types.ObjectId[];
-    communitiesFollowed: mongoose.Types.ObjectId[];
     usersFollowed: mongoose.Types.ObjectId[];
+
+    preferences: {
+        theme: 'light' | 'dark';
+        notificationSettings: {
+            messageNotifications: boolean;
+            soundEnabled: boolean;
+            pushNotifications: boolean;
+        };
+        privacySettings: {
+            profileVisibility: 'public' | 'friends_only' | 'private';
+            lastSeenVisibility: 'all' | 'contacts' | 'none';
+        };
+    };
+
+    blockedUsers: string[];
+    reportCount: number;
+    status: 'online' | 'offline' | 'away' | 'do_not_disturb';
+    lastSeen: Date;
+
     avatar?: {
         public_id: string;
         url: string;
@@ -85,18 +103,49 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
                 ref: "Channel",
             },
         ],
-        communitiesFollowed: [
-            {
-                type: mongoose.Schema.Types.ObjectId,
-                ref: "Community",
-            },
-        ],
         usersFollowed: [
             {
                 type: mongoose.Schema.Types.ObjectId,
                 ref: "User",
             },
         ],
+        preferences: {
+            theme: {
+                type: String,
+                enum: ['light', 'dark'],
+                default: 'light'
+            },
+            notificationSettings: {
+                messageNotifications: {
+                    type: Boolean,
+                    default: true
+                },
+                soundEnabled: {
+                    type: Boolean,
+                    default: true
+                },
+                pushNotifications: {
+                    type: Boolean,
+                    default: true
+                }
+            },
+            privacySettings: {
+                profileVisibility: {
+                    type: String,
+                    enum: ['public', 'friends_only', 'private'],
+                    default: 'public'
+                },
+                lastSeenVisibility: {
+                    type: String,
+                    enum: ['all', 'contacts', 'none'],
+                    default: 'all'
+                }
+            }
+        },
+        blockedUsers: [{
+            type: Schema.Types.ObjectId,
+            ref: 'User'
+        }],
         avatar: {
             public_id: {
                 type: String,
@@ -144,6 +193,8 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
 
 // Index for geospatial queries
 userSchema.index({ location: "2dsphere" });
+
+userSchema.index({ username: 'text', email: 'text' });
 
 // JWT Token Method
 userSchema.methods.getJWTToken = function (): string {

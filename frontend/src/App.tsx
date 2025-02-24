@@ -16,6 +16,7 @@ import ChannelPage from '@pages/Channel';
 import { checkLocationPermission, fetchCoords } from '@lib/utils';
 
 import { SocketProvider } from './socket'
+import ChatPage from '@pages/Chat';
 
 function App() {
 
@@ -83,6 +84,7 @@ function App() {
           <Route path="/search" element={<MainLayout><Search /></MainLayout>} />
           <Route path="/go-local" element={<MainLayout><Golocal /></MainLayout>} />
           <Route path="/channel/:id" element={<MainLayout><ChannelPage /></MainLayout>} />
+          <Route path="/chat" element={<ChatPage />} />
           {/* <Route path="/channel/:id" element={<ChannelPage />} /> */}
         </Routes>
       </BrowserRouter>
