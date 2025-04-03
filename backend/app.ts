@@ -14,6 +14,9 @@ import "./config/passport";
 import passport from "passport";
 import channelRouter from "./routers/channelRouter";
 import postRouter from "./routers/postRouter";
+import commentRouter from "./routers/commentRouter";
+import jamRouter from "./routers/jamsRouter";
+import messageRouter from "./routers/messageRouter";
 
 
 const app = express();
@@ -28,7 +31,18 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-
+app.use(
+    session({
+        secret: process.env.SESSION_SECRET as string,
+        resave: true,
+        saveUninitialized: false,
+        cookie: {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            maxAge: 1000 * 60 * 60 * 24, // 1 day
+        },
+    })
+);
 
 // initialize passport
 app.use(passport.initialize());
@@ -42,9 +56,12 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-app.use("/api/v1/user", userRouter)
-app.use("/api/v1/channel", channelRouter)
-app.use("/api/v1/post", postRouter)
+app.use("/api/v1/user", userRouter);
+app.use("/api/v1/channel", channelRouter);
+app.use("/api/v1/post", postRouter);
+app.use("/api/v1/comment", commentRouter);
+app.use("/api/v1/jam", jamRouter);
+app.use('/api/v1/messages', messageRouter);
 
 app.use(errorMiddleware)
 

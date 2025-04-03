@@ -1,4 +1,4 @@
-import { getUserDetails, loginUser, registerUser } from "../controllers/userController";
+import { fetchUserById, findUsersAround, followUser, getSearchData, getUserDetails, loginUser, logout, registerUser, updateUserLocation } from "../controllers/userController";
 import { isAuthenticated } from "../middleware/auth";
 import { NextFunction, Request, Response, Router } from "express";
 import passport from "passport";
@@ -13,7 +13,13 @@ const userRouter = Router();
 
 userRouter.route("/register").post(registerUser);
 userRouter.route("/login").post(loginUser);
+userRouter.route("/logout").get(isAuthenticated, logout);
 userRouter.route("/load-user").get(isAuthenticated, getUserDetails);
+userRouter.route("/find-user-around").post(findUsersAround);
+userRouter.route("/update-user-location").post(isAuthenticated, updateUserLocation);
+userRouter.route("/fetchUserById/:id").get(fetchUserById);
+userRouter.route("/follow/:id").get(isAuthenticated, followUser);
+userRouter.route("/getSearchData").get(getSearchData);
 
 
 // GOOGLE

@@ -7,7 +7,7 @@ import {
     useMotionValueEvent,
 } from "framer-motion";
 import { cn } from "@lib/utils";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 
 import { IconHome } from "@tabler/icons-react";
 import logo from "@assets/hyperlocalNobg.png"
@@ -16,7 +16,7 @@ import { CiSearch } from "react-icons/ci";
 import { useSelector } from "react-redux";
 import { RootState } from "store";
 import { Avatar } from "@material-tailwind/react";
-import { IconClipboard } from '@tabler/icons-react';
+import defaultAvatar from "@assets/defaultImage.jpg"
 
 
 export const FloatingNav = ({
@@ -31,8 +31,11 @@ export const FloatingNav = ({
     className?: string;
 }) => {
     const { scrollYProgress } = useScroll();
+    const location = useLocation(); // Get current location
+    const currentPath = location.pathname;
 
     const [visible, setVisible] = useState(false);
+
 
     useMotionValueEvent(scrollYProgress, "change", (current) => {
         // Check if current is not undefined and is a number
@@ -69,18 +72,19 @@ export const FloatingNav = ({
             link: "/search",
             icon: <CiSearch size={27} />,
         },
-        {
-            name: "Notifications",
-            link: "/notifications",
-            icon: <IconClipboard stroke={1} />,
-        },
     ];
 
 
     const { isAuthenticated, user } = useSelector((state: RootState) => state.user);
 
-
-
+    // Function to check if a nav item is active
+    const isActive = (path: string) => {
+        // Check exact match for home page
+        if (path === '/' && currentPath === '/') return true;
+        // For other pages, check if currentPath starts with the nav item path
+        // This handles nested routes
+        return path !== '/' && currentPath.startsWith(path);
+    };
 
     return (
         <AnimatePresence mode="wait">
@@ -113,17 +117,28 @@ export const FloatingNav = ({
                         key={`link=${idx}`}
                         to={navItem.link}
                         className={cn(
-                            "relative dark:text-neutral-50 items-center flex space-x-1 text-neutral-600 dark:hover:text-neutral-300 hover:text-neutral-500"
+                            "relative items-center flex space-x-1",
+                            // Highlight active nav item
+                            isActive(navItem.link) 
+                                ? "text-blue-500 font-medium" 
+                                : "dark:text-neutral-50 text-neutral-600 dark:hover:text-neutral-300 hover:text-neutral-500"
                         )}
                     >
                         <span className="block sm:hidden">{navItem.icon}</span>
                         <span className="hidden sm:block text-sm">{navItem.name}</span>
+                        {/* Add indicator line for active item */}
+                        {/* {isActive(navItem.link) && (
+                            <span className="absolute bottom-0 left-0 w-full h-0.5 bg-blue-500 rounded-full" />
+                        )} */}
                     </Link>
                 ))}
                 {isAuthenticated ? (
+                    <Link to={`/user/${user._id}`}>
                     <div className="">
-                        <Avatar src="https://docs.material-tailwind.com/img/face-2.jpg" alt="avatar" />
+                        <Avatar  src={user.avatar?.url || defaultAvatar}
+                                alt={user.firstName || "User"} />
                     </div>
+                    </Link>
                 ) : (
 
                     <div>

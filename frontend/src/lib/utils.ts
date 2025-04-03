@@ -1,4 +1,5 @@
 import { toaster } from "@components/ui/toaster";
+import axios from "axios";
 import { clsx, type ClassValue } from "clsx"
 import { twMerge } from "tailwind-merge"
 
@@ -54,6 +55,24 @@ const options: PositionOptions = {
   timeout: 10000,
 };
 
+const updateUserLocation = async (longitude: number, latitude: number) => {
+
+  const config = {
+    headers: { "Content-Type": "application/json" },
+    withCredentials: true
+  };
+
+  const { data } = await axios.post(
+    `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/update-user-location`,
+    {
+      longitude,
+      latitude
+    },
+    config
+  );
+
+}
+
 export const fetchCoords = async (): Promise<(() => void) | undefined> => {
 
   try {
@@ -70,11 +89,13 @@ export const fetchCoords = async (): Promise<(() => void) | undefined> => {
     const watchId = await new Promise<number>((resolve, reject) => {
       const successCallback = (position: GeolocationPosition) => {
         const { latitude, longitude } = position.coords;
-        // console.log("Coordinates fetched successfully", { latitude, longitude });
         localStorage.setItem(
           "userCoordinates",
           JSON.stringify({ latitude, longitude })
         );
+
+        updateUserLocation(longitude, latitude);
+
 
         // toaster.create({
         //   title: `Location tracking successfully started`,
