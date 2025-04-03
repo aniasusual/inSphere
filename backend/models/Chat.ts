@@ -1,7 +1,7 @@
 import mongoose, { Schema, Document } from 'mongoose';
 
 export interface IChat extends Document {
-    type: 'single' | 'group';
+    type: 'single' | 'group' | 'jam' | 'channel';
     participants: mongoose.Types.ObjectId[];
     name?: string;
     avatar?: string;
@@ -14,15 +14,22 @@ export interface IChat extends Document {
 const ChatSchema = new Schema({
     type: {
         type: String,
-        enum: ['single', 'group'],
+        enum: ['single', 'group', 'jam', 'channel'],
         required: true
     },
     participants: [{
         type: Schema.Types.ObjectId,
         ref: 'User',
-        required: true
+        required: function (this: any) {
+            return this.type !== 'channel'; // Channels may not require participants
+        }
     }],
-    name: { type: String }, // Required for group chats
+    name: {
+        type: String,
+        required: function (this: any) {
+            return this.type === 'group' || this.type === 'jam' || this.type === 'channel';
+        }
+    },
     avatar: { type: String },
     lastMessage: {
         type: Schema.Types.ObjectId,
@@ -46,7 +53,7 @@ const ChatSchema = new Schema({
 // Ensure single chats have exactly 2 participants
 ChatSchema.pre('save', function (next) {
     if (this.type === 'single' && this.participants.length !== 2) {
-        next(new Error('Single chats must have exactly 2 participants'));
+        return next(new Error('Single chats must have exactly 2 participants'));
     }
     next();
 });

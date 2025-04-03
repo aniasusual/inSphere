@@ -12,11 +12,6 @@ interface IShare {
     date?: Date;
 }
 
-interface ILocation {
-    type: "Point";
-    coordinates: [number, number];
-}
-
 // Main Post interface extending Mongoose's Document
 export interface IPost extends Document {
     creator: mongoose.Schema.Types.ObjectId;
@@ -28,7 +23,10 @@ export interface IPost extends Document {
     comments: mongoose.Schema.Types.ObjectId[];
     shares: IShare[];
     savedBy: mongoose.Schema.Types.ObjectId[];
-    location: ILocation;
+    location: {
+        type: string;
+        coordinates: [number, number];
+    };
     hashtags: string[];
     createdAt?: Date;
     updatedAt?: Date;
@@ -39,7 +37,7 @@ const postSchema = new Schema<IPost>(
     {
         creator: {
             type: mongoose.Schema.Types.ObjectId,
-            ref: "UserModel",
+            ref: "User",
             required: true,
         },
         accessibility: {
@@ -66,7 +64,7 @@ const postSchema = new Schema<IPost>(
         likes: [
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "UserModel",
+                ref: "User",
             },
         ],
         comments: [
@@ -79,7 +77,7 @@ const postSchema = new Schema<IPost>(
             {
                 user: {
                     type: mongoose.Schema.Types.ObjectId,
-                    ref: "UserModel",
+                    ref: "User",
                 },
                 date: {
                     type: Date,
@@ -90,7 +88,7 @@ const postSchema = new Schema<IPost>(
         savedBy: [
             {
                 type: mongoose.Schema.Types.ObjectId,
-                ref: "UserModel",
+                ref: "User",
             },
         ],
         location: {

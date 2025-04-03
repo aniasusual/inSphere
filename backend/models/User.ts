@@ -16,6 +16,10 @@ interface IUser extends Document {
     channelsFollowed: mongoose.Types.ObjectId[];
     usersFollowed: mongoose.Types.ObjectId[];
 
+    // Added bio field
+    bio?: string;
+    website?: string;
+
     preferences: {
         theme: 'light' | 'dark';
         notificationSettings: {
@@ -38,6 +42,13 @@ interface IUser extends Document {
         public_id: string;
         url: string;
     };
+
+    // Added coverPhoto field
+    coverPhoto?: {
+        public_id: string;
+        url: string;
+    };
+
     location: {
         type: string;
         coordinates: [number, number];
@@ -72,18 +83,14 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
         },
         email: {
             type: String,
-            // required: [true, "Please Enter Your Email"],
-            // unique: true,
             validate: [validator.isEmail, "Please Enter a valid Email"],
         },
         username: {
             type: String,
-            // required: [true, "Please Enter Your Username"],
             unique: true,
         },
         password: {
             type: String,
-            // required: [true, "Please Enter Your Password"],
             minLength: [8, "Password should be greater than 8 characters"],
             select: false,
         },
@@ -109,6 +116,17 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
                 ref: "User",
             },
         ],
+        // Added bio field to schema
+        bio: {
+            type: String,
+            maxLength: [160, "Bio cannot exceed 160 characters"],
+            default: ""
+        },
+        website: {
+            type: String,
+            maxLength: [160, "Bio cannot exceed 160 characters"],
+            default: ""
+        },
         preferences: {
             theme: {
                 type: String,
@@ -147,6 +165,15 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
             ref: 'User'
         }],
         avatar: {
+            public_id: {
+                type: String,
+            },
+            url: {
+                type: String,
+            },
+        },
+        // Added coverPhoto field to schema
+        coverPhoto: {
             public_id: {
                 type: String,
             },
@@ -203,9 +230,9 @@ userSchema.methods.getJWTToken = function (): string {
     }
 
     return jwt.sign(
-        { id: this._id }, // Payload
-        process.env.JWT_SECRET, // Secret key
-        { expiresIn: process.env.JWT_EXPIRE || "1d" } // Options with fallback
+        { id: this._id },
+        process.env.JWT_SECRET,
+        { expiresIn: process.env.JWT_EXPIRE || "1d" }
     );
 };
 
