@@ -1,6 +1,9 @@
-"use client";
+// src/pages/SinglePost.tsx
+
 import React, { useEffect, useState } from "react";
-import { CarouselDefault } from "@components/Carousels/carouselDefault";
+import { useParams } from "react-router-dom"; // Use "next/router" if using Next.js
+import axios from "axios";
+import { motion } from "framer-motion";
 import { Avatar } from "@material-tailwind/react";
 import {
   IconHeart,
@@ -9,14 +12,12 @@ import {
   IconShare3,
   IconBookmark,
 } from "@tabler/icons-react";
-import { motion } from "framer-motion";
-import { Link } from "react-router-dom";
+import { CarouselDefault } from "@components/Carousels/carouselDefault";
+
 import defaultImage from "@assets/defaultImage.jpg";
 import { useSelector } from "react-redux";
 import { RootState } from "store";
-import axios from "axios";
-import { toaster } from "./ui/toaster";
-import { Comments } from "./Comments";
+import { toaster } from "@components/ui/toaster";
 
 interface PostItem {
   _id?: string;
@@ -35,75 +36,54 @@ interface PostItem {
   likes?: any[];
 }
 
-interface PostProps {
-  posts: PostItem[];
-}
-
-export function Post({ posts }: PostProps) {
-  const [activePostId, setActivePostId] = useState<string | null>(null);
-  const [showComments, setShowComments] = useState(false);
-
-  return (
-    <>
-      <motion.div
-        className="antialiased pt-4 relative w-full"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 0.5 }}
-      >
-        {posts?.length > 0 ? (
-          posts.map((item, index) => (
-            <PostItem
-              key={item._id || `content-${index}`}
-              item={item}
-              index={index}
-              setShowComments={setShowComments}
-              setActivePostId={setActivePostId}
-            />
-          ))
-        ) : (
-          <p>No posts available</p>
-        )}
-      </motion.div>
-
-      {activePostId && (
-        <Comments
-          postId={activePostId}
-          isVisible={showComments}
-          onClose={() => {
-            setShowComments(false);
-            setActivePostId(null);
-          }}
-        />
-      )}
-    </>
-  );
-}
-
-function PostItem({
-  item,
-  index,
-  setShowComments,
-  setActivePostId,
-}: {
-  item: PostItem;
-  index: number;
-  setShowComments: (value: boolean) => void;
-  setActivePostId: (id: string | null) => void;
-}) {
+export function SinglePost() {
+  const [post, setPost] = useState<PostItem | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [likeCount, setLikeCount] = useState(item.likes?.length || 0);
   const [isFollowing, setIsFollowing] = useState(false);
-
+  const [likeCount, setLikeCount] = useState(0);
+  const [showComments, setShowComments] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const { postId } = useParams<{ postId: string }>();
   const { user } = useSelector((state: RootState) => state.user);
 
-  const toggleLike = async (e: any) => {
+  useEffect(() => {
+    const fetchPost = async () => {
+      try {
+        const { data } = await axios.get(
+          `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/post/detail/${postId}`,
+          { withCredentials: true }
+        );
+        setPost(data.post);
+        setLikeCount(data.post.likes?.length || 0);
+        if (user) {
+          setIsLiked(data.post.likes?.includes(user._id) || false);
+          setIsBookmarked(data.post.savedBy?.includes(user._id) || false);
+          setIsFollowing(
+            user.usersFollowed?.includes(data.post.creator?._id) || false
+          );
+        }
+      } catch (error) {
+        toaster.create({
+          title: "Failed to load post",
+          type: "error",
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchPost();
+  }, [postId, user]);
+
+  const toggleLike = async (e: React.MouseEvent) => {
     e.preventDefault();
     setIsLiked(!isLiked);
+    const newLikeCount = isLiked ? likeCount - 1 : likeCount + 1;
+    setLikeCount(newLikeCount);
+
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/post/like/${item._id}`,
+        `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/post/like/${post?._id}`,
         { withCredentials: true }
       );
 
@@ -112,6 +92,7 @@ function PostItem({
           title: `${data.message}`,
           type: "info",
         });
+        setLikeCount(data.post.likes?.length || newLikeCount);
       }
     } catch (error: any) {
       toaster.create({
@@ -119,23 +100,17 @@ function PostItem({
         type: "error",
       });
       setIsLiked(false);
+      setLikeCount(likeCount); // Revert on error
     }
   };
 
-  useEffect(() => {
-    if (user && item) {
-      setIsLiked(item.likes?.includes(user._id) || false);
-      setIsBookmarked(item.savedBy?.includes(user._id) || false);
-      setIsFollowing(user.usersFollowed?.includes(item.creator?._id) || false);
-    }
-  }, [user, item]);
-
-  const toggleBookmark = async (e: any) => {
+  const toggleBookmark = async (e: React.MouseEvent) => {
     e.preventDefault();
     setIsBookmarked(!isBookmarked);
+
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/post/save/${item._id}`,
+        `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/post/save/${post?._id}`,
         { withCredentials: true }
       );
 
@@ -154,12 +129,14 @@ function PostItem({
     }
   };
 
-  const toggleFollow = async (e: any, id: string) => {
+  const toggleFollow = async (e: React.MouseEvent) => {
     e.preventDefault();
     setIsFollowing(!isFollowing);
+
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/follow/${id}`,
+        `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/follow/${post?.creator?._id
+        }`,
         { withCredentials: true }
       );
 
@@ -169,7 +146,6 @@ function PostItem({
           type: "info",
         });
       }
-      setIsFollowing(data.success);
     } catch (error: any) {
       toaster.create({
         title: error.response.data.message,
@@ -182,85 +158,84 @@ function PostItem({
   const handleShare = async (e: React.MouseEvent) => {
     e.preventDefault();
 
-    const shareUrl = `${window.location.origin}/post/detail/${item._id}`;
+    const shareUrl = `${window.location.origin}/post/${post?._id}`;
     const shareData = {
-      title: item.title || "Check out this post!",
-      text: item.description || "Found this awesome post!",
+      title: post?.title || "Check out this post!",
+      text: post?.description || "Found this awesome post!",
       url: shareUrl,
     };
 
-    const copyToClipboard = async () => {
-      try {
-        await navigator.clipboard.writeText(shareUrl);
-        toaster.create({
-          title: "Link copied to clipboard!",
-          type: "info",
-        });
-      } catch (error) {
-        toaster.create({
-          title: "Failed to copy link",
-          type: "error",
-        });
-      }
-    };
-
-    const triggerNativeShare = async () => {
-      try {
+    try {
+      if (navigator.share) {
         await navigator.share(shareData);
         toaster.create({
           title: "Post shared successfully!",
           type: "success",
         });
-      } catch (error: any) {
-        if (error.name !== "AbortError") {
+      } else {
+        const copyToClipboard = async () => {
+          await navigator.clipboard.writeText(shareUrl);
           toaster.create({
-            title: "Failed to share post",
-            type: "error",
+            title: "Link copied to clipboard!",
+            type: "info",
           });
-        }
-      }
-    };
+        };
 
-    toaster.create({
-      title: "Share Post",
-      description: (
-        <div className="space-y-2">
-          <p>Share this post:</p>
-          <input
-            type="text"
-            value={shareUrl}
-            readOnly
-            className="w-full p-2 border rounded dark:bg-gray-800 dark:text-white"
-          />
-          <div className="flex gap-2">
-            <button
-              onClick={copyToClipboard}
-              className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-            >
-              Copy Link
-            </button>
-            {navigator.share && (
+        toaster.create({
+          title: "Share Post",
+          description: (
+            <div>
+              <p>Copy the link to share:</p>
+              <input
+                type="text"
+                value={shareUrl}
+                readOnly
+                className="w-full p-2 mt-2 border rounded dark:bg-gray-800 dark:text-white"
+              />
               <button
-                onClick={triggerNativeShare}
-                className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
+                onClick={copyToClipboard}
+                className="mt-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
               >
-                Share
+                Copy Link
               </button>
-            )}
-          </div>
-        </div>
-      ),
-      type: "info",
-      duration: 5000,
-    });
+            </div>
+          ),
+          type: "info",
+          duration: 5000,
+        });
+      }
+    } catch (error: any) {
+      toaster.create({
+        title: "Failed to share post",
+        type: "error",
+      });
+      console.error("Share error:", error);
+    }
   };
 
-  if (!item) {
-    return <div>Error: Post item is undefined</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-screen dark:text-white">
+        Loading...
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div className="flex justify-center items-center h-screen dark:text-white">
+        Post not found
+      </div>
+    );
   }
 
   return (
-    <motion.div className="mb-10 bg-white dark:bg-gray-900 rounded-2xl shadow-md overflow-hidden">
+    <motion.div
+      className="max-w-2xl mx-auto mt-8 mb-10 bg-white dark:bg-gray-900 rounded-2xl shadow-md overflow-hidden"
+      initial={{ opacity: 0, y: 50 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
       <div className="p-4">
         <motion.div
           className="flex flex-row justify-between items-center text-left mb-4"
@@ -277,14 +252,12 @@ function PostItem({
               whileHover={{ scale: 1.1, rotate: 5 }}
               transition={{ duration: 0.2 }}
             >
-              <Link to={`/user/${item.creator?._id}`}>
-                <Avatar
-                  src={item.creator?.avatar?.url || defaultImage}
-                  alt={item.creator?.firstName || "unknown user"}
-                  size="md"
-                  className="border-2 border-blue-500 shadow-lg"
-                />
-              </Link>
+              <Avatar
+                src={post.creator?.avatar?.url || defaultImage}
+                alt={post.creator?.firstName || "unknown user"}
+                size="md"
+                className="border-2 border-blue-500 shadow-lg"
+              />
             </motion.div>
             <div className="pl-5">
               <motion.p
@@ -293,36 +266,34 @@ function PostItem({
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ duration: 0.3, delay: 0.3 }}
               >
-                <Link to={`/user/${item.creator?._id}`}>
-                  {item.creator?.username || "Unknown"}
-                </Link>
+                {post.creator?.username || "Unknown"}
                 <motion.div
                   className="text-sm flex items-center"
                   whileHover={{ scale: 1.05, x: 3 }}
                   transition={{ duration: 0.2 }}
                 >
-                  {isFollowing ? (
-                    <button
-                      onClick={(e) => toggleFollow(e, item.creator?._id || "")}
-                      className="outline-none"
-                    >
-                      <span className="text-green-500 font-medium">
-                        following
-                      </span>
-                    </button>
-                  ) : (
-                    <button
-                      onClick={(e) => toggleFollow(e, item.creator?._id || "")}
-                      className="outline-none"
-                    >
-                      <span className="text-red-500 font-medium">follow</span>
-                    </button>
+                  {user && (
+                    <>
+                      {isFollowing ? (
+                        <button onClick={toggleFollow} className="outline-none">
+                          <span className="text-green-500 font-medium">
+                            following
+                          </span>
+                        </button>
+                      ) : (
+                        <button onClick={toggleFollow} className="outline-none">
+                          <span className="text-red-500 font-medium">
+                            follow
+                          </span>
+                        </button>
+                      )}
+                      <motion.span
+                        initial={{ width: 0, opacity: 0 }}
+                        whileHover={{ width: "100%", opacity: 1 }}
+                        className="h-0.5 bg-red-500 ml-0.5"
+                      />
+                    </>
                   )}
-                  <motion.span
-                    initial={{ width: 0, opacity: 0 }}
-                    whileHover={{ width: "100%", opacity: 1 }}
-                    className="h-0.5 bg-red-500 ml-0.5"
-                  />
                 </motion.div>
               </motion.p>
             </div>
@@ -334,14 +305,14 @@ function PostItem({
             animate={{ opacity: 1 }}
             transition={{ duration: 0.3, delay: 0.4 }}
           >
-            {item.createdAt
-              ? new Date(item.createdAt).toLocaleDateString()
+            {post.createdAt
+              ? new Date(post.createdAt).toLocaleDateString()
               : "N/A"}
           </motion.div>
         </motion.div>
       </div>
 
-      {item.mediaFiles && item.mediaFiles.length > 0 && (
+      {post.mediaFiles && post.mediaFiles.length > 0 && (
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
@@ -349,12 +320,12 @@ function PostItem({
           className="relative"
         >
           <CarouselDefault
-            images={item.mediaFiles.map((file) => file?.url || defaultImage)}
+            images={post.mediaFiles.map((file) => file?.url || defaultImage)}
           />
         </motion.div>
       )}
 
-      <div className="p-4">
+      <div className="p-4 relative">
         <motion.div
           className="flex flex-row justify-between items-center text-left mb-4"
           initial={{ y: 10, opacity: 0 }}
@@ -367,14 +338,14 @@ function PostItem({
                 <IconHeartFilled
                   size={32}
                   className="text-red-500 hover:cursor-pointer"
-                  onClick={(e) => toggleLike(e)}
+                  onClick={toggleLike}
                 />
               ) : (
                 <IconHeart
                   stroke={1.5}
                   size={32}
                   className="hover:text-red-500 hover:cursor-pointer transition-colors"
-                  onClick={(e) => toggleLike(e)}
+                  onClick={toggleLike}
                 />
               )}
             </motion.div>
@@ -388,10 +359,7 @@ function PostItem({
                 stroke={1.5}
                 size={30}
                 className="hover:text-blue-500 hover:cursor-pointer transition-colors dark:text-gray-300"
-                onClick={() => {
-                  setActivePostId(item._id || "");
-                  setShowComments(true);
-                }}
+                onClick={() => setShowComments(!showComments)}
               />
             </motion.div>
 
@@ -416,10 +384,10 @@ function PostItem({
               size={30}
               fill={isBookmarked ? "currentColor" : "none"}
               className={`hover:cursor-pointer transition-colors ${isBookmarked
-                ? "text-purple-500"
-                : "hover:text-purple-500 dark:text-gray-300"
+                  ? "text-purple-500"
+                  : "hover:text-purple-500 dark:text-gray-300"
                 }`}
-              onClick={(e) => toggleBookmark(e)}
+              onClick={toggleBookmark}
             />
           </motion.div>
         </motion.div>
@@ -440,27 +408,52 @@ function PostItem({
           transition={{ duration: 0.3, delay: 0.7 }}
         >
           <span className="font-bold">
-            {item.creator?.username || "Unknown"}
+            {post.creator?.username || "Unknown"}
           </span>
-          : {item.description || "No description"}
+          : {post.description || "No description"}
         </motion.div>
 
-        {item.hashtags && item.hashtags.length > 0 && (
+        {post.hashtags && post.hashtags.length > 0 && (
           <motion.div
             className="flex flex-wrap gap-2 mt-4"
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3, delay: 0.8 }}
           >
-            {item.hashtags.map((hashtag, idx) => (
-              <Link
+            {post.hashtags.map((hashtag, idx) => (
+              <span
                 key={idx}
-                to={`/hashtags/${hashtag}`}
                 className="bg-black text-white rounded-full text-sm px-4 py-1 dark:bg-white dark:text-black font-medium hover:bg-gray-800 dark:hover:bg-gray-200 transition-colors"
               >
                 {hashtag}
-              </Link>
+              </span>
             ))}
+          </motion.div>
+        )}
+
+        {/* Comments Section */}
+        {showComments && (
+          <motion.div
+            className="mt-4"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.3 }}
+          >
+            <div className="border-t pt-4 dark:border-gray-700">
+              <h3 className="text-lg font-semibold dark:text-white mb-4">
+                Comments
+              </h3>
+              <div className="space-y-4">
+                {/* Placeholder comments - replace with actual comment fetching */}
+                <div className="text-sm dark:text-gray-300">
+                  <span className="font-bold">Sarah</span>: This looks amazing!
+                  😍
+                </div>
+                <div className="text-sm dark:text-gray-300">
+                  <span className="font-bold">Mike</span>: Where was this taken?
+                </div>
+              </div>
+            </div>
           </motion.div>
         )}
       </div>

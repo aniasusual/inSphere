@@ -79,13 +79,28 @@ io.on('connection', (socket) => {
         return;
     }
 
-    // Join user's personal room
-    socket.join(`user:${userId}`);
-    socket.on('disconnect', () => {
-        socket.rooms.forEach((room) => {
-            socket.leave(room);
-        });
+    // // Join user's personal room
+    // socket.join(`user:${userId}`);
+    // socket.on('disconnect', () => {
+    //     socket.rooms.forEach((room) => {
+    //         socket.leave(room);
+    //     });
+    // });
+
+
+    socket.on('joinJam', (jamId: string) => {
+        socket.join(jamId);
+        io.to(jamId).emit('message', `${socket.id} joined the jam!`);
     });
+
+    socket.on('chatMessage', (jamId: string, msg: string) => {
+        io.to(jamId).emit('message', msg);
+    });
+
+    socket.on('disconnect', () => {
+        console.log('User disconnected:', socket.id);
+    });
+
 });
 
 

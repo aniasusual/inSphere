@@ -2,6 +2,7 @@ import mongoose, { Schema, Document } from 'mongoose';
 
 // Interface for the Message document
 export interface IMessage extends Document {
+    jam: mongoose.Types.ObjectId;
     conversationId: mongoose.Types.ObjectId;
     senderId: mongoose.Types.ObjectId;
     content: string;
@@ -29,6 +30,7 @@ export interface IMessage extends Document {
 
 // Create the Mongoose Schema
 const MessageSchema: Schema = new Schema({
+    jam: { type: Schema.Types.ObjectId, ref: 'Jam', required: true },
     conversationId: {
         type: Schema.Types.ObjectId,
         ref: 'Conversation',

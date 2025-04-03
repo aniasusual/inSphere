@@ -36,9 +36,10 @@ const upload = multer({
 
 // Define single file upload for avatars
 const singleAvatar = upload.single('avatar');
+const singleFile = upload.single('displayImage');
 
 // Define multiple file upload for attachments
 const attachmentsMulter = upload.array('mediaFiles', 10);
 
 // Export multer middlewares
-export { singleAvatar, attachmentsMulter };
+export { singleAvatar, attachmentsMulter, singleFile };

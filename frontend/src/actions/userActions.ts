@@ -7,6 +7,8 @@ import {
     LOGIN_FAIL,
     LOGIN_REQUEST,
     LOGIN_SUCCESS,
+    LOGOUT_SUCCESS,
+    LOGOUT_FAIL,
 } from "constants/userConstants";
 import { toaster } from "@components/ui/toaster";
 
@@ -30,8 +32,6 @@ export const login = (username: string, password: string) =>
                 { username, password },
                 config
             );
-
-            console.log("data: ", data);
 
             dispatch({ type: LOGIN_SUCCESS, payload: data.user });
             sessionStorage.setItem('loginRedirect', 'true');
@@ -61,6 +61,27 @@ export const login = (username: string, password: string) =>
             })
         }
     };
+
+export const logout = () =>
+    async (dispatch: Dispatch<LoginAction>) => {
+        try {
+            const { data } = await axios.get(`${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/logout`, { withCredentials: true });
+
+            if (data.status === 'success') {
+                dispatch({ type: LOGOUT_SUCCESS });
+            }
+
+        } catch (error: any) {
+            dispatch({
+                type: LOGOUT_FAIL,
+                payload: error.response?.data?.message || "Something went wrong",
+            });
+            toaster.create({
+                description: error.response.data.message,
+                type: "error",
+            })
+        }
+    }
 
 export const loaduser = () => async (dispatch: Dispatch<LoginAction>) => {
     try {

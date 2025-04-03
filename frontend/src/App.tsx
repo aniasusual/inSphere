@@ -1,25 +1,26 @@
-import './App.css'
-import HomeLoader from '@components/Loaders/HomeLoader'
+import "./App.css";
+import HomeLoader from "@components/Loaders/HomeLoader";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { SignupFormDemo } from '@pages/Register';
-import { LoginFormDemo } from '@pages/Login';
-import MainLayout from '@components/layouts/MainLayout';
-import Home from '@pages/Home';
-import { Search } from '@pages/SearchPage';
-import { Golocal } from '@pages/GoLocal';
-import { toaster, Toaster } from "@components/ui/toaster"
-import { useEffect, useState } from 'react';
-import { useDispatch } from 'react-redux';
-import { loaduser } from 'actions/userActions';
-import { AppDispatch } from 'store';
-import ChannelPage from '@pages/Channel';
-import { checkLocationPermission, fetchCoords } from '@lib/utils';
+import { SignupFormDemo } from "@pages/Register";
+import { LoginFormDemo } from "@pages/Login";
+import MainLayout from "@components/layouts/MainLayout";
+import Home from "@pages/Home";
+import { Search } from "@pages/SearchPage";
+import { Golocal } from "@pages/GoLocal";
+import { toaster, Toaster } from "@components/ui/toaster";
+import { useEffect, useState } from "react";
+import { useDispatch } from "react-redux";
+import { loaduser } from "actions/userActions";
+import { AppDispatch } from "store";
+import ChannelPage from "@pages/Channel";
+import { checkLocationPermission, fetchCoords } from "@lib/utils";
 
-import { SocketProvider } from './socket'
-import ChatPage from '@pages/Chat';
+import { SocketProvider } from "./socket";
+import ChatPage from "@pages/Chat";
+import UserProfile from "@pages/UserProfile";
+import { SinglePost } from "@pages/SinglePost";
 
 function App() {
-
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
@@ -32,10 +33,9 @@ function App() {
 
   useEffect(() => {
     checkLocationPermission();
-  }, [])
+  }, []);
 
   useEffect(() => {
-
     const initLocationTracking = async () => {
       const stopFn = await fetchCoords();
       setStopTracking(() => stopFn); // Save the cleanup function
@@ -62,13 +62,13 @@ function App() {
         title: `Location tracking stopped manually`,
         description: "You will be able to access location based features now ",
         type: "success",
-      })
+      });
     } else {
       toaster.create({
         title: `Some error occured! Location not updated`,
         description: "You might want to restart",
         type: "warning",
-      })
+      });
     }
   };
 
@@ -78,18 +78,62 @@ function App() {
         <Toaster />
 
         <Routes>
-          <Route path="/" element={<MainLayout><Home /></MainLayout>} />
+          <Route
+            path="/"
+            element={
+              <MainLayout>
+                <Home />
+              </MainLayout>
+            }
+          />
           <Route path="/register" element={<SignupFormDemo />} />
           <Route path="/login" element={<LoginFormDemo />} />
-          <Route path="/search" element={<MainLayout><Search /></MainLayout>} />
-          <Route path="/go-local" element={<MainLayout><Golocal /></MainLayout>} />
-          <Route path="/channel/:id" element={<MainLayout><ChannelPage /></MainLayout>} />
+          <Route
+            path="/search"
+            element={
+              <MainLayout>
+                <Search />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/go-local"
+            element={
+              <MainLayout>
+                <Golocal />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/channel/:id"
+            element={
+              <MainLayout>
+                <ChannelPage />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/user/:id"
+            element={
+              <MainLayout>
+                <UserProfile />
+              </MainLayout>
+            }
+          />
+          <Route
+            path="/post/detail/:postId"
+            element={
+              <MainLayout>
+                <SinglePost />
+              </MainLayout>
+            }
+          />
           <Route path="/chat" element={<ChatPage />} />
           {/* <Route path="/channel/:id" element={<ChannelPage />} /> */}
         </Routes>
       </BrowserRouter>
     </SocketProvider>
-  )
+  );
 }
 
-export default App
+export default App;
