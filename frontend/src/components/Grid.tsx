@@ -5,8 +5,6 @@ import { useNavigate } from "react-router-dom";
 const BentoGrid = ({ posts }) => {
     const navigate = useNavigate();
 
-    console.log("posts from bento: ", posts);
-
     // Function to create structured media files for the grid with proper styling classes
     // const getStructuredMediaFiles = () => {
     //     // Flatten all media files from all posts
