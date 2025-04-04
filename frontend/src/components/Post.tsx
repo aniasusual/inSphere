@@ -40,6 +40,7 @@ interface PostProps {
 }
 
 export function Post({ posts }: PostProps) {
+  console.log("posts: ", posts);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
 
@@ -441,8 +442,9 @@ function PostItem({
         >
           <span className="font-bold">
             {item.creator?.username || "Unknown"}
-          </span>
-          : {item.description || "No description"}
+          </span>:
+          <div className="font-bold text-center">{item.title}</div>
+          {item.description || "No description"}
         </motion.div>
 
         {item.hashtags && item.hashtags.length > 0 && (

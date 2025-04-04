@@ -139,7 +139,7 @@ export function Golocal() {
 
         const { data } = await axios.post(
           `${import.meta.env.VITE_API_BACKEND_URL
-          }/api/v1/user/find-user-around`,
+          }/api/v1/jam/find-jams-around`,
           {
             longitude: parsedData.longitude,
             latitude: parsedData.latitude,
@@ -148,10 +148,14 @@ export function Golocal() {
           config
         );
 
+        console.log("jams: ", data.jams)
+
         setFetchedData({
           ...fetchedData,
-          users: data.users,
+          jams: data.jams,
         });
+
+        console.log("fetchedDdata.jams: ", fetchedData.jams);
         // Handle the data here
       } catch (error) {
         console.error("Error fetching users:", error);
@@ -243,7 +247,7 @@ export function Golocal() {
               })}
           </div>
         )}
-        {selectedCategory === "jams" && (
+        {/* {selectedCategory === "jams" && (
           <div className="w-full">
             <div className="flex justify-end p-4">
               <HStack>
@@ -258,6 +262,26 @@ export function Golocal() {
               </HStack>
             </div>
             <ExpandableCard listView={listView} />
+          </div>
+        )} */}
+        {selectedCategory === "jams" && (
+          <div>
+            {loading ? (
+              <div className="flex justify-center items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 dark:border-white"></div>
+              </div>
+            ) : (
+              <>
+                <span>showing {fetchedData.jams.length} results</span>
+                {fetchedData.jams.length > 0 ? (
+                  <ExpandableCard listView={listView} jams={fetchedData.jams} />
+                ) : (
+                  <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
+                    No jams found. Try a different search term!
+                  </p>
+                )}
+              </>
+            )}
           </div>
         )}
         {selectedCategory === "posts" && (
