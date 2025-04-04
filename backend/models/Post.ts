@@ -113,5 +113,8 @@ const postSchema = new Schema<IPost>(
     }
 );
 
+postSchema.index({ location: "2dsphere" });
+
+
 // Export the model
 export const Post: Model<IPost> = mongoose.model<IPost>("Post", postSchema);

@@ -29,6 +29,7 @@ export function Golocal() {
 
   const [selectedCategory, setSelectedCategory] = useState("users"); // For Select dropdown
   const [listView, setlistView] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   const [fetchedData, setFetchedData] = useState({
     users: [],
@@ -42,11 +43,13 @@ export function Golocal() {
   };
 
   const handleCategoryChange = (e: any) => {
-    setSelectedCategory(e); // Updates selected category
+    setSelectedCategory(e);
   };
 
   useEffect(() => {
     const fetchUsers = async () => {
+      setLoading(true);
+
       try {
         const coordinates = localStorage.getItem("userCoordinates");
         if (!coordinates) return;
@@ -76,11 +79,98 @@ export function Golocal() {
         // Handle the data here
       } catch (error) {
         console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    fetchUsers();
-  }, [sliderValue]);
+    const fetchPosts = async () => {
+      setLoading(true);
+
+      try {
+        const coordinates = localStorage.getItem("userCoordinates");
+        if (!coordinates) return;
+
+        const parsedData = JSON.parse(coordinates);
+
+        const config = {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        };
+
+        const { data } = await axios.post(
+          `${import.meta.env.VITE_API_BACKEND_URL
+          }/api/v1/post/find-post-around`,
+          {
+            longitude: parsedData.longitude,
+            latitude: parsedData.latitude,
+            maxDistance: Number(sliderValue),
+          },
+          config
+        );
+
+        console.log("data for posts: ", data);
+
+        setFetchedData({
+          ...fetchedData,
+          posts: data.data.posts,
+        });
+        // Handle the data here
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    const fetchJams = async () => {
+      setLoading(true);
+
+      try {
+        const coordinates = localStorage.getItem("userCoordinates");
+        if (!coordinates) return;
+
+        const parsedData = JSON.parse(coordinates);
+
+        const config = {
+          headers: { "Content-Type": "application/json" },
+          withCredentials: true,
+        };
+
+        const { data } = await axios.post(
+          `${import.meta.env.VITE_API_BACKEND_URL
+          }/api/v1/user/find-user-around`,
+          {
+            longitude: parsedData.longitude,
+            latitude: parsedData.latitude,
+            maxDistance: Number(sliderValue),
+          },
+          config
+        );
+
+        setFetchedData({
+          ...fetchedData,
+          users: data.users,
+        });
+        // Handle the data here
+      } catch (error) {
+        console.error("Error fetching users:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    if (selectedCategory === "users") {
+      fetchUsers();
+    }
+    else if (selectedCategory === "posts") {
+      fetchPosts();
+    }
+    else if (selectedCategory === "jams") {
+      fetchJams();
+    }
+
+  }, [sliderValue, selectedCategory]);
 
   return (
     <div className="flex flex-col justify-center items-center">
@@ -172,12 +262,22 @@ export function Golocal() {
         )}
         {selectedCategory === "posts" && (
           <div className="w-full">
-            <BentoGrid />
-          </div>
-        )}
-        {selectedCategory === "stories" && (
-          <div className="w-full">
-            <BentoGrid />
+            {loading ? (
+              <div className="flex justify-center items-center">
+                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 dark:border-white"></div>
+              </div>
+            ) : (
+              <>
+                <span>showing {fetchedData.posts.length} results</span>
+                {fetchedData.posts.length > 0 ? (
+                  <BentoGrid posts={fetchedData.posts} />
+                ) : (
+                  <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
+                    No posts found. Try a different search term!
+                  </p>
+                )}
+              </>
+            )}
           </div>
         )}
       </div>
