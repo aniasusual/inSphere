@@ -8,7 +8,8 @@ export const JamPage: React.FC = () => {
   const [showHeader, setShowHeader] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
 
-  if (!jamId) return <div className="text-white text-center p-4">Invalid Jam ID</div>;
+  if (!jamId)
+    return <div className="text-white text-center p-4">Invalid Jam ID</div>;
 
   const handleUserInteraction = (targetUserId: string) => {
     setSelectedUser(targetUserId);
@@ -16,32 +17,6 @@ export const JamPage: React.FC = () => {
 
   return (
     <div className="w-full h-screen relative overflow-hidden">
-      {/* Collapsible Header */}
-      <div className={`header ${!showHeader ? "hidden" : ""}`}>
-        <div>
-          <h1>Metaverse: {jamId}</h1>
-          <p>Connect and explore with others</p>
-        </div>
-        <div className="flex gap-3 items-center">
-          <button
-            className="action-btn"
-            onClick={() => {
-              /* Invite friends logic */
-            }}
-          >
-            <span className="material-icons">person_add</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Header Toggle Button (Centered Horizontally) */}
-      <button
-        className={`icon-btn animate absolute top-2 left-1/2 transform -translate-x-1/2 z-10`}
-        onClick={() => setShowHeader(!showHeader)}
-      >
-        <span className="material-icons">{showHeader ? "expand_less" : "expand_more"}</span>
-      </button>
-
       {/* Main Scene */}
       <JamScene jamId={jamId} onUserInteraction={handleUserInteraction} />
 

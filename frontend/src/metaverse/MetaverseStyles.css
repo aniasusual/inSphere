@@ -247,33 +247,25 @@
     }
 }
 
-/* Reset and Base Styles */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  font-family: 'Inter', sans-serif;
-  background: #1a1a1a; /* Darker black for consistency */
-  color: #ffffff;
-}
 
 /* Elegant Color Palette */
 :root {
-  --primary-bg: #000000; /* Black */
-  --secondary-bg: #1f1f1f; /* Dark gray */
-  --highlight: #ff0000; /* Red for highlighting */
+  --primary-bg: #1a1a1a; /* Dark gray */
+  --secondary-bg: #2d2d2d; /* Slightly lighter gray */
+  --highlight: #ff4d4d; /* Elegant red */
+  --accent: #ff6b6b; /* Lighter red for accents */
   --text-light: #ffffff;
   --text-muted: #b0b0b0;
   --shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+  --header-height: 4rem; /* Added for consistent spacing */
 }
 
 /* Scene Container */
 .scene-container {
-  position: relative;
-  width: 100%;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
   height: 100vh;
   overflow: hidden;
 }
@@ -284,13 +276,14 @@ body {
   top: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(to bottom, rgba(0, 0, 0, 0.9), transparent);
+  background: linear-gradient(to bottom, rgba(26, 26, 26, 0.95), rgba(26, 26, 26, 0.8));
   padding: 1rem 1.5rem;
   display: flex;
   justify-content: space-between;
   align-items: center;
   z-index: 10;
   transition: transform 0.3s ease;
+  height: var(--header-height);
 }
 
 .header.hidden {
@@ -339,11 +332,11 @@ body {
 
 /* Main UI Elements */
 .ui-overlay {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
-  width: 100%;
-  height: 100%;
+  width: 100vw;
+  height: 100vh;
   pointer-events: none;
 }
 
@@ -352,22 +345,27 @@ body {
   position: absolute;
   top: 1rem;
   left: 1rem;
-  background: rgba(31, 31, 31, 0.9);
+  background: rgba(45, 45, 45, 0.9);
   padding: 0.75rem;
   border-radius: 8px;
   font-size: 0.85rem;
   color: var(--text-light);
   box-shadow: var(--shadow);
   pointer-events: auto;
+  transition: top 0.3s ease;
+}
+
+.header:not(.hidden) ~ .ui-overlay .controls-help {
+  top: calc(var(--header-height) + 1rem);
 }
 
 @media (max-width: 768px) {
   .controls-help {
-    display: none; /* Hidden by default on mobile */
+    display: none;
   }
   .controls-help.active {
-    display: block; /* Shown when toggled */
-    top: 4rem;
+    display: block;
+    top: calc(var(--header-height) + 1rem);
     left: 1rem;
     z-index: 15;
   }
@@ -378,7 +376,7 @@ body {
   position: absolute;
   top: 1rem;
   right: 1rem;
-  background: rgba(31, 31, 31, 0.9);
+  background: rgba(45, 45, 45, 0.9);
   padding: 0.75rem;
   border-radius: 8px;
   font-size: 0.9rem;
@@ -389,10 +387,8 @@ body {
   transition: top 0.3s ease;
 }
 
-@media (min-width: 769px) {
-  .header:not(.hidden) ~ .ui-overlay .nearby-users {
-    top: 5rem; /* Move down when header is expanded on large screens */
-  }
+.header:not(.hidden) ~ .ui-overlay .nearby-users {
+  top: calc(var(--header-height) + 1rem);
 }
 
 /* Voice Chat Indicator */
@@ -409,6 +405,11 @@ body {
   display: flex;
   align-items: center;
   box-shadow: var(--shadow);
+  transition: top 0.3s ease;
+}
+
+.header:not(.hidden) ~ .ui-overlay .voice-chat-indicator {
+  top: calc(var(--header-height) + 1rem);
 }
 
 /* Action Buttons (Moved to bottom right to avoid joystick overlap) */
@@ -429,7 +430,7 @@ body {
 }
 
 .action-btn {
-  background: linear-gradient(45deg, #ff0000, #800000); /* Red gradient */
+  background: linear-gradient(45deg, var(--highlight), var(--accent));
   border: none;
   border-radius: 50%;
   width: 3rem;
@@ -445,22 +446,23 @@ body {
 
 .action-btn:hover {
   transform: scale(1.1);
+  background: linear-gradient(45deg, var(--accent), var(--highlight));
 }
 
 .action-btn.active {
-  background: #ff4444; /* Lighter red when active */
+  background: var(--accent);
 }
 
 /* Chat Panel (Adjusted to avoid joystick overlap) */
 .chat-panel {
-  position: absolute;
-  bottom: 8rem; /* Higher to clear joystick */
+  position: fixed;
+  bottom: 8rem;
   left: 1rem;
   right: 1rem;
-  background: rgba(31, 31, 31, 0.9);
+  background: rgba(45, 45, 45, 0.9);
   border-radius: 12px;
   padding: 1rem;
-  max-height: 40vh; /* Reduced height to fit above joystick */
+  max-height: 40vh;
   display: flex;
   flex-direction: column;
   box-shadow: var(--shadow);
@@ -496,7 +498,7 @@ body {
 }
 
 .chat-message.self {
-  background: rgba(255, 0, 0, 0.2); /* Red tint for self */
+  background: rgba(255, 77, 77, 0.2); /* Updated red tint for self */
   margin-left: 2rem;
 }
 
@@ -531,7 +533,7 @@ body {
 
 /* User Interaction Modal */
 .user-modal {
-  position: absolute;
+  position: fixed;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
@@ -569,13 +571,13 @@ body {
 }
 
 .modal-btn.friend {
-  background: #ffffff;
-  color: #000000;
+  background: var(--text-light);
+  color: var(--primary-bg);
 }
 
 /* Loading Overlay */
 .loading-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgba(0, 0, 0, 0.7);
   display: flex;
@@ -613,4 +615,92 @@ body {
   bottom: 1.5rem;
   left: 1.5rem;
   z-index: 5;
+}
+
+/* Add these styles to your MetaverseStyles.css file */
+
+.action-buttons-container {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  z-index: 100;
+}
+
+.logo-link {
+  margin-bottom: 10px;
+}
+
+.main-action-btn {
+  background-color: #4a7c59;
+  color: white;
+  border-radius: 50%;
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+  z-index: 101;
+  margin-top: 10px;
+  /* Space above the main button */
+}
+
+.collapsible-menu {
+  display: flex;
+  flex-direction: column-reverse;
+  /* Buttons stack upward */
+  /* background-color: rgba(0, 0, 0, 0.7); */
+  border-radius: 25px;
+  padding: 5px;
+  margin-bottom: 10px;
+  /* Space between menu and main button */
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* You might need to adjust these existing styles */
+.action-btn {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  /* background-color: rgba(255, 255, 255, 0.2); */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 5px 0;
+  /* Vertical spacing between buttons */
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.action-btn:hover {
+  background-color: rgba(255, 255, 255, 0.4);
+}
+
+.action-btn.active {
+  background-color: #e53935;
+  color: white;
+}
+
+/* Ensure pointer events are enabled for interactive elements */
+.action-buttons-container, .logo-link {
+  pointer-events: auto;
+}
+
+.action-btn, .logo-link img {
+  pointer-events: auto; /* Enable pointer events for buttons and logo */
 }
