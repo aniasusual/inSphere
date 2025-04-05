@@ -33,13 +33,15 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
     const id = useId();
     const ref = useRef<HTMLDivElement>(null);
 
+    console.log("jams in expandable: ", jams);
+
     // Guard against invalid jams prop
     const cards: Card[] = jams?.map((jam) => ({
         description: `Creator: ${jam.creator.username}`,
         title: jam.name,
         src: jam.displayImage.url,
         ctaText: "Join",
-        ctaLink: `/join/${jam.id}`,
+        ctaLink: `/join/jam/${jam.id}`,
         content: () => <p>{jam.description}</p>,
     })) || [];
 

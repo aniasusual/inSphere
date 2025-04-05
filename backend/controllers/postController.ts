@@ -456,3 +456,76 @@ export const getSearchData = async (req: Request, res: Response) => {
     }
 };
 
+
+interface LocationQuery {
+    longitude: number;
+    latitude: number;
+    maxDistance: number; // in kilometers
+}
+
+// Enhanced API endpoint
+export const findPostsAround = async (req: Request, res: Response) => {
+    try {
+        // Type the request body
+        const { longitude, latitude, maxDistance } = req.body as LocationQuery;
+
+        // Validate input parameters
+        if (!longitude || !latitude) {
+            res.status(400).json({
+                success: false,
+                message: 'Both longitude and latitude are required'
+            });
+            return;
+        }
+
+        if (isNaN(longitude) || isNaN(latitude)) {
+            res.status(400).json({
+                success: false,
+                message: 'Longitude and latitude must be valid numbers'
+            });
+            return;
+        }
+
+        // Set default maxDistance if not provided (e.g., 10km)
+        const distanceInMeters = (maxDistance || 10) * 1000;
+
+        // Query posts using geospatial search
+        const posts = await Post.find({
+            location: {
+                $near: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [Number(longitude), Number(latitude)]
+                    },
+                    $maxDistance: distanceInMeters
+                }
+            }
+        })
+            .populate('creator', 'username profilePicture') // Optional: populate creator info
+            .populate('comments') // Optional: populate comments
+            .lean(); // Convert to plain JavaScript objects
+
+        console.log("Posts found:", posts.length);
+        // Return success response with found posts
+        res.status(200).json({
+            success: true,
+            message: posts.length > 0 ? 'Posts found nearby' : 'No posts found nearby',
+            data: {
+                posts,
+                count: posts.length,
+                distanceSearched: distanceInMeters / 1000 // Return in kilometers
+            }
+        });
+        return;
+
+    } catch (error: any) {
+        console.error('Error in findPostsAround:', error.message);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to find posts nearby',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
+        return
+    }
+};
+
