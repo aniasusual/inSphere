@@ -283,9 +283,7 @@ const JamScene: React.FC<JamSceneProps> = ({
     });
   };
 
-  // Setup simulated users (for testing)
   const setupSimulatedUsers = () => {
-    // Add some simulated users at random positions
     const simulatedUsers = [
       {
         id: "user-1",
@@ -307,7 +305,6 @@ const JamScene: React.FC<JamSceneProps> = ({
       },
     ];
 
-    // Create and add simulated users
     simulatedUsers.forEach((userData) => {
       const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
       const material = new THREE.MeshStandardMaterial({
@@ -333,9 +330,12 @@ const JamScene: React.FC<JamSceneProps> = ({
       canvas.height = 64;
       const context = canvas.getContext("2d");
       if (context) {
+        context.clearRect(0, 0, canvas.width, canvas.height);
         context.fillStyle = "#ffffff";
         context.font = "Bold 24px Arial";
-        context.fillText(userData.name, 10, 36);
+        context.textAlign = "center"; // Center horizontally
+        context.textBaseline = "middle"; // Center vertically
+        context.fillText(userData.name, canvas.width / 2, canvas.height / 2);
 
         const texture = new THREE.CanvasTexture(canvas);
         const spriteMaterial = new THREE.SpriteMaterial({
@@ -345,8 +345,8 @@ const JamScene: React.FC<JamSceneProps> = ({
         });
 
         const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.position.y = 2.5;
-        sprite.scale.set(2, 0.5, 1);
+        sprite.position.y = 2.5; // Lowered from 2.5 to 1.6 to match your avatar
+        sprite.scale.set(1.2, 0.3, 1); // Consistent scale
         userMesh.add(sprite);
       }
 
@@ -354,7 +354,6 @@ const JamScene: React.FC<JamSceneProps> = ({
       userMesh.rotation.copy(userData.rotation);
       sceneRef.current.add(userMesh);
 
-      // Add to users map
       setUsers((prev) => {
         const newUsers = new Map(prev);
         newUsers.set(userData.id, {
@@ -369,7 +368,7 @@ const JamScene: React.FC<JamSceneProps> = ({
       });
     });
 
-    // Add sample messages
+    // Sample messages remain unchanged
     setMessages([
       {
         userId: "user-1",
@@ -499,17 +498,25 @@ const JamScene: React.FC<JamSceneProps> = ({
     }
   };
 
-  // Add nametag to avatar
   const addNameTag = (avatar: THREE.Object3D, name: string) => {
     const canvas = document.createElement("canvas");
-    canvas.width = 256;
-    canvas.height = 64;
+    canvas.width = 256; // Width of the canvas
+    canvas.height = 64; // Height of the canvas
     const context = canvas.getContext("2d");
     if (context) {
-      context.fillStyle = "#ffffff";
-      context.font = "Bold 24px Arial";
-      context.fillText(name, 10, 36);
+      // Clear the canvas
+      context.clearRect(0, 0, canvas.width, canvas.height);
 
+      // Set text properties
+      context.fillStyle = "#ffffff"; // White text
+      context.font = "Bold 24px Arial";
+      context.textAlign = "center"; // Center the text horizontally
+      context.textBaseline = "middle"; // Center the text vertically
+
+      // Draw the text in the center of the canvas
+      context.fillText(name, canvas.width / 2, canvas.height / 2);
+
+      // Create texture and sprite
       const texture = new THREE.CanvasTexture(canvas);
       const spriteMaterial = new THREE.SpriteMaterial({
         map: texture,
@@ -518,8 +525,8 @@ const JamScene: React.FC<JamSceneProps> = ({
       });
 
       const sprite = new THREE.Sprite(spriteMaterial);
-      sprite.position.y = 2.5;
-      sprite.scale.set(2, 0.5, 1);
+      sprite.position.y = 2.0; // Adjust this value to position just above the avatar's head
+      sprite.scale.set(1.2, 0.3, 1); // Slightly smaller scale for better fit
       avatar.add(sprite);
     }
   };
