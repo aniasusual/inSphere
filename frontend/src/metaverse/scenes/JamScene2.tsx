@@ -5,6 +5,7 @@ import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import nipplejs from "nipplejs";
 import "../MetaverseStyles.css";
+import logo from "@assets/hyperlocalNobg.png";
 
 interface User {
   id: string;
@@ -61,7 +62,9 @@ const JamScene: React.FC<JamSceneProps> = ({
   const [messageInput, setMessageInput] = useState<string>("");
   const [isVoiceChatActive, setIsVoiceChatActive] = useState<boolean>(false);
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
-  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false); // Added for mobile help toggle
+  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
+  const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
+
   // Scene refs
   const sceneRef = useRef<THREE.Scene>(new THREE.Scene());
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -807,10 +810,13 @@ const JamScene: React.FC<JamSceneProps> = ({
 
         {/* Nearby Users */}
         <div className="nearby-users">
-          <div className="font-bold mb-1">Nearby Users ({nearbyUsers.length})</div>
+          <div className="font-bold mb-1">
+            Online Users ({nearbyUsers.length})
+          </div>
           {nearbyUsers.map((user) => (
             <div key={user.id} className="flex items-center mb-1">
-              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" /> {/* Red highlight */}
+              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" />{" "}
+              {/* Red highlight */}
               <div>{user.name}</div>
             </div>
           ))}
@@ -824,32 +830,72 @@ const JamScene: React.FC<JamSceneProps> = ({
           </div>
         )}
 
-        {/* Action Buttons (Moved to bottom right) */}
-        <div className="action-buttons">
-          <button
-            className="action-btn"
-            onClick={() => (thirdPersonMode.current = !thirdPersonMode.current)}
+        <div className="action-buttons-container m-2">
+          <a
+            href="/"
+            className="logo-link block cursor-pointer py-1.5 text-base text-slate-800 font-semibold"
           >
-            <span className="material-icons">videogame_asset</span>
-          </button>
-          <button className="action-btn" onClick={() => setIsChatOpen(true)}>
-            <span className="material-icons">chat</span>
-          </button>
-          <button
-            className={`action-btn ${isVoiceChatActive ? "active" : ""}`}
-            onClick={toggleVoiceChat}
-          >
-            <span className="material-icons">{isVoiceChatActive ? "mic_off" : "mic"}</span>
-          </button>
-          {/* Help Button (Mobile Only) */}
-          {window.innerWidth <= 768 && (
-            <button
-              className="action-btn"
-              onClick={() => setIsHelpOpen(!isHelpOpen)}
-            >
-              <span className="material-icons">help_outline</span>
-            </button>
+            <img src={logo} alt="hyperlocal" className="max-w-14" />
+          </a>
+
+          {/* Collapsible menu (appears above) */}
+          {isActionMenuOpen && (
+            <div className="collapsible-menu">
+              <button
+                className="action-btn"
+                onClick={() => {
+                  /* Invite friends logic */
+                }}
+              >
+                <span className="material-icons">person_add</span>
+              </button>
+
+              <button
+                className="action-btn"
+                onClick={() =>
+                  (thirdPersonMode.current = !thirdPersonMode.current)
+                }
+              >
+                <span className="material-icons">videogame_asset</span>
+              </button>
+
+              <button
+                className="action-btn"
+                onClick={() => setIsChatOpen(true)}
+              >
+                <span className="material-icons">chat</span>
+              </button>
+
+              <button
+                className={`action-btn ${isVoiceChatActive ? "active" : ""}`}
+                onClick={toggleVoiceChat}
+              >
+                <span className="material-icons">
+                  {isVoiceChatActive ? "mic_off" : "mic"}
+                </span>
+              </button>
+
+              {/* Help Button (Mobile Only) */}
+              {window.innerWidth <= 768 && (
+                <button
+                  className="action-btn"
+                  onClick={() => setIsHelpOpen(!isHelpOpen)}
+                >
+                  <span className="material-icons">help_outline</span>
+                </button>
+              )}
+            </div>
           )}
+
+          {/* Main collapsible button */}
+          <button
+            className="action-btn main-action-btn"
+            onClick={() => setIsActionMenuOpen(!isActionMenuOpen)}
+          >
+            <span className="material-icons">
+              {isActionMenuOpen ? "close" : "menu"}
+            </span>
+          </button>
         </div>
       </div>
 
@@ -866,11 +912,15 @@ const JamScene: React.FC<JamSceneProps> = ({
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`chat-message ${msg.userId === userId ? "self" : "other"}`}
+                className={`chat-message ${
+                  msg.userId === userId ? "self" : "other"
+                }`}
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-bold">{msg.userName}</span>
-                  <span className="text-xs text-gray-400">{formatTimestamp(msg.timestamp)}</span>
+                  <span className="text-xs text-gray-400">
+                    {formatTimestamp(msg.timestamp)}
+                  </span>
                 </div>
                 <p>{msg.text}</p>
               </div>
