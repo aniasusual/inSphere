@@ -195,3 +195,46 @@ export const getSearchData = async (req: Request, res: Response) => {
         return;
     }
 };
+
+export const findJamsAround = async function (req: Request, res: Response) {
+    // const currentUser = req.user;
+    const { longitude, latitude, maxDistance } = req.body;
+
+    if (!longitude && !latitude) {
+        res.status(500).json({ success: false, message: 'Cant access your location, please give location permissions if not given already' })
+        return;
+    };
+
+    if (!longitude) {
+        res.status(500).json({ success: false, message: 'Longitude not provided' });
+        return;
+    };
+
+    if (!latitude) {
+        res.status(500).json({ success: false, message: 'Latitude not provided' });
+        return;
+    };
+
+
+
+
+    try {
+        const jams = await Jam.find({
+            location: {
+                $near: {
+                    $geometry: {
+                        type: 'Point',
+                        coordinates: [Number(longitude), Number(latitude)]
+                    },
+                    $maxDistance: maxDistance * 1000
+                }
+            }
+        }).populate('creator', 'username email')
+            .populate('participants', 'username')
+            .lean();;
+
+        res.json({ success: true, jams });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Failed to find jams nearby' });
+    }
+};

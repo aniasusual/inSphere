@@ -384,8 +384,8 @@ export function SinglePost() {
               size={30}
               fill={isBookmarked ? "currentColor" : "none"}
               className={`hover:cursor-pointer transition-colors ${isBookmarked
-                  ? "text-purple-500"
-                  : "hover:text-purple-500 dark:text-gray-300"
+                ? "text-purple-500"
+                : "hover:text-purple-500 dark:text-gray-300"
                 }`}
               onClick={toggleBookmark}
             />
@@ -407,10 +407,15 @@ export function SinglePost() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.7 }}
         >
-          <span className="font-bold">
+          {/* <span className="font-bold">
             {post.creator?.username || "Unknown"}
           </span>
-          : {post.description || "No description"}
+          : {post.description || "No description"} */}
+          <span className="font-bold">
+            {post.creator?.username || "Unknown"}
+          </span>:
+          <div className="font-bold text-center">{post.title}</div>
+          {post.description || "No description"}
         </motion.div>
 
         {post.hashtags && post.hashtags.length > 0 && (
