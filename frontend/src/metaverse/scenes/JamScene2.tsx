@@ -191,9 +191,8 @@ const JamScene: React.FC<JamSceneProps> = ({
     };
   }, []);
 
-  // Setup mobile controls
   const setupMobileControls = () => {
-    // Create joystick container
+    // Create movement joystick container (left side)
     const joystickContainer = document.createElement("div");
     joystickContainer.style.position = "absolute";
     joystickContainer.style.left = "30px";
@@ -203,7 +202,7 @@ const JamScene: React.FC<JamSceneProps> = ({
     joystickContainer.style.zIndex = "1000"; // Ensure joystick is above canvas
     mountRef.current?.appendChild(joystickContainer);
 
-    // Create joystick manager
+    // Create movement joystick
     const options = {
       zone: joystickContainer,
       color: "white",
@@ -217,63 +216,67 @@ const JamScene: React.FC<JamSceneProps> = ({
     const manager = nipplejs.create(options);
     joystickRef.current = manager;
 
-    // Add joystick event listeners
+    // Add movement joystick event listeners with fixed direction mapping
     manager.on("move", (_event: any, data: any) => {
-      const angle = data.angle.radian;
+      // Store the raw x and y vectors from the joystick
+      // These correctly represent the direction in screen space
+      const forceX = data.vector.x;
+      const forceY = data.vector.y;
       const force = Math.min(data.force / 50, 1); // Normalize force
 
-      setJoystickState({
-        isActive: true,
-        startPos: { x: data.position.x, y: data.position.y },
-        currentPos: {
-          x: data.instance.frontPosition.x,
-          y: data.instance.frontPosition.y,
-        },
-        angle: angle,
-        force: force,
-      });
+      // Store vectors directly instead of angles for more reliable direction control
+      keyStateRef.current["joystickActive"] = true;
+      keyStateRef.current["joystickX"] = forceX;
+      keyStateRef.current["joystickY"] = forceY;
+      keyStateRef.current["joystickForce"] = force;
     });
 
     manager.on("end", () => {
-      setJoystickState({
-        isActive: false,
-        startPos: { x: 0, y: 0 },
-        currentPos: { x: 0, y: 0 },
-        angle: 0,
-        force: 0,
-      });
+      // Clear joystick state in keyStateRef
+      keyStateRef.current["joystickActive"] = false;
+      keyStateRef.current["joystickX"] = 0;
+      keyStateRef.current["joystickY"] = 0;
+      keyStateRef.current["joystickForce"] = 0;
     });
 
-    // Add look joystick (for rotation)
-    const lookJoystickContainer = document.createElement("div");
-    lookJoystickContainer.style.position = "absolute";
-    lookJoystickContainer.style.right = "30px";
-    lookJoystickContainer.style.bottom = "30px";
-    lookJoystickContainer.style.width = "120px";
-    lookJoystickContainer.style.height = "120px";
-    lookJoystickContainer.style.zIndex = "1000"; // Ensure joystick is above canvas
-    mountRef.current?.appendChild(lookJoystickContainer);
+    // Remove the right joystick and replace with screen touch rotation
+    setupTouchRotation();
+  };
 
-    const lookOptions = {
-      zone: lookJoystickContainer,
-      color: "white",
-      size: 120,
-      multitouch: true,
-      maxNumberOfNipples: 1,
-      mode: "static",
-      position: { right: "60px", bottom: "60px" },
-    };
+  const setupTouchRotation = () => {
+    // Add touch handler for rotation on right side of screen
+    const touchStartX = { current: 0 };
 
-    const lookManager = nipplejs.create(lookOptions);
+    // Add event listeners for touch rotation
+    mountRef.current?.addEventListener("touchstart", (e) => {
+      const touch = e.touches[0];
+      const screenWidth = window.innerWidth;
 
-    lookManager.on("move", (_event: any, data: any) => {
-      if (!avatarRef.current || !cameraRef.current) return;
+      // Only handle touches on the right half of the screen
+      if (touch.clientX > screenWidth / 2) {
+        touchStartX.current = touch.clientX;
+        e.preventDefault(); // Prevent default to avoid scrolling
+      }
+    });
 
-      const rotationSpeed = 0.05;
-      const horizontalMovement = data.vector.x * rotationSpeed;
+    mountRef.current?.addEventListener("touchmove", (e) => {
+      if (!avatarRef.current) return;
 
-      // Rotate avatar
-      avatarRef.current.rotation.y -= horizontalMovement;
+      const touch = e.touches[0];
+      const screenWidth = window.innerWidth;
+
+      // Only handle touches on the right half of the screen
+      if (touch.clientX > screenWidth / 2) {
+        const deltaX = touch.clientX - touchStartX.current;
+
+        // Rotate avatar based on swipe
+        avatarRef.current.rotation.y -= deltaX * 0.01;
+
+        // Update starting point for next move
+        touchStartX.current = touch.clientX;
+
+        e.preventDefault(); // Prevent default to avoid scrolling
+      }
     });
   };
 
@@ -618,9 +621,8 @@ const JamScene: React.FC<JamSceneProps> = ({
 
     const moveSpeed = 0.1;
     let direction = new THREE.Vector3(0, 0, 0);
-    let shouldUpdateRotation = false;
 
-    // Handle keyboard movement
+    // Handle keyboard movement (for desktop)
     if (keyStateRef.current["ArrowUp"] || keyStateRef.current["KeyW"]) {
       direction.z -= 1;
     }
@@ -634,22 +636,28 @@ const JamScene: React.FC<JamSceneProps> = ({
       direction.x += 1;
     }
 
-    // Handle joystick movement for mobile
-    if (joystickState.isActive && joystickState.force > 0) {
-      // Override keyboard input with joystick when active
-      direction = new THREE.Vector3(
-        Math.cos(joystickState.angle + Math.PI / 2) * joystickState.force,
-        0,
-        Math.sin(joystickState.angle + Math.PI / 2) * joystickState.force
-      );
+    // Handle joystick movement for mobile - use direct vector values
+    if (keyStateRef.current["joystickActive"]) {
+      // Clear keyboard direction when joystick is active
+      direction = new THREE.Vector3();
+
+      // Map joystick X to movement X (left/right)
+      direction.x = keyStateRef.current["joystickX"];
+
+      // Map joystick Y to movement Z (forward/backward)
+      // Invert Y because pushing up should move forward (negative Z)
+      direction.z = -keyStateRef.current["joystickY"];
+
+      // Apply force for variable speed
+      const force = keyStateRef.current["joystickForce"];
+      direction.multiplyScalar(force);
     }
 
     if (direction.length() > 0) {
       // Normalize for consistent movement speed in all directions
       direction.normalize();
 
-      // Create movement vector in local space based on camera orientation
-      // This makes movement relative to the current view rather than avatar orientation
+      // Create movement vector in local space
       const moveVector = new THREE.Vector3(
         direction.x * moveSpeed,
         0,
@@ -664,9 +672,6 @@ const JamScene: React.FC<JamSceneProps> = ({
 
       // Apply movement
       avatarRef.current.position.add(moveVector);
-
-      // Don't update avatar rotation automatically with movement
-      // This keeps the camera stable while moving
     }
   };
 
