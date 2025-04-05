@@ -71,7 +71,7 @@ const JamScene: React.FC<JamSceneProps> = ({
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
   const controlsRef = useRef<OrbitControls | null>(null);
   const avatarRef = useRef<THREE.Object3D | null>(null);
-  const keyStateRef = useRef<{ [key: string]: boolean }>({});
+  const keyStateRef = useRef<{ [key: string]: boolean | number }>({});
   const animationFrameId = useRef<number | null>(null);
   const joystickRef = useRef<any>(null);
   const cameraOffsetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 2, 5));
@@ -212,7 +212,7 @@ const JamScene: React.FC<JamSceneProps> = ({
       size: 120,
       multitouch: true,
       maxNumberOfNipples: 1,
-      mode: "static",
+      mode: "static" as const,
       position: { left: "60px", bottom: "60px" },
     };
 
@@ -652,14 +652,14 @@ const JamScene: React.FC<JamSceneProps> = ({
       direction = new THREE.Vector3();
 
       // Map joystick X to movement X (left/right)
-      direction.x = keyStateRef.current["joystickX"];
+      direction.x = keyStateRef.current["joystickX"] as number;
 
       // Map joystick Y to movement Z (forward/backward)
       // Invert Y because pushing up should move forward (negative Z)
-      direction.z = -keyStateRef.current["joystickY"];
+      direction.z = -(keyStateRef.current["joystickY"] as number);
 
       // Apply force for variable speed
-      const force = keyStateRef.current["joystickForce"];
+      const force = keyStateRef.current["joystickForce"] as number;
       direction.multiplyScalar(force);
     }
 
@@ -680,8 +680,28 @@ const JamScene: React.FC<JamSceneProps> = ({
         avatarRef.current.rotation.y
       );
 
-      // Apply movement
-      avatarRef.current.position.add(moveVector);
+      // Calculate new position
+      const newPosition = new THREE.Vector3()
+        .copy(avatarRef.current.position)
+        .add(moveVector);
+
+      // Define floor boundaries (floor size is 100, so half is 50)
+      const floorSize = 50;
+      const minX = -floorSize;
+      const maxX = floorSize;
+      const minZ = -floorSize;
+      const maxZ = floorSize;
+
+      // Check if new position is within floor boundaries
+      if (
+        newPosition.x >= minX &&
+        newPosition.x <= maxX &&
+        newPosition.z >= minZ &&
+        newPosition.z <= maxZ
+      ) {
+        // Only apply movement if within boundaries
+        avatarRef.current.position.copy(newPosition);
+      }
     }
   };
 
