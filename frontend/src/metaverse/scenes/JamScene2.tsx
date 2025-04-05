@@ -61,7 +61,7 @@ const JamScene: React.FC<JamSceneProps> = ({
   const [messageInput, setMessageInput] = useState<string>("");
   const [isVoiceChatActive, setIsVoiceChatActive] = useState<boolean>(false);
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
-
+  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false); // Added for mobile help toggle
   // Scene refs
   const sceneRef = useRef<THREE.Scene>(new THREE.Scene());
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
@@ -790,170 +790,118 @@ const JamScene: React.FC<JamSceneProps> = ({
   };
 
   return (
-    <div className="relative w-full h-full">
-      <div ref={mountRef} className="w-full h-full overflow-hidden">
-        {isLoading && (
-          <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-white text-2xl bg-black bg-opacity-50 p-4 rounded-md">
-            Loading...
-          </div>
-        )}
-      </div>
+    <div className="scene-container">
+      <div ref={mountRef} className="w-full h-full" />
 
-      {/* Game UI */}
-      <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
-        {/* Controls help */}
-        <div className="absolute top-4 left-4 bg-black bg-opacity-50 text-white p-2 rounded text-sm">
+      {/* UI Overlay */}
+      <div className="ui-overlay">
+        {/* Controls Help */}
+        <div className={`controls-help ${isHelpOpen ? "active" : ""}`}>
           <div>WASD / Arrow Keys: Move</div>
           <div>Mouse: Look around</div>
           <div>C: Toggle camera mode</div>
           <div>T: Open chat</div>
-          <div>F: Interact with nearby users</div>
-          <div>V: Toggle voice chat</div>
+          <div>F: Interact</div>
+          <div>V: Voice chat</div>
         </div>
 
-        {/* Nearby users */}
-        <div className="absolute top-4 right-4 bg-black bg-opacity-50 text-white p-2 rounded text-sm max-w-xs">
-          <div className="font-bold mb-1">
-            Nearby Users ({nearbyUsers.length})
-          </div>
+        {/* Nearby Users */}
+        <div className="nearby-users">
+          <div className="font-bold mb-1">Nearby Users ({nearbyUsers.length})</div>
           {nearbyUsers.map((user) => (
             <div key={user.id} className="flex items-center mb-1">
-              <div className="w-2 h-2 rounded-full bg-green-500 mr-2"></div>
+              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" /> {/* Red highlight */}
               <div>{user.name}</div>
             </div>
           ))}
         </div>
 
-        {/* Voice chat indicator */}
+        {/* Voice Chat Indicator */}
         {isVoiceChatActive && (
-          <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-red-500 text-white px-4 py-1 rounded-full flex items-center">
-            <div className="w-3 h-3 rounded-full bg-white mr-2 animate-pulse"></div>
+          <div className="voice-chat-indicator">
+            <div className="w-3 h-3 rounded-full bg-white mr-2 animate-pulse" />
             Voice Chat Active
           </div>
         )}
 
-        {/* Chat button */}
-        <button
-          className="absolute bottom-4 left-4 bg-blue-600 text-white p-2 rounded-full w-12 h-12 flex items-center justify-center pointer-events-auto"
-          onClick={() => setIsChatOpen(true)}
-        >
-          <span className="material-icons">chat</span>
-        </button>
-
-        {/* Voice chat button */}
-        <button
-          className={`absolute bottom-4 left-20 text-white p-2 rounded-full w-12 h-12 flex items-center justify-center pointer-events-auto ${
-            isVoiceChatActive ? "bg-red-600" : "bg-green-600"
-          }`}
-          onClick={toggleVoiceChat}
-        >
-          <span className="material-icons">
-            {isVoiceChatActive ? "mic_off" : "mic"}
-          </span>
-        </button>
+        {/* Action Buttons (Moved to bottom right) */}
+        <div className="action-buttons">
+          <button
+            className="action-btn"
+            onClick={() => (thirdPersonMode.current = !thirdPersonMode.current)}
+          >
+            <span className="material-icons">videogame_asset</span>
+          </button>
+          <button className="action-btn" onClick={() => setIsChatOpen(true)}>
+            <span className="material-icons">chat</span>
+          </button>
+          <button
+            className={`action-btn ${isVoiceChatActive ? "active" : ""}`}
+            onClick={toggleVoiceChat}
+          >
+            <span className="material-icons">{isVoiceChatActive ? "mic_off" : "mic"}</span>
+          </button>
+          {/* Help Button (Mobile Only) */}
+          {window.innerWidth <= 768 && (
+            <button
+              className="action-btn"
+              onClick={() => setIsHelpOpen(!isHelpOpen)}
+            >
+              <span className="material-icons">help_outline</span>
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Chat panel */}
+      {/* Chat Panel */}
       {isChatOpen && (
-        <div
-          ref={chatRef}
-          className="absolute bottom-4 left-4 right-4 md:left-1/4 md:right-1/4 bg-black bg-opacity-75 text-white rounded-lg p-4 max-h-96 flex flex-col pointer-events-auto"
-        >
-          <div className="flex justify-between items-center mb-2">
+        <div className="chat-panel">
+          <div className="chat-header">
             <h3 className="text-xl font-bold">Chat</h3>
-            <button
-              className="text-gray-400 hover:text-white"
-              onClick={() => setIsChatOpen(false)}
-            >
+            <button className="icon-btn" onClick={() => setIsChatOpen(false)}>
               <span className="material-icons">close</span>
             </button>
           </div>
-
-          {/* Messages container */}
-          <div className="flex-1 overflow-y-auto mb-2 space-y-2">
+          <div className="chat-messages">
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`p-2 rounded-lg ${
-                  msg.userId === userId
-                    ? "bg-blue-800 ml-8"
-                    : "bg-gray-800 mr-8"
-                }`}
+                className={`chat-message ${msg.userId === userId ? "self" : "other"}`}
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-bold">{msg.userName}</span>
-                  <span className="text-xs text-gray-400">
-                    {formatTimestamp(msg.timestamp)}
-                  </span>
+                  <span className="text-xs text-gray-400">{formatTimestamp(msg.timestamp)}</span>
                 </div>
                 <p>{msg.text}</p>
               </div>
             ))}
           </div>
-
-          {/* Message input */}
-          <div className="flex gap-2">
+          <div className="chat-input">
             <input
               ref={messageInputRef}
               type="text"
               value={messageInput}
               onChange={(e) => setMessageInput(e.target.value)}
-              className="flex-1 bg-gray-800 text-white px-3 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Type a message..."
               onKeyDown={(e) => {
                 if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   sendMessage();
                 }
-                if (e.key === "Escape") {
-                  setIsChatOpen(false);
-                }
+                if (e.key === "Escape") setIsChatOpen(false);
               }}
             />
-            <button
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700"
-              onClick={sendMessage}
-            >
-              Send
-            </button>
+            <button onClick={sendMessage}>Send</button>
           </div>
         </div>
       )}
 
-      {/* Mobile UI elements */}
-      {window.innerWidth <= 768 && (
-        <div className="absolute bottom-24 right-4 flex flex-col gap-3 pointer-events-auto">
-          <button
-            className="bg-gray-800 bg-opacity-70 text-white w-12 h-12 rounded-full flex items-center justify-center"
-            onClick={() => (thirdPersonMode.current = !thirdPersonMode.current)}
-          >
-            <span className="material-icons">videogame_asset</span>
-          </button>
-          <button
-            className="bg-gray-800 bg-opacity-70 text-white w-12 h-12 rounded-full flex items-center justify-center"
-            onClick={() => setIsChatOpen(true)}
-          >
-            <span className="material-icons">chat</span>
-          </button>
-          <button
-            className={`w-12 h-12 rounded-full flex items-center justify-center ${
-              isVoiceChatActive ? "bg-red-600" : "bg-green-600"
-            }`}
-            onClick={toggleVoiceChat}
-          >
-            <span className="material-icons">
-              {isVoiceChatActive ? "mic_off" : "mic"}
-            </span>
-          </button>
-        </div>
-      )}
-
-      {/* Loading overlay */}
+      {/* Loading Overlay */}
       {isLoading && (
-        <div className="absolute inset-0 bg-black bg-opacity-70 flex items-center justify-center z-20">
-          <div className="bg-gray-900 p-8 rounded-lg text-center">
-            <div className="w-12 h-12 border-4 border-t-blue-500 border-gray-200 rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-white text-xl">Loading Metaverse...</p>
+        <div className="loading-overlay">
+          <div className="loading-box">
+            <div className="spinner" />
+            <p className="text-xl">Loading Metaverse...</p>
           </div>
         </div>
       )}
