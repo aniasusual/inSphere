@@ -249,38 +249,53 @@ const JamScene: React.FC<JamSceneProps> = ({
   const setupTouchRotation = () => {
     // Add touch handler for rotation on right side of screen
     const touchStartX = { current: 0 };
+    let isRotating = false;
 
     // Add event listeners for touch rotation
-    mountRef.current?.addEventListener("touchstart", (e) => {
-      const touch = e.touches[0];
-      const screenWidth = window.innerWidth;
+    mountRef.current?.addEventListener(
+      "touchstart",
+      (e) => {
+        const touch = e.touches[0];
+        const screenWidth = window.innerWidth;
 
-      // Only handle touches on the right half of the screen
-      if (touch.clientX > screenWidth / 2) {
-        touchStartX.current = touch.clientX;
-        e.preventDefault(); // Prevent default to avoid scrolling
-      }
-    });
+        // Only handle touches on the right half of the screen
+        if (touch.clientX > screenWidth / 2) {
+          touchStartX.current = touch.clientX;
+          isRotating = true;
+        }
+      },
+      { passive: true }
+    );
 
-    mountRef.current?.addEventListener("touchmove", (e) => {
-      if (!avatarRef.current) return;
+    mountRef.current?.addEventListener(
+      "touchmove",
+      (e) => {
+        if (!avatarRef.current || !isRotating) return;
 
-      const touch = e.touches[0];
-      const screenWidth = window.innerWidth;
+        const touch = e.touches[0];
+        const screenWidth = window.innerWidth;
 
-      // Only handle touches on the right half of the screen
-      if (touch.clientX > screenWidth / 2) {
-        const deltaX = touch.clientX - touchStartX.current;
+        // Only handle touches on the right half of the screen
+        if (touch.clientX > screenWidth / 2) {
+          const deltaX = touch.clientX - touchStartX.current;
 
-        // Rotate avatar based on swipe
-        avatarRef.current.rotation.y -= deltaX * 0.01;
+          // Rotate avatar based on swipe
+          avatarRef.current.rotation.y -= deltaX * 0.01;
 
-        // Update starting point for next move
-        touchStartX.current = touch.clientX;
+          // Update starting point for next move
+          touchStartX.current = touch.clientX;
+        }
+      },
+      { passive: true }
+    );
 
-        e.preventDefault(); // Prevent default to avoid scrolling
-      }
-    });
+    mountRef.current?.addEventListener(
+      "touchend",
+      () => {
+        isRotating = false;
+      },
+      { passive: true }
+    );
   };
 
   const setupSimulatedUsers = () => {
