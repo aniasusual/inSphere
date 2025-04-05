@@ -19,6 +19,7 @@ import { SocketProvider } from "./socket";
 import ChatPage from "@pages/Chat";
 import UserProfile from "@pages/UserProfile";
 import { SinglePost } from "@pages/SinglePost";
+import { JamPage } from "@pages/Jam";
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -129,6 +130,7 @@ function App() {
             }
           />
           <Route path="/chat" element={<ChatPage />} />
+          <Route path="/join/jam/:jamId" element={<JamPage />} />
           {/* <Route path="/channel/:id" element={<ChannelPage />} /> */}
         </Routes>
       </BrowserRouter>

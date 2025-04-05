@@ -15,7 +15,10 @@
     "utils": "@lib/utils",
     "ui": "@components/ui",
     "lib": "@lib",
-    "hooks": "@hooks"
+    "hooks": "@hooks",
+    "metaverse": "@metaverse",
+    "assets": "@assets",
+    "pages": "@pages"
   },
   "iconLibrary": "lucide"
 }

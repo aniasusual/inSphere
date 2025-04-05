@@ -41,7 +41,7 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
         title: jam.name,
         src: jam.displayImage.url,
         ctaText: "Join",
-        ctaLink: `/join/${jam.id}`,
+        ctaLink: `/join/jam/${jam.id}`,
         content: () => <p>{jam.description}</p>,
     })) || [];
 
