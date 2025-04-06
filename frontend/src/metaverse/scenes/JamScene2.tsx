@@ -6,6 +6,7 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import nipplejs from "nipplejs";
 import "../MetaverseStyles.css";
 import logo from "@assets/hyperlocalNobg.png";
+import { useSocket } from "socket";
 
 interface User {
   id: string;
@@ -41,14 +42,14 @@ interface JoystickState {
 
 const JamScene: React.FC<JamSceneProps> = ({
   jamId,
-  userId = `user-${Math.floor(Math.random() * 10000)}`,
-  userName = `User ${Math.floor(Math.random() * 1000)}`,
+  userId,
+  userName,
   avatarUrl = "/avatars/mech_drone.glb",
   onUserInteraction,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [users, setUsers] = useState<Map<string, User>>(new Map());
-  const [isConnected, setIsConnected] = useState<boolean>(false);
+  // const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [joystickState, setJoystickState] = useState<JoystickState>({
     isActive: false,
@@ -79,6 +80,10 @@ const JamScene: React.FC<JamSceneProps> = ({
   const chatRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
 
+  const lastPositionSent = useRef<THREE.Vector3>(new THREE.Vector3());
+  const lastRotationSent = useRef<THREE.Euler>(new THREE.Euler());
+
+  const { socket, isConnected } = useSocket();
 
   // Update setupMouseLookControls to handle rotation separately from movement
   const setupMouseLookControls = () => {
@@ -116,7 +121,9 @@ const JamScene: React.FC<JamSceneProps> = ({
 
   // Initialize scene
   useEffect(() => {
-    if (!mountRef.current) return;
+
+    console.log("socket: ", socket, isConnected)
+    if (!mountRef.current || !socket) return;
 
     // Initialize scene
     const scene = sceneRef.current;
@@ -194,6 +201,56 @@ const JamScene: React.FC<JamSceneProps> = ({
       setupMobileControls();
     }
 
+    // Socket listeners
+    const setupSocketListeners = () => {
+      socket.emit("joinJam", {
+        jamId,
+        userId,
+        userName,
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+      });
+
+      socket.on("currentUsers", (jamUsers: any[]) => {
+        jamUsers.forEach((userData) => addUserToScene(userData));
+      });
+
+      socket.on("userJoined", (userData: any) => {
+        addUserToScene(userData);
+      });
+
+      socket.on("userMoved", ({ userId: movedUserId, position, rotation }) => {
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          const user = newUsers.get(movedUserId);
+          if (user && user.avatar) {
+            user.position.set(position.x, position.y, position.z);
+            user.rotation.set(rotation.x, rotation.y, rotation.z);
+            user.avatar.position.lerp(new THREE.Vector3(position.x, position.y, position.z), 0.1); // Smooth interpolation
+            user.avatar.rotation.set(rotation.x, rotation.y, rotation.z);
+            user.lastUpdate = Date.now();
+          }
+          return newUsers;
+        });
+      });
+
+      socket.on("userLeft", ({ userId: leftUserId }) => {
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          const user = newUsers.get(leftUserId);
+          if (user && user.avatar) {
+            sceneRef.current.remove(user.avatar);
+          }
+          newUsers.delete(leftUserId);
+          return newUsers;
+        });
+      });
+    };
+
+    if (isConnected) {
+      setupSocketListeners();
+    }
+
     // Load avatar
     loadAvatar(avatarUrl);
 
@@ -207,12 +264,16 @@ const JamScene: React.FC<JamSceneProps> = ({
     setupMouseLookControls();
 
     // Setup simulated users (for testing)
-    setupSimulatedUsers();
+    // setupSimulatedUsers();
 
     // Start animation loop
     animate();
 
     return () => {
+      socket.off("currentUsers");
+      socket.off("userJoined");
+      socket.off("userMoved");
+      socket.off("userLeft");
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
@@ -227,7 +288,45 @@ const JamScene: React.FC<JamSceneProps> = ({
       // document.removeEventListener("mousemove", onMouseMove);
       mountRef.current?.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [jamId, userId, userName, avatarUrl, socket, isConnected]);
+
+  const addUserToScene = (userData: any) => {
+    const { userId: id, position, rotation, name } = userData;
+    if (id === userId) return; // Skip self
+
+    const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
+    const material = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
+    const userMesh = new THREE.Group();
+
+    const body = new THREE.Mesh(geometry, material);
+    body.position.y = 1;
+    userMesh.add(body);
+
+    const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+    const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+    const head = new THREE.Mesh(headGeometry, headMaterial);
+    head.position.y = 2;
+    userMesh.add(head);
+
+    addNameTag(userMesh, name);
+
+    userMesh.position.set(position.x, position.y, position.z);
+    userMesh.rotation.set(rotation.x, rotation.y, rotation.z);
+    sceneRef.current.add(userMesh);
+
+    setUsers((prev) => {
+      const newUsers = new Map(prev);
+      newUsers.set(id, {
+        id,
+        position: new THREE.Vector3(position.x, position.y, position.z),
+        rotation: new THREE.Euler(rotation.x, rotation.y, rotation.z),
+        name,
+        avatar: userMesh,
+        lastUpdate: Date.now(),
+      });
+      return newUsers;
+    });
+  };
 
   const setupMobileControls = () => {
     // Create movement joystick container (left side)
@@ -333,107 +432,107 @@ const JamScene: React.FC<JamSceneProps> = ({
     );
   };
 
-  const setupSimulatedUsers = () => {
-    const simulatedUsers = [
-      {
-        id: "user-1",
-        name: "Alice",
-        position: new THREE.Vector3(5, 0, 5),
-        rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-      },
-      {
-        id: "user-2",
-        name: "Bob",
-        position: new THREE.Vector3(-5, 0, 3),
-        rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-      },
-      {
-        id: "user-3",
-        name: "Charlie",
-        position: new THREE.Vector3(0, 0, -8),
-        rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-      },
-    ];
+  // const setupSimulatedUsers = () => {
+  //   const simulatedUsers = [
+  //     {
+  //       id: "user-1",
+  //       name: "Alice",
+  //       position: new THREE.Vector3(5, 0, 5),
+  //       rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
+  //     },
+  //     {
+  //       id: "user-2",
+  //       name: "Bob",
+  //       position: new THREE.Vector3(-5, 0, 3),
+  //       rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
+  //     },
+  //     {
+  //       id: "user-3",
+  //       name: "Charlie",
+  //       position: new THREE.Vector3(0, 0, -8),
+  //       rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
+  //     },
+  //   ];
 
-    simulatedUsers.forEach((userData) => {
-      const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
-      const material = new THREE.MeshStandardMaterial({
-        color: Math.random() * 0xffffff,
-      });
-      const userMesh = new THREE.Group();
+  //   simulatedUsers.forEach((userData) => {
+  //     const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
+  //     const material = new THREE.MeshStandardMaterial({
+  //       color: Math.random() * 0xffffff,
+  //     });
+  //     const userMesh = new THREE.Group();
 
-      // Body
-      const body = new THREE.Mesh(geometry, material);
-      body.position.y = 1;
-      userMesh.add(body);
+  //     // Body
+  //     const body = new THREE.Mesh(geometry, material);
+  //     body.position.y = 1;
+  //     userMesh.add(body);
 
-      // Head
-      const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-      const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
-      const head = new THREE.Mesh(headGeometry, headMaterial);
-      head.position.y = 2;
-      userMesh.add(head);
+  //     // Head
+  //     const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+  //     const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
+  //     const head = new THREE.Mesh(headGeometry, headMaterial);
+  //     head.position.y = 2;
+  //     userMesh.add(head);
 
-      // Nametag
-      const canvas = document.createElement("canvas");
-      canvas.width = 256;
-      canvas.height = 64;
-      const context = canvas.getContext("2d");
-      if (context) {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = "#ffffff";
-        context.font = "Bold 24px Arial";
-        context.textAlign = "center"; // Center horizontally
-        context.textBaseline = "middle"; // Center vertically
-        context.fillText(userData.name, canvas.width / 2, canvas.height / 2);
+  //     // Nametag
+  //     const canvas = document.createElement("canvas");
+  //     canvas.width = 256;
+  //     canvas.height = 64;
+  //     const context = canvas.getContext("2d");
+  //     if (context) {
+  //       context.clearRect(0, 0, canvas.width, canvas.height);
+  //       context.fillStyle = "#ffffff";
+  //       context.font = "Bold 24px Arial";
+  //       context.textAlign = "center"; // Center horizontally
+  //       context.textBaseline = "middle"; // Center vertically
+  //       context.fillText(userData.name, canvas.width / 2, canvas.height / 2);
 
-        const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({
-          map: texture,
-          transparent: true,
-          depthTest: false,
-        });
+  //       const texture = new THREE.CanvasTexture(canvas);
+  //       const spriteMaterial = new THREE.SpriteMaterial({
+  //         map: texture,
+  //         transparent: true,
+  //         depthTest: false,
+  //       });
 
-        const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.position.y = 2.5; // Lowered from 2.5 to 1.6 to match your avatar
-        sprite.scale.set(1.2, 0.3, 1); // Consistent scale
-        userMesh.add(sprite);
-      }
+  //       const sprite = new THREE.Sprite(spriteMaterial);
+  //       sprite.position.y = 2.5; // Lowered from 2.5 to 1.6 to match your avatar
+  //       sprite.scale.set(1.2, 0.3, 1); // Consistent scale
+  //       userMesh.add(sprite);
+  //     }
 
-      userMesh.position.copy(userData.position);
-      userMesh.rotation.copy(userData.rotation);
-      sceneRef.current.add(userMesh);
+  //     userMesh.position.copy(userData.position);
+  //     userMesh.rotation.copy(userData.rotation);
+  //     sceneRef.current.add(userMesh);
 
-      setUsers((prev) => {
-        const newUsers = new Map(prev);
-        newUsers.set(userData.id, {
-          id: userData.id,
-          position: userData.position,
-          rotation: userData.rotation,
-          name: userData.name,
-          avatar: userMesh,
-          lastUpdate: Date.now(),
-        });
-        return newUsers;
-      });
-    });
+  //     setUsers((prev) => {
+  //       const newUsers = new Map(prev);
+  //       newUsers.set(userData.id, {
+  //         id: userData.id,
+  //         position: userData.position,
+  //         rotation: userData.rotation,
+  //         name: userData.name,
+  //         avatar: userMesh,
+  //         lastUpdate: Date.now(),
+  //       });
+  //       return newUsers;
+  //     });
+  //   });
 
-    // Sample messages remain unchanged
-    setMessages([
-      {
-        userId: "user-1",
-        userName: "Alice",
-        text: "Hey everyone! Welcome to the metaverse!",
-        timestamp: Date.now() - 60000,
-      },
-      {
-        userId: "user-2",
-        userName: "Bob",
-        text: "This is so cool! Love the graphics.",
-        timestamp: Date.now() - 30000,
-      },
-    ]);
-  };
+  //   // Sample messages remain unchanged
+  //   setMessages([
+  //     {
+  //       userId: "user-1",
+  //       userName: "Alice",
+  //       text: "Hey everyone! Welcome to the metaverse!",
+  //       timestamp: Date.now() - 60000,
+  //     },
+  //     {
+  //       userId: "user-2",
+  //       userName: "Bob",
+  //       text: "This is so cool! Love the graphics.",
+  //       timestamp: Date.now() - 30000,
+  //     },
+  //   ]);
+  // };
 
   const loadAvatar = (url: string) => {
     if (!url) {
@@ -677,80 +776,54 @@ const JamScene: React.FC<JamSceneProps> = ({
   };
 
   const handleMovement = () => {
-    if (!avatarRef.current) return;
+    if (!avatarRef.current || !isConnected) return;
 
     const moveSpeed = 0.1;
     let direction = new THREE.Vector3(0, 0, 0);
 
-    // Handle keyboard movement (for desktop)
-    if (keyStateRef.current["ArrowUp"] || keyStateRef.current["KeyW"]) {
-      direction.z -= 1;
-    }
-    if (keyStateRef.current["ArrowDown"] || keyStateRef.current["KeyS"]) {
-      direction.z += 1;
-    }
-    if (keyStateRef.current["ArrowLeft"] || keyStateRef.current["KeyA"]) {
-      direction.x -= 1;
-    }
-    if (keyStateRef.current["ArrowRight"] || keyStateRef.current["KeyD"]) {
-      direction.x += 1;
-    }
+    if (keyStateRef.current["ArrowUp"] || keyStateRef.current["KeyW"]) direction.z -= 1;
+    if (keyStateRef.current["ArrowDown"] || keyStateRef.current["KeyS"]) direction.z += 1;
+    if (keyStateRef.current["ArrowLeft"] || keyStateRef.current["KeyA"]) direction.x -= 1;
+    if (keyStateRef.current["ArrowRight"] || keyStateRef.current["KeyD"]) direction.x += 1;
 
-    // Handle joystick movement for mobile - use direct vector values
     if (keyStateRef.current["joystickActive"]) {
-      // Clear keyboard direction when joystick is active
       direction = new THREE.Vector3();
-
-      // Map joystick X to movement X (left/right)
       direction.x = keyStateRef.current["joystickX"] as number;
-
-      // Map joystick Y to movement Z (forward/backward)
-      // Invert Y because pushing up should move forward (negative Z)
       direction.z = -(keyStateRef.current["joystickY"] as number);
-
-      // Apply force for variable speed
       const force = keyStateRef.current["joystickForce"] as number;
       direction.multiplyScalar(force);
     }
 
     if (direction.length() > 0) {
-      // Normalize for consistent movement speed in all directions
       direction.normalize();
+      const moveVector = new THREE.Vector3(direction.x * moveSpeed, 0, direction.z * moveSpeed);
+      moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), avatarRef.current.rotation.y);
 
-      // Create movement vector in local space
-      const moveVector = new THREE.Vector3(
-        direction.x * moveSpeed,
-        0,
-        direction.z * moveSpeed
-      );
-
-      // Apply avatar's current rotation to the movement vector
-      moveVector.applyAxisAngle(
-        new THREE.Vector3(0, 1, 0),
-        avatarRef.current.rotation.y
-      );
-
-      // Calculate new position
-      const newPosition = new THREE.Vector3()
-        .copy(avatarRef.current.position)
-        .add(moveVector);
-
-      // Define floor boundaries (floor size is 100, so half is 50)
+      const newPosition = new THREE.Vector3().copy(avatarRef.current.position).add(moveVector);
       const floorSize = 50;
-      const minX = -floorSize;
-      const maxX = floorSize;
-      const minZ = -floorSize;
-      const maxZ = floorSize;
 
-      // Check if new position is within floor boundaries
       if (
-        newPosition.x >= minX &&
-        newPosition.x <= maxX &&
-        newPosition.z >= minZ &&
-        newPosition.z <= maxZ
+        newPosition.x >= -floorSize &&
+        newPosition.x <= floorSize &&
+        newPosition.z >= -floorSize &&
+        newPosition.z <= floorSize
       ) {
-        // Only apply movement if within boundaries
         avatarRef.current.position.copy(newPosition);
+
+        // Send movement update if changed
+        const posChanged = !newPosition.equals(lastPositionSent.current);
+        const rotChanged = !avatarRef.current.rotation.equals(lastRotationSent.current);
+        if (posChanged || rotChanged) {
+          const position = { x: newPosition.x, y: newPosition.y, z: newPosition.z };
+          const rotation = {
+            x: avatarRef.current.rotation.x,
+            y: avatarRef.current.rotation.y,
+            z: avatarRef.current.rotation.z,
+          };
+          socket.emit("updateMovement", { userId, position, rotation });
+          lastPositionSent.current.copy(newPosition);
+          lastRotationSent.current.copy(avatarRef.current.rotation);
+        }
       }
     }
   };

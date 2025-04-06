@@ -82,6 +82,8 @@ io.on('connection', (socket) => {
     // Handle user joining a jam
     socket.on('joinJam', ({ jamId, userId, userName, position, rotation }) => {
         socket.join(jamId); // Join the jam room
+
+        console.log("User joined jam:", jamId, userId);
         JamUsers.set(socket.id, {
             jamId,
             userId,
