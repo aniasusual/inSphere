@@ -21,7 +21,13 @@ export const JamPage: React.FC = () => {
   return (
     <div className="w-full h-screen relative overflow-hidden">
       {/* Main Scene */}
-      <JamScene jamId={jamId} userId={user._id} userName={user.username} onUserInteraction={handleUserInteraction} />
+      <JamScene
+        jamId={jamId}
+        userId={user._id}
+        userName={user.username}
+        avatarUrl={user.avatarUrl || "/avatars/mech_drone.glb"}
+        onUserInteraction={handleUserInteraction}
+      />
 
       {/* User Interaction Modal */}
       {selectedUser && (
