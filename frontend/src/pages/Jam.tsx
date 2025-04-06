@@ -2,11 +2,14 @@ import React, { useState } from "react";
 import { useParams } from "react-router-dom";
 import JamScene from "@metaverse/scenes/JamScene2";
 import "@metaverse/MetaverseStyles.css";
+import { useSelector } from "react-redux";
+import { RootState } from "store";
 
 export const JamPage: React.FC = () => {
   const { jamId } = useParams<{ jamId: string }>();
   const [showHeader, setShowHeader] = useState(true);
   const [selectedUser, setSelectedUser] = useState<string | null>(null);
+  const { user } = useSelector((state: RootState) => state.user);
 
   if (!jamId)
     return <div className="text-white text-center p-4">Invalid Jam ID</div>;
@@ -18,7 +21,7 @@ export const JamPage: React.FC = () => {
   return (
     <div className="w-full h-screen relative overflow-hidden">
       {/* Main Scene */}
-      <JamScene jamId={jamId} onUserInteraction={handleUserInteraction} />
+      <JamScene jamId={jamId} userId={user._id} userName={user.username} onUserInteraction={handleUserInteraction} />
 
       {/* User Interaction Modal */}
       {selectedUser && (
