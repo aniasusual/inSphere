@@ -118,11 +118,9 @@ const JamScene: React.FC<JamSceneProps> = ({
     document.addEventListener("mousemove", onMouseMove);
   };
 
-
   // Initialize scene
   useEffect(() => {
-
-    console.log("socket: ", socket, isConnected)
+    console.log("socket: ", socket, isConnected);
     if (!mountRef.current || !socket) return;
 
     // Initialize scene
@@ -209,6 +207,7 @@ const JamScene: React.FC<JamSceneProps> = ({
         userName,
         position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0 },
+        avatarUrl,
       });
 
       socket.on("currentUsers", (jamUsers: any[]) => {
@@ -226,7 +225,10 @@ const JamScene: React.FC<JamSceneProps> = ({
           if (user && user.avatar) {
             user.position.set(position.x, position.y, position.z);
             user.rotation.set(rotation.x, rotation.y, rotation.z);
-            user.avatar.position.lerp(new THREE.Vector3(position.x, position.y, position.z), 0.1); // Smooth interpolation
+            user.avatar.position.lerp(
+              new THREE.Vector3(position.x, position.y, position.z),
+              0.1
+            );
             user.avatar.rotation.set(rotation.x, rotation.y, rotation.z);
             user.lastUpdate = Date.now();
           }
@@ -291,41 +293,103 @@ const JamScene: React.FC<JamSceneProps> = ({
   }, [jamId, userId, userName, avatarUrl, socket, isConnected]);
 
   const addUserToScene = (userData: any) => {
-    const { userId: id, position, rotation, name } = userData;
+    const { userId: id, position, rotation, name, avatarUrl } = userData;
     if (id === userId) return; // Skip self
 
-    const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
-    const material = new THREE.MeshStandardMaterial({ color: Math.random() * 0xffffff });
-    const userMesh = new THREE.Group();
+    // Use the same avatar loading logic as the main user
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
 
-    const body = new THREE.Mesh(geometry, material);
-    body.position.y = 1;
-    userMesh.add(body);
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
 
-    const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-    const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
-    const head = new THREE.Mesh(headGeometry, headMaterial);
-    head.position.y = 2;
-    userMesh.add(head);
+    // Ensure URL is absolute
+    const absoluteUrl = avatarUrl.startsWith("http")
+      ? avatarUrl
+      : `${window.location.origin}${avatarUrl}`;
 
-    addNameTag(userMesh, name);
+    loader.load(
+      absoluteUrl,
+      (gltf) => {
+        const avatar = gltf.scene;
+        avatar.scale.set(1, 1, 1);
+        avatar.position.set(position.x, position.y, position.z);
+        avatar.rotation.set(rotation.x, rotation.y, rotation.z);
 
-    userMesh.position.set(position.x, position.y, position.z);
-    userMesh.rotation.set(rotation.x, rotation.y, rotation.z);
-    sceneRef.current.add(userMesh);
+        avatar.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
 
-    setUsers((prev) => {
-      const newUsers = new Map(prev);
-      newUsers.set(id, {
-        id,
-        position: new THREE.Vector3(position.x, position.y, position.z),
-        rotation: new THREE.Euler(rotation.x, rotation.y, rotation.z),
-        name,
-        avatar: userMesh,
-        lastUpdate: Date.now(),
-      });
-      return newUsers;
-    });
+        addNameTag(avatar, name);
+        sceneRef.current.add(avatar);
+
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          newUsers.set(id, {
+            id,
+            position: new THREE.Vector3(position.x, position.y, position.z),
+            rotation: new THREE.Euler(rotation.x, rotation.y, rotation.z),
+            name,
+            avatar: avatar,
+            lastUpdate: Date.now(),
+          });
+          return newUsers;
+        });
+      },
+      (progress) => {
+        console.log(
+          `Loading avatar for ${name}:`,
+          (progress.loaded / progress.total) * 100
+        );
+      },
+      (error) => {
+        console.error(`Error loading avatar for ${name}:`, error);
+        // Create a simple capsule character as fallback
+        const group = new THREE.Group();
+
+        // Body
+        const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
+        const material = new THREE.MeshStandardMaterial({ color: 0x0088ff });
+        const body = new THREE.Mesh(geometry, material);
+        body.position.y = 1;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        group.add(body);
+
+        // Head
+        const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+        const headMaterial = new THREE.MeshStandardMaterial({
+          color: 0xffdbac,
+        });
+        const head = new THREE.Mesh(headGeometry, headMaterial);
+        head.position.y = 2;
+        head.castShadow = true;
+        head.receiveShadow = true;
+        group.add(head);
+
+        group.position.set(position.x, position.y, position.z);
+        group.rotation.set(rotation.x, rotation.y, rotation.z);
+
+        addNameTag(group, name);
+        sceneRef.current.add(group);
+
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          newUsers.set(id, {
+            id,
+            position: new THREE.Vector3(position.x, position.y, position.z),
+            rotation: new THREE.Euler(rotation.x, rotation.y, rotation.z),
+            name,
+            avatar: group,
+            lastUpdate: Date.now(),
+          });
+          return newUsers;
+        });
+      }
+    );
   };
 
   const setupMobileControls = () => {
@@ -431,108 +495,6 @@ const JamScene: React.FC<JamSceneProps> = ({
       { passive: true }
     );
   };
-
-  // const setupSimulatedUsers = () => {
-  //   const simulatedUsers = [
-  //     {
-  //       id: "user-1",
-  //       name: "Alice",
-  //       position: new THREE.Vector3(5, 0, 5),
-  //       rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-  //     },
-  //     {
-  //       id: "user-2",
-  //       name: "Bob",
-  //       position: new THREE.Vector3(-5, 0, 3),
-  //       rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-  //     },
-  //     {
-  //       id: "user-3",
-  //       name: "Charlie",
-  //       position: new THREE.Vector3(0, 0, -8),
-  //       rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-  //     },
-  //   ];
-
-  //   simulatedUsers.forEach((userData) => {
-  //     const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
-  //     const material = new THREE.MeshStandardMaterial({
-  //       color: Math.random() * 0xffffff,
-  //     });
-  //     const userMesh = new THREE.Group();
-
-  //     // Body
-  //     const body = new THREE.Mesh(geometry, material);
-  //     body.position.y = 1;
-  //     userMesh.add(body);
-
-  //     // Head
-  //     const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-  //     const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
-  //     const head = new THREE.Mesh(headGeometry, headMaterial);
-  //     head.position.y = 2;
-  //     userMesh.add(head);
-
-  //     // Nametag
-  //     const canvas = document.createElement("canvas");
-  //     canvas.width = 256;
-  //     canvas.height = 64;
-  //     const context = canvas.getContext("2d");
-  //     if (context) {
-  //       context.clearRect(0, 0, canvas.width, canvas.height);
-  //       context.fillStyle = "#ffffff";
-  //       context.font = "Bold 24px Arial";
-  //       context.textAlign = "center"; // Center horizontally
-  //       context.textBaseline = "middle"; // Center vertically
-  //       context.fillText(userData.name, canvas.width / 2, canvas.height / 2);
-
-  //       const texture = new THREE.CanvasTexture(canvas);
-  //       const spriteMaterial = new THREE.SpriteMaterial({
-  //         map: texture,
-  //         transparent: true,
-  //         depthTest: false,
-  //       });
-
-  //       const sprite = new THREE.Sprite(spriteMaterial);
-  //       sprite.position.y = 2.5; // Lowered from 2.5 to 1.6 to match your avatar
-  //       sprite.scale.set(1.2, 0.3, 1); // Consistent scale
-  //       userMesh.add(sprite);
-  //     }
-
-  //     userMesh.position.copy(userData.position);
-  //     userMesh.rotation.copy(userData.rotation);
-  //     sceneRef.current.add(userMesh);
-
-  //     setUsers((prev) => {
-  //       const newUsers = new Map(prev);
-  //       newUsers.set(userData.id, {
-  //         id: userData.id,
-  //         position: userData.position,
-  //         rotation: userData.rotation,
-  //         name: userData.name,
-  //         avatar: userMesh,
-  //         lastUpdate: Date.now(),
-  //       });
-  //       return newUsers;
-  //     });
-  //   });
-
-  //   // Sample messages remain unchanged
-  //   setMessages([
-  //     {
-  //       userId: "user-1",
-  //       userName: "Alice",
-  //       text: "Hey everyone! Welcome to the metaverse!",
-  //       timestamp: Date.now() - 60000,
-  //     },
-  //     {
-  //       userId: "user-2",
-  //       userName: "Bob",
-  //       text: "This is so cool! Love the graphics.",
-  //       timestamp: Date.now() - 30000,
-  //     },
-  //   ]);
-  // };
 
   const loadAvatar = (url: string) => {
     if (!url) {
@@ -781,10 +743,14 @@ const JamScene: React.FC<JamSceneProps> = ({
     const moveSpeed = 0.1;
     let direction = new THREE.Vector3(0, 0, 0);
 
-    if (keyStateRef.current["ArrowUp"] || keyStateRef.current["KeyW"]) direction.z -= 1;
-    if (keyStateRef.current["ArrowDown"] || keyStateRef.current["KeyS"]) direction.z += 1;
-    if (keyStateRef.current["ArrowLeft"] || keyStateRef.current["KeyA"]) direction.x -= 1;
-    if (keyStateRef.current["ArrowRight"] || keyStateRef.current["KeyD"]) direction.x += 1;
+    if (keyStateRef.current["ArrowUp"] || keyStateRef.current["KeyW"])
+      direction.z -= 1;
+    if (keyStateRef.current["ArrowDown"] || keyStateRef.current["KeyS"])
+      direction.z += 1;
+    if (keyStateRef.current["ArrowLeft"] || keyStateRef.current["KeyA"])
+      direction.x -= 1;
+    if (keyStateRef.current["ArrowRight"] || keyStateRef.current["KeyD"])
+      direction.x += 1;
 
     if (keyStateRef.current["joystickActive"]) {
       direction = new THREE.Vector3();
@@ -796,10 +762,19 @@ const JamScene: React.FC<JamSceneProps> = ({
 
     if (direction.length() > 0) {
       direction.normalize();
-      const moveVector = new THREE.Vector3(direction.x * moveSpeed, 0, direction.z * moveSpeed);
-      moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), avatarRef.current.rotation.y);
+      const moveVector = new THREE.Vector3(
+        direction.x * moveSpeed,
+        0,
+        direction.z * moveSpeed
+      );
+      moveVector.applyAxisAngle(
+        new THREE.Vector3(0, 1, 0),
+        avatarRef.current.rotation.y
+      );
 
-      const newPosition = new THREE.Vector3().copy(avatarRef.current.position).add(moveVector);
+      const newPosition = new THREE.Vector3()
+        .copy(avatarRef.current.position)
+        .add(moveVector);
       const floorSize = 50;
 
       if (
@@ -812,9 +787,15 @@ const JamScene: React.FC<JamSceneProps> = ({
 
         // Send movement update if changed
         const posChanged = !newPosition.equals(lastPositionSent.current);
-        const rotChanged = !avatarRef.current.rotation.equals(lastRotationSent.current);
+        const rotChanged = !avatarRef.current.rotation.equals(
+          lastRotationSent.current
+        );
         if (posChanged || rotChanged) {
-          const position = { x: newPosition.x, y: newPosition.y, z: newPosition.z };
+          const position = {
+            x: newPosition.x,
+            y: newPosition.y,
+            z: newPosition.z,
+          };
           const rotation = {
             x: avatarRef.current.rotation.x,
             y: avatarRef.current.rotation.y,
@@ -856,7 +837,6 @@ const JamScene: React.FC<JamSceneProps> = ({
       cameraRef.current.lookAt(avatarHeadPosition);
     }
   };
-
 
   const updateNearbyUsers = () => {
     if (!avatarRef.current) return;
@@ -1030,8 +1010,9 @@ const JamScene: React.FC<JamSceneProps> = ({
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`chat-message ${msg.userId === userId ? "self" : "other"
-                  }`}
+                className={`chat-message ${
+                  msg.userId === userId ? "self" : "other"
+                }`}
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-bold">{msg.userName}</span>

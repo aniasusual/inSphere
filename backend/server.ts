@@ -57,7 +57,6 @@ io.use(async (socket, next) => {
         } else {
             next(new Error('Invalid token'));
         }
-        next();
     } catch (error) {
         next(new Error('Authentication error'));
     }
@@ -80,7 +79,7 @@ io.on('connection', (socket) => {
     }
 
     // Handle user joining a jam
-    socket.on('joinJam', ({ jamId, userId, userName, position, rotation }) => {
+    socket.on('joinJam', ({ jamId, userId, userName, position, rotation, avatarUrl }) => {
         socket.join(jamId); // Join the jam room
 
         console.log("User joined jam:", jamId, userId);
@@ -90,6 +89,7 @@ io.on('connection', (socket) => {
             position,
             rotation,
             name: userName,
+            avatarUrl,
             lastUpdate: Date.now(),
         });
 
@@ -99,12 +99,14 @@ io.on('connection', (socket) => {
             position,
             rotation,
             name: userName,
+            avatarUrl,
         });
 
         // Send current users in the jam to the new user
         const jamUsers = Array.from(JamUsers.values()).filter(
             (user) => user.jamId === jamId && user.userId !== userId
         );
+
         socket.emit('currentUsers', jamUsers);
     });
 
@@ -121,6 +123,7 @@ io.on('connection', (socket) => {
                 userId,
                 position,
                 rotation,
+                avatarUrl: user.avatarUrl,
             });
         }
     });
@@ -129,7 +132,10 @@ io.on('connection', (socket) => {
     socket.on('disconnect', () => {
         const user = JamUsers.get(socket.id);
         if (user) {
-            io.to(user.jamId).emit('userLeft', { userId: user.userId });
+            io.to(user.jamId).emit('userLeft', {
+                userId: user.userId,
+                avatarUrl: user.avatarUrl
+            });
             JamUsers.delete(socket.id);
         }
         console.log('User disconnected:', socket.id);
