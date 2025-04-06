@@ -63,14 +63,14 @@ io.use(async (socket, next) => {
     }
 });
 
+const JamUsers = new Map(); // Map<socketId, { jamId, userId, position, rotation, name }>
+
 
 io.on('connection', (socket) => {
 
     const userId = socket.data.user?._id;
 
     userSocketIDs.set(userId, socket.id);
-
-
     console.log(`User ${userId} connected`);
 
     if (!userId) {
@@ -79,19 +79,60 @@ io.on('connection', (socket) => {
         return;
     }
 
-    // // Join user's personal room
-    // socket.join(`user:${userId}`);
-    // socket.on('disconnect', () => {
-    //     socket.rooms.forEach((room) => {
-    //         socket.leave(room);
-    //     });
-    // });
+    // Handle user joining a jam
+    socket.on('joinJam', ({ jamId, userId, userName, position, rotation }) => {
+        socket.join(jamId); // Join the jam room
+        JamUsers.set(socket.id, {
+            jamId,
+            userId,
+            position,
+            rotation,
+            name: userName,
+            lastUpdate: Date.now(),
+        });
 
+        // Broadcast to others in the jam that a new user joined
+        socket.to(jamId).emit('userJoined', {
+            userId,
+            position,
+            rotation,
+            name: userName,
+        });
 
-    socket.on('joinJam', (jamId: string) => {
-        socket.join(jamId);
-        io.to(jamId).emit('message', `${socket.id} joined the jam!`);
+        // Send current users in the jam to the new user
+        const jamUsers = Array.from(JamUsers.values()).filter(
+            (user) => user.jamId === jamId && user.userId !== userId
+        );
+        socket.emit('currentUsers', jamUsers);
     });
+
+    // Handle movement updates
+    socket.on('updateMovement', ({ userId, position, rotation }) => {
+        const user = JamUsers.get(socket.id);
+        if (user) {
+            user.position = position;
+            user.rotation = rotation;
+            user.lastUpdate = Date.now();
+
+            // Broadcast movement to others in the same jam
+            socket.to(user.jamId).emit('userMoved', {
+                userId,
+                position,
+                rotation,
+            });
+        }
+    });
+
+    // Handle disconnection
+    socket.on('disconnect', () => {
+        const user = JamUsers.get(socket.id);
+        if (user) {
+            io.to(user.jamId).emit('userLeft', { userId: user.userId });
+            JamUsers.delete(socket.id);
+        }
+        console.log('User disconnected:', socket.id);
+    });
+
 
     socket.on('chatMessage', (jamId: string, msg: string) => {
         io.to(jamId).emit('message', msg);

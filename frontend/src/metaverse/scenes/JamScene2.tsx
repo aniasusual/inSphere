@@ -79,6 +79,41 @@ const JamScene: React.FC<JamSceneProps> = ({
   const chatRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
 
+
+  // Update setupMouseLookControls to handle rotation separately from movement
+  const setupMouseLookControls = () => {
+    let isPointerLocked = false;
+
+    const onPointerLockChange = () => {
+      isPointerLocked = document.pointerLockElement === mountRef.current;
+    };
+
+    document.addEventListener("pointerlockchange", onPointerLockChange);
+
+    // Request pointer lock on click
+    mountRef.current?.addEventListener("click", () => {
+      if (!isPointerLocked && !isChatOpen) {
+        mountRef.current?.requestPointerLock();
+      }
+    });
+
+    // Handle mouse movement - only rotates the avatar, not the camera directly
+    const onMouseMove = (event: MouseEvent) => {
+      if (!isPointerLocked || !avatarRef.current || !cameraRef.current) return;
+
+      const movementX = event.movementX || 0;
+
+      // Rotate avatar horizontally
+      avatarRef.current.rotation.y -= movementX * 0.002;
+
+      // The camera will follow this rotation in updateCameraPosition()
+      // This separation ensures camera doesn't move during WASD movement
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+  };
+
+
   // Initialize scene
   useEffect(() => {
     if (!mountRef.current) return;
@@ -188,8 +223,8 @@ const JamScene: React.FC<JamSceneProps> = ({
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
-      document.removeEventListener("pointerlockchange", onPointerLockChange);
-      document.removeEventListener("mousemove", onMouseMove);
+      // document.removeEventListener("pointerlockchange", onPointerLockChange);
+      // document.removeEventListener("mousemove", onMouseMove);
       mountRef.current?.removeChild(renderer.domElement);
     };
   }, []);
@@ -749,38 +784,6 @@ const JamScene: React.FC<JamSceneProps> = ({
     }
   };
 
-  // Update setupMouseLookControls to handle rotation separately from movement
-  const setupMouseLookControls = () => {
-    let isPointerLocked = false;
-
-    const onPointerLockChange = () => {
-      isPointerLocked = document.pointerLockElement === mountRef.current;
-    };
-
-    document.addEventListener("pointerlockchange", onPointerLockChange);
-
-    // Request pointer lock on click
-    mountRef.current?.addEventListener("click", () => {
-      if (!isPointerLocked && !isChatOpen) {
-        mountRef.current?.requestPointerLock();
-      }
-    });
-
-    // Handle mouse movement - only rotates the avatar, not the camera directly
-    const onMouseMove = (event: MouseEvent) => {
-      if (!isPointerLocked || !avatarRef.current || !cameraRef.current) return;
-
-      const movementX = event.movementX || 0;
-
-      // Rotate avatar horizontally
-      avatarRef.current.rotation.y -= movementX * 0.002;
-
-      // The camera will follow this rotation in updateCameraPosition()
-      // This separation ensures camera doesn't move during WASD movement
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-  };
 
   const updateNearbyUsers = () => {
     if (!avatarRef.current) return;
@@ -954,9 +957,8 @@ const JamScene: React.FC<JamSceneProps> = ({
             {messages.map((msg, index) => (
               <div
                 key={index}
-                className={`chat-message ${
-                  msg.userId === userId ? "self" : "other"
-                }`}
+                className={`chat-message ${msg.userId === userId ? "self" : "other"
+                  }`}
               >
                 <div className="flex justify-between items-center mb-1">
                   <span className="font-bold">{msg.userName}</span>
