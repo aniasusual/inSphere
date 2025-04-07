@@ -959,7 +959,6 @@
 .user-box a:hover .w-2 {
   transform: scale(1.2);
 }
-
 .chat-input-container {
     display: flex;
     flex-direction: column;
