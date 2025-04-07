@@ -22,6 +22,7 @@ interface Message {
   userName: string;
   text: string;
   timestamp: number;
+  type?: "system" | "user";
 }
 
 interface JamSceneProps {
@@ -39,6 +40,26 @@ interface JoystickState {
   angle: number;
   force: number;
 }
+
+interface Toast {
+  id: number;
+  message: string;
+  type: "join" | "leave";
+}
+
+const Toast: React.FC<{ message: string; type: "join" | "leave" }> = ({
+  message,
+  type,
+}) => {
+  return (
+    <div className={`toast ${type}`}>
+      <span className="material-icons">
+        {type === "join" ? "person_add" : "person_remove"}
+      </span>
+      {message}
+    </div>
+  );
+};
 
 const JamScene: React.FC<JamSceneProps> = ({
   jamId,
@@ -65,6 +86,8 @@ const JamScene: React.FC<JamSceneProps> = ({
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
 
   // Scene refs
   const sceneRef = useRef<THREE.Scene>(new THREE.Scene());
@@ -84,6 +107,14 @@ const JamScene: React.FC<JamSceneProps> = ({
   const lastRotationSent = useRef<THREE.Euler>(new THREE.Euler());
 
   const { socket, isConnected } = useSocket();
+
+  const addToast = (message: string, type: "join" | "leave") => {
+    const id = toastIdRef.current++;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3000); // Remove toast after 3 seconds
+  };
 
   // Update setupMouseLookControls to handle rotation separately from movement
   const setupMouseLookControls = () => {
@@ -218,6 +249,27 @@ const JamScene: React.FC<JamSceneProps> = ({
         addUserToScene(userData);
       });
 
+      socket.on("systemMessage", ({ type, userName, timestamp }) => {
+        let messageText = "";
+        if (type === "userJoined") {
+          messageText = `${userName} joined the metaverse`;
+          addToast(messageText, "join");
+        } else if (type === "userLeft") {
+          messageText = `${userName} left the metaverse`;
+          addToast(messageText, "leave");
+        }
+
+        const newMessage: Message = {
+          userId: "system",
+          userName: "System",
+          text: messageText,
+          timestamp,
+          type: "system",
+        };
+
+        setMessages((prev) => [...prev, newMessage]);
+      });
+
       socket.on("userMoved", ({ userId: movedUserId, position, rotation }) => {
         setUsers((prev) => {
           const newUsers = new Map(prev);
@@ -237,6 +289,19 @@ const JamScene: React.FC<JamSceneProps> = ({
       });
 
       socket.on("userLeft", ({ userId: leftUserId }) => {
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          const user = newUsers.get(leftUserId);
+          if (user && user.avatar) {
+            sceneRef.current.remove(user.avatar);
+          }
+          newUsers.delete(leftUserId);
+          return newUsers;
+        });
+      });
+
+      // Add handler for leaveJam event
+      socket.on("userLeftJam", ({ userId: leftUserId }) => {
         setUsers((prev) => {
           const newUsers = new Map(prev);
           const user = newUsers.get(leftUserId);
@@ -276,6 +341,7 @@ const JamScene: React.FC<JamSceneProps> = ({
       socket.off("userJoined");
       socket.off("userMoved");
       socket.off("userLeft");
+      socket.off("userLeftJam");
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
@@ -952,8 +1018,8 @@ const JamScene: React.FC<JamSceneProps> = ({
           </div>
           {nearbyUsers.map((user) => (
             <div key={user.id} className="flex items-center mb-1">
-              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" />{" "}
-              {/* Red highlight */}
+              <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />{" "}
+              {/* Green highlight for online users */}
               <div>{user.name}</div>
             </div>
           ))}
@@ -978,6 +1044,18 @@ const JamScene: React.FC<JamSceneProps> = ({
           {/* Collapsible menu (appears above) */}
           {isActionMenuOpen && (
             <div className="collapsible-menu">
+              <button
+                className="action-btn"
+                onClick={() => {
+                  if (socket) {
+                    socket.emit("leaveJam", { jamId });
+                    window.location.href = "/";
+                  }
+                }}
+              >
+                <span className="material-icons">exit_to_app</span>
+              </button>
+
               <button
                 className="action-btn"
                 onClick={() => {
@@ -1050,7 +1128,11 @@ const JamScene: React.FC<JamSceneProps> = ({
               <div
                 key={index}
                 className={`chat-message ${
-                  msg.userId === userId ? "self" : "other"
+                  msg.type === "system"
+                    ? "system-message"
+                    : msg.userId === userId
+                    ? "self"
+                    : "other"
                 }`}
               >
                 <div className="flex justify-between items-center mb-1">
@@ -1092,6 +1174,13 @@ const JamScene: React.FC<JamSceneProps> = ({
           </div>
         </div>
       )}
+
+      {/* Add Toast Container */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <Toast key={toast.id} message={toast.message} type={toast.type} />
+        ))}
+      </div>
     </div>
   );
 };
