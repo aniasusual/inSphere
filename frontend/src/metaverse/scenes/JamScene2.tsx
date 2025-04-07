@@ -1060,7 +1060,6 @@ const JamScene: React.FC<JamSceneProps> = ({
           <div>Mouse: Look around</div>
           <div>C: Toggle camera mode</div>
           <div>T: Open chat</div>
-          <div>F: Interact</div>
           <div>V: Voice chat</div>
         </div>
 
@@ -1233,7 +1232,13 @@ const JamScene: React.FC<JamSceneProps> = ({
       {isChatOpen && (
         <div className="chat-panel">
           <div className="chat-header">
-            <h3 className="text-xl font-bold">Chat</h3>
+            <h3
+              className={`text-xl font-bold ${
+                isGlobalChat ? "global-active" : ""
+              }`}
+            >
+              Chat
+            </h3>
             <button className="icon-btn" onClick={() => setIsChatOpen(false)}>
               <span className="material-icons">close</span>
             </button>
