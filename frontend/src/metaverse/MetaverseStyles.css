@@ -342,7 +342,7 @@
 
 /* Controls Help */
 .controls-help {
-  position: absolute;
+  position: fixed;
   top: 1rem;
   left: 1rem;
   background: rgba(45, 45, 45, 0.9);
@@ -353,6 +353,8 @@
   box-shadow: var(--shadow);
   pointer-events: auto;
   transition: top 0.3s ease;
+  z-index: 1000;
+  max-width: 200px;
 }
 
 .header:not(.hidden) ~ .ui-overlay .controls-help {
@@ -495,16 +497,27 @@
   padding: 0.5rem;
   border-radius: 8px;
   margin-bottom: 0.5rem;
+  transition: all 0.3s ease;
 }
 
 .chat-message.self {
-  background: rgba(255, 77, 77, 0.2); /* Updated red tint for self */
+  background: rgba(74, 124, 89, 0.2);
   margin-left: 2rem;
+  border-left: 3px solid #4a7c59;
 }
 
-.chat-message.other {
+.chat-message.nearby {
   background: rgba(255, 255, 255, 0.1);
   margin-right: 2rem;
+  border-left: 3px solid #3498db;
+}
+
+.chat-message.global {
+  background: rgba(255, 165, 0, 0.2);
+  margin: 0.5rem 0;
+  border-left: 3px solid #ffa500;
+  padding: 0.75rem;
+  border-radius: 4px;
 }
 
 .chat-message.system-message {
@@ -519,6 +532,14 @@
 
 .chat-message.system-message .font-bold {
   color: #4a7c59;
+}
+
+.chat-message.global .font-bold {
+  color: #ffa500;
+}
+
+.chat-message .font-bold {
+  margin-right: 0.5rem;
 }
 
 .chat-input {
@@ -804,4 +825,198 @@
     opacity: 0;
     transform: translateY(-20px);
   }
+}
+
+/* User Box Styles */
+.user-box {
+  position: fixed;
+  background: rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  padding: 12px;
+  color: white;
+  min-width: 200px;
+  max-width: 300px;
+  z-index: 900;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+  pointer-events: auto;
+}
+
+.user-box-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  margin-bottom: 8px;
+  pointer-events: auto;
+}
+
+.user-box-header .material-icons {
+  transition: transform 0.3s ease;
+  pointer-events: none;
+}
+
+.user-box.collapsed .user-box-header .material-icons {
+  transform: rotate(180deg);
+}
+
+.user-box-content {
+  max-height: 300px;
+  overflow-y: auto;
+  transition: max-height 0.3s ease;
+  pointer-events: auto;
+}
+
+.user-box.collapsed .user-box-content {
+  max-height: 0;
+  overflow: hidden;
+}
+
+/* Desktop Layout */
+@media (min-width: 769px) {
+  .user-box.online-users {
+    top: 20px;
+    right: 20px;
+  }
+
+  .user-box.nearby-users {
+    top: 20px;
+    right: 240px;
+  }
+}
+
+/* Mobile Layout */
+@media (max-width: 768px) {
+  .user-box {
+    min-width: 160px;
+    max-width: 250px;
+    padding: 8px;
+  }
+
+  .user-box.online-users {
+    top: 60px;
+    right: 10px;
+  }
+
+  .user-box.nearby-users {
+    top: 60px;
+    right: 180px;
+  }
+
+  .user-box-content {
+    max-height: 200px;
+    font-size: 14px;
+  }
+
+  .user-box-header {
+    font-size: 14px;
+  }
+}
+
+/* Scrollbar Styles for User Box Content */
+.user-box-content::-webkit-scrollbar {
+  width: 4px;
+}
+
+.user-box-content::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+}
+
+.user-box-content::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+  border-radius: 2px;
+}
+
+.user-box-content::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.4);
+}
+
+/* User Link Styles */
+.user-box a {
+  color: white;
+  text-decoration: none;
+  display: block;
+  padding: 4px 0;
+  transition: all 0.2s ease;
+  pointer-events: auto;
+}
+
+.user-box a:hover {
+  color: #4ade80;
+  transform: translateX(4px);
+}
+
+/* Status Indicator */
+.user-box .w-2 {
+  transition: all 0.2s ease;
+  pointer-events: none;
+}
+
+.user-box a:hover .w-2 {
+  transform: scale(1.2);
+}
+
+.chat-input-container {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding-top: 0.5rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.chat-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0.25rem;
+}
+
+.toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.9rem;
+    color: var(--text-light);
+}
+
+.toggle-label input[type="checkbox"] {
+    appearance: none;
+    width: 1.2rem;
+    height: 1.2rem;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 4px;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s ease;
+}
+
+.toggle-label input[type="checkbox"]:checked {
+    background-color: #4a7c59;
+    border-color: #4a7c59;
+}
+
+.toggle-label input[type="checkbox"]:checked::after {
+    content: "✓";
+    position: absolute;
+    color: white;
+    font-size: 0.8rem;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.toggle-text {
+    font-size: 0.9rem;
+    color: var(--text-light);
+    transition: color 0.2s ease;
+}
+
+.toggle-label:hover .toggle-text {
+    color: #4a7c59;
 }

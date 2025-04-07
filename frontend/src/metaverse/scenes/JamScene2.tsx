@@ -47,6 +47,14 @@ interface Toast {
   type: "join" | "leave";
 }
 
+interface ChatMessage {
+  userId: string;
+  userName: string;
+  message: string;
+  timestamp: string;
+  type: "self" | "nearby" | "system";
+}
+
 const Toast: React.FC<{ message: string; type: "join" | "leave" }> = ({
   message,
   type,
@@ -88,6 +96,9 @@ const JamScene: React.FC<JamSceneProps> = ({
   const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
   const [toasts, setToasts] = useState<Toast[]>([]);
   const toastIdRef = useRef(0);
+  const [isNearbyUsersCollapsed, setIsNearbyUsersCollapsed] = useState(false);
+  const [isOnlineUsersCollapsed, setIsOnlineUsersCollapsed] = useState(false);
+  const [isGlobalChat, setIsGlobalChat] = useState<boolean>(false);
 
   // Scene refs
   const sceneRef = useRef<THREE.Scene>(new THREE.Scene());
@@ -995,6 +1006,48 @@ const JamScene: React.FC<JamSceneProps> = ({
       .padStart(2, "0")}`;
   };
 
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim() || !socket) return;
+
+    const timestamp = new Date().toISOString();
+    const messageData = {
+      jamId: jamId,
+      userId: userId,
+      userName: userName,
+      message: messageInput.trim(),
+      timestamp: timestamp,
+      isGlobal: isGlobalChat,
+    };
+
+    socket.emit("chatMessage", messageData);
+    setMessageInput("");
+  };
+
+  // Update the message listener
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = (messageData: ChatMessage) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          userId: messageData.userId,
+          userName: messageData.userName,
+          text: messageData.message,
+          timestamp: Date.now(),
+          type: messageData.type, // Use the type directly from the server
+        },
+      ]);
+    };
+
+    socket.on("message", handleMessage);
+
+    return () => {
+      socket.off("message", handleMessage);
+    };
+  }, [socket]);
+
   return (
     <div className="scene-container">
       <div ref={mountRef} className="w-full h-full" />
@@ -1011,18 +1064,80 @@ const JamScene: React.FC<JamSceneProps> = ({
           <div>V: Voice chat</div>
         </div>
 
-        {/* Nearby Users */}
-        <div className="nearby-users">
-          <div className="font-bold mb-1">
-            Nearby Users ({nearbyUsers.length})
+        {/* Online Users */}
+        <div
+          className={`user-box online-users ${
+            isOnlineUsersCollapsed ? "collapsed" : ""
+          }`}
+        >
+          <div
+            className={`user-box-header ${
+              isOnlineUsersCollapsed ? "collapsed" : ""
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOnlineUsersCollapsed(!isOnlineUsersCollapsed);
+            }}
+          >
+            <div className="font-bold">Online Users ({users.size})</div>
+            <span className="material-icons">
+              {isOnlineUsersCollapsed ? "expand_more" : "expand_less"}
+            </span>
           </div>
-          {nearbyUsers.map((user) => (
-            <div key={user.id} className="flex items-center mb-1">
-              <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />{" "}
-              {/* Green highlight for online users */}
-              <div>{user.name}</div>
-            </div>
-          ))}
+          <div className="user-box-content">
+            {Array.from(users.values()).map((user) => (
+              <div key={user.id} className="flex items-center mb-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                <a
+                  href={`/user/${user.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-green-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {user.name}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Nearby Users */}
+        <div
+          className={`user-box nearby-users ${
+            isNearbyUsersCollapsed ? "collapsed" : ""
+          }`}
+        >
+          <div
+            className={`user-box-header ${
+              isNearbyUsersCollapsed ? "collapsed" : ""
+            }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsNearbyUsersCollapsed(!isNearbyUsersCollapsed);
+            }}
+          >
+            <div className="font-bold">Nearby Users ({nearbyUsers.length})</div>
+            <span className="material-icons">
+              {isNearbyUsersCollapsed ? "expand_more" : "expand_less"}
+            </span>
+          </div>
+          <div className="user-box-content">
+            {nearbyUsers.map((user) => (
+              <div key={user.id} className="flex items-center mb-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                <a
+                  href={`/user/${user.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-green-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {user.name}
+                </a>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Voice Chat Indicator */}
@@ -1126,41 +1241,55 @@ const JamScene: React.FC<JamSceneProps> = ({
           <div className="chat-messages">
             {messages.map((msg, index) => (
               <div
-                key={index}
+                key={`${msg.timestamp}-${index}`}
                 className={`chat-message ${
-                  msg.type === "system"
-                    ? "system-message"
-                    : msg.userId === userId
-                    ? "self"
-                    : "other"
+                  msg.type === "system" ? "system-message" : msg.type
                 }`}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold">{msg.userName}</span>
-                  <span className="text-xs text-gray-400">
-                    {formatTimestamp(msg.timestamp)}
+                {msg.type === "system" ? (
+                  <span>
+                    <span className="font-bold">{msg.userName}:</span>{" "}
+                    {msg.text}
                   </span>
-                </div>
-                <p>{msg.text}</p>
+                ) : (
+                  <>
+                    <span className="font-bold">{msg.userName}:</span>{" "}
+                    {msg.text}
+                  </>
+                )}
               </div>
             ))}
           </div>
-          <div className="chat-input">
-            <input
-              ref={messageInputRef}
-              type="text"
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              placeholder="Type a message..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-                if (e.key === "Escape") setIsChatOpen(false);
-              }}
-            />
-            <button onClick={sendMessage}>Send</button>
+          <div className="chat-input-container">
+            <div className="chat-toggle">
+              <label className="toggle-label">
+                <input
+                  type="checkbox"
+                  checked={isGlobalChat}
+                  onChange={(e) => setIsGlobalChat(e.target.checked)}
+                />
+                <span className="toggle-text">
+                  {isGlobalChat ? "Global Chat" : "Nearby Chat"}
+                </span>
+              </label>
+            </div>
+            <div className="chat-input">
+              <input
+                ref={messageInputRef}
+                type="text"
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                placeholder="Type a message..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage(e);
+                  }
+                  if (e.key === "Escape") setIsChatOpen(false);
+                }}
+              />
+              <button onClick={handleSendMessage}>Send</button>
+            </div>
           </div>
         </div>
       )}
