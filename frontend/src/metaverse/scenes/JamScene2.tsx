@@ -1268,9 +1268,7 @@ const JamScene: React.FC<JamSceneProps> = ({
                   checked={isGlobalChat}
                   onChange={(e) => setIsGlobalChat(e.target.checked)}
                 />
-                <span className="toggle-text">
-                  {isGlobalChat ? "Global Chat" : "Nearby Chat"}
-                </span>
+                <span className="toggle-text">Global Chat</span>
               </label>
             </div>
             <div className="chat-input">
