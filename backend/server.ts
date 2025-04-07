@@ -180,8 +180,61 @@ io.on('connection', (socket) => {
     });
 
 
-    socket.on('chatMessage', (jamId: string, msg: string) => {
-        io.to(jamId).emit('message', msg);
+    socket.on('chatMessage', ({ jamId, userId, userName, message, timestamp, isGlobal }) => {
+        const user = JamUsers.get(socket.id);
+        if (!user) return;
+
+        // Get all users in the jam
+        const jamUsers = Array.from(JamUsers.values()).filter(u => u.jamId === jamId);
+
+        if (isGlobal) {
+            // Send message to all users in the jam
+            io.to(jamId).emit('message', {
+                userId,
+                userName,
+                message,
+                timestamp,
+                type: 'global'
+            });
+        } else {
+            // Find nearby users (within 2 units)
+            const nearbyUsers = jamUsers.filter(jamUser => {
+                if (jamUser.userId === userId) return false;
+
+                const distance = Math.sqrt(
+                    Math.pow(jamUser.position.x - user.position.x, 2) +
+                    Math.pow(jamUser.position.y - user.position.y, 2) +
+                    Math.pow(jamUser.position.z - user.position.z, 2)
+                );
+
+                return distance <= 2;
+            });
+
+            // Send message to nearby users
+            nearbyUsers.forEach(nearbyUser => {
+                const nearbySocket = Array.from(JamUsers.entries())
+                    .find(([_, u]) => u.userId === nearbyUser.userId)?.[0];
+
+                if (nearbySocket) {
+                    io.to(nearbySocket).emit('message', {
+                        userId,
+                        userName,
+                        message,
+                        timestamp,
+                        type: 'nearby'
+                    });
+                }
+            });
+
+            // Also send to the sender
+            socket.emit('message', {
+                userId,
+                userName,
+                message,
+                timestamp,
+                type: 'self'
+            });
+        }
     });
 
     socket.on('disconnect', () => {
