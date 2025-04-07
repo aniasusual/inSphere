@@ -22,7 +22,7 @@ interface Message {
   userName: string;
   text: string;
   timestamp: number;
-  type?: "system" | "user";
+  type?: "system" | "self" | "nearby" | "global";
 }
 
 interface JamSceneProps {
@@ -53,6 +53,22 @@ interface ChatMessage {
   message: string;
   timestamp: string;
   type: "self" | "nearby" | "system";
+}
+
+interface SystemMessage {
+  type: "userJoined" | "userLeft";
+  userName: string;
+  timestamp: number;
+}
+
+interface UserMovement {
+  userId: string;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+}
+
+interface UserLeft {
+  userId: string;
 }
 
 const Toast: React.FC<{ message: string; type: "join" | "leave" }> = ({
@@ -260,46 +276,52 @@ const JamScene: React.FC<JamSceneProps> = ({
         addUserToScene(userData);
       });
 
-      socket.on("systemMessage", ({ type, userName, timestamp }) => {
-        let messageText = "";
-        if (type === "userJoined") {
-          messageText = `${userName} joined the metaverse`;
-          addToast(messageText, "join");
-        } else if (type === "userLeft") {
-          messageText = `${userName} left the metaverse`;
-          addToast(messageText, "leave");
-        }
-
-        const newMessage: Message = {
-          userId: "system",
-          userName: "System",
-          text: messageText,
-          timestamp,
-          type: "system",
-        };
-
-        setMessages((prev) => [...prev, newMessage]);
-      });
-
-      socket.on("userMoved", ({ userId: movedUserId, position, rotation }) => {
-        setUsers((prev) => {
-          const newUsers = new Map(prev);
-          const user = newUsers.get(movedUserId);
-          if (user && user.avatar) {
-            user.position.set(position.x, position.y, position.z);
-            user.rotation.set(rotation.x, rotation.y, rotation.z);
-            user.avatar.position.lerp(
-              new THREE.Vector3(position.x, position.y, position.z),
-              0.1
-            );
-            user.avatar.rotation.set(rotation.x, rotation.y, rotation.z);
-            user.lastUpdate = Date.now();
+      socket.on(
+        "systemMessage",
+        ({ type, userName, timestamp }: SystemMessage) => {
+          let messageText = "";
+          if (type === "userJoined") {
+            messageText = `${userName} joined the metaverse`;
+            addToast(messageText, "join");
+          } else if (type === "userLeft") {
+            messageText = `${userName} left the metaverse`;
+            addToast(messageText, "leave");
           }
-          return newUsers;
-        });
-      });
 
-      socket.on("userLeft", ({ userId: leftUserId }) => {
+          const newMessage: Message = {
+            userId: "system",
+            userName: "System",
+            text: messageText,
+            timestamp,
+            type: "system",
+          };
+
+          setMessages((prev) => [...prev, newMessage]);
+        }
+      );
+
+      socket.on(
+        "userMoved",
+        ({ userId: movedUserId, position, rotation }: UserMovement) => {
+          setUsers((prev) => {
+            const newUsers = new Map(prev);
+            const user = newUsers.get(movedUserId);
+            if (user && user.avatar) {
+              user.position.set(position.x, position.y, position.z);
+              user.rotation.set(rotation.x, rotation.y, rotation.z);
+              user.avatar.position.lerp(
+                new THREE.Vector3(position.x, position.y, position.z),
+                0.1
+              );
+              user.avatar.rotation.set(rotation.x, rotation.y, rotation.z);
+              user.lastUpdate = Date.now();
+            }
+            return newUsers;
+          });
+        }
+      );
+
+      socket.on("userLeft", ({ userId: leftUserId }: UserLeft) => {
         setUsers((prev) => {
           const newUsers = new Map(prev);
           const user = newUsers.get(leftUserId);
@@ -312,7 +334,7 @@ const JamScene: React.FC<JamSceneProps> = ({
       });
 
       // Add handler for leaveJam event
-      socket.on("userLeftJam", ({ userId: leftUserId }) => {
+      socket.on("userLeftJam", ({ userId: leftUserId }: UserLeft) => {
         setUsers((prev) => {
           const newUsers = new Map(prev);
           const user = newUsers.get(leftUserId);
@@ -402,7 +424,7 @@ const JamScene: React.FC<JamSceneProps> = ({
           }
         });
 
-        addNameTag(avatar, name);
+        addNameTag(avatar, name || "Anonymous");
         sceneRef.current.add(avatar);
 
         setUsers((prev) => {
@@ -452,7 +474,7 @@ const JamScene: React.FC<JamSceneProps> = ({
         group.position.set(position.x, position.y, position.z);
         group.rotation.set(rotation.x, rotation.y, rotation.z);
 
-        addNameTag(group, name);
+        addNameTag(group, name || "Anonymous");
         sceneRef.current.add(group);
 
         setUsers((prev) => {
@@ -609,16 +631,16 @@ const JamScene: React.FC<JamSceneProps> = ({
           sceneRef.current.add(avatar);
 
           // Add nametag to avatar
-          addNameTag(avatar, userName);
+          addNameTag(avatar, userName || "Anonymous");
 
           // Add initial user
           setUsers((prev) => {
             const newUsers = new Map(prev);
-            newUsers.set(userId, {
-              id: userId,
+            newUsers.set(userId || "anonymous", {
+              id: userId || "anonymous",
               position: new THREE.Vector3(0, 0, 0),
               rotation: new THREE.Euler(0, 0, 0),
-              name: userName,
+              name: userName || "Anonymous",
               avatar: avatar,
               lastUpdate: Date.now(),
             });
@@ -663,16 +685,16 @@ const JamScene: React.FC<JamSceneProps> = ({
           sceneRef.current.add(group);
 
           // Add nametag
-          addNameTag(group, userName);
+          addNameTag(group, userName || "Anonymous");
 
           // Add user with fallback avatar
           setUsers((prev) => {
             const newUsers = new Map(prev);
-            newUsers.set(userId, {
-              id: userId,
+            newUsers.set(userId || "anonymous", {
+              id: userId || "anonymous",
               position: new THREE.Vector3(0, 0, 0),
               rotation: new THREE.Euler(0, 0, 0),
-              name: userName,
+              name: userName || "Anonymous",
               avatar: group,
               lastUpdate: Date.now(),
             });
@@ -978,8 +1000,8 @@ const JamScene: React.FC<JamSceneProps> = ({
     if (!messageInput.trim()) return;
 
     const newMessage: Message = {
-      userId: userId,
-      userName: userName,
+      userId: userId || "anonymous",
+      userName: userName || "Anonymous",
       text: messageInput,
       timestamp: Date.now(),
     };
