@@ -249,12 +249,7 @@ const JamScene: React.FC<JamSceneProps> = ({
       });
     };
 
-    if (isConnected) {
-      setupSocketListeners();
-    }
-
     // Load avatar
-    loadAvatar(avatarUrl);
 
     // Add event listeners
     window.addEventListener("resize", handleResize);
@@ -270,6 +265,11 @@ const JamScene: React.FC<JamSceneProps> = ({
 
     // Start animation loop
     animate();
+
+    if (isConnected) {
+      loadAvatar(avatarUrl);
+      setupSocketListeners();
+    }
 
     return () => {
       socket.off("currentUsers");
@@ -293,6 +293,8 @@ const JamScene: React.FC<JamSceneProps> = ({
   }, [jamId, userId, userName, avatarUrl, socket, isConnected]);
 
   const addUserToScene = (userData: any) => {
+    console.log("userData: ", userData);
+
     const { userId: id, position, rotation, name, avatarUrl } = userData;
     if (id === userId) return; // Skip self
 
@@ -340,10 +342,10 @@ const JamScene: React.FC<JamSceneProps> = ({
         });
       },
       (progress) => {
-        console.log(
-          `Loading avatar for ${name}:`,
-          (progress.loaded / progress.total) * 100
-        );
+        // console.log(
+        //   `Loading avatar for ${name}:`,
+        //   (progress.loaded / progress.total) * 100
+        // );
       },
       (error) => {
         console.error(`Error loading avatar for ${name}:`, error);
@@ -550,10 +552,10 @@ const JamScene: React.FC<JamSceneProps> = ({
         },
         (progress) => {
           // Progress callback
-          console.log(
-            "Loading progress:",
-            (progress.loaded / progress.total) * 100
-          );
+          // console.log(
+          //   "Loading progress:",
+          //   (progress.loaded / progress.total) * 100
+          // );
         },
         (error) => {
           console.error("Error loading avatar:", error);
@@ -728,9 +730,6 @@ const JamScene: React.FC<JamSceneProps> = ({
     // Update camera position in TPP mode
     updateCameraPosition();
 
-    // Update nearby users list
-    updateNearbyUsers();
-
     // Render scene
     if (rendererRef.current && cameraRef.current) {
       rendererRef.current.render(sceneRef.current, cameraRef.current);
@@ -855,8 +854,48 @@ const JamScene: React.FC<JamSceneProps> = ({
       }
     });
 
-    setNearbyUsers(nearby);
+    // Only update state if the nearby users have changed
+    const currentNearbyIds = new Set(nearbyUsers.map((u) => u.id));
+    const newNearbyIds = new Set(nearby.map((u) => u.id));
+
+    if (
+      currentNearbyIds.size !== newNearbyIds.size ||
+      ![...currentNearbyIds].every((id) => newNearbyIds.has(id))
+    ) {
+      setNearbyUsers(nearby);
+    }
   };
+
+  // Add useEffect to monitor user positions
+  useEffect(() => {
+    if (!avatarRef.current) return;
+
+    const checkNearbyUsers = () => {
+      const nearby: User[] = [];
+      const maxDistance = 2;
+
+      users.forEach((user) => {
+        if (user.id !== userId && user.avatar) {
+          const distance = user.avatar.position.distanceTo(
+            avatarRef.current!.position
+          );
+          if (distance < maxDistance) {
+            nearby.push(user);
+          }
+        }
+      });
+
+      setNearbyUsers(nearby);
+    };
+
+    // Check immediately
+    checkNearbyUsers();
+
+    // Set up an interval to check periodically
+    const intervalId = setInterval(checkNearbyUsers, 1000); // Check every second
+
+    return () => clearInterval(intervalId);
+  }, [users, userId, avatarRef.current?.position]);
 
   const sendMessage = () => {
     if (!messageInput.trim()) return;
@@ -909,7 +948,7 @@ const JamScene: React.FC<JamSceneProps> = ({
         {/* Nearby Users */}
         <div className="nearby-users">
           <div className="font-bold mb-1">
-            Online Users ({nearbyUsers.length})
+            Nearby Users ({nearbyUsers.length})
           </div>
           {nearbyUsers.map((user) => (
             <div key={user.id} className="flex items-center mb-1">
