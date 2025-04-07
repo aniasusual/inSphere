@@ -102,6 +102,13 @@ io.on('connection', (socket) => {
             avatarUrl,
         });
 
+        // Send system message to all users in the jam
+        io.to(jamId).emit('systemMessage', {
+            type: 'userJoined',
+            userName,
+            timestamp: Date.now()
+        });
+
         // Send current users in the jam to the new user
         const jamUsers = Array.from(JamUsers.values()).filter(
             (user) => user.jamId === jamId && user.userId !== userId
@@ -128,10 +135,41 @@ io.on('connection', (socket) => {
         }
     });
 
+    // Handle user leaving jam
+    socket.on('leaveJam', ({ jamId }) => {
+        const user = JamUsers.get(socket.id);
+        if (user) {
+            // Notify other users in the jam that this user has left
+            socket.to(jamId).emit('userLeftJam', {
+                userId: user.userId
+            });
+
+            // Send system message to all users in the jam
+            io.to(jamId).emit('systemMessage', {
+                type: 'userLeft',
+                userName: user.name,
+                timestamp: Date.now()
+            });
+
+            // Remove user from JamUsers
+            JamUsers.delete(socket.id);
+
+            // Leave the jam room
+            socket.leave(jamId);
+        }
+    });
+
     // Handle disconnection
     socket.on('disconnect', () => {
         const user = JamUsers.get(socket.id);
         if (user) {
+            // Send system message to all users in the jam
+            io.to(user.jamId).emit('systemMessage', {
+                type: 'userLeft',
+                userName: user.name,
+                timestamp: Date.now()
+            });
+
             io.to(user.jamId).emit('userLeft', {
                 userId: user.userId,
                 avatarUrl: user.avatarUrl
