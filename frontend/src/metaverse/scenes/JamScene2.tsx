@@ -30,7 +30,6 @@ interface JamSceneProps {
   userId?: string;
   userName?: string;
   avatarUrl?: string;
-  onUserInteraction?: (targetUserId: string) => void;
 }
 
 interface JoystickState {
@@ -90,7 +89,6 @@ const JamScene: React.FC<JamSceneProps> = ({
   userId,
   userName,
   avatarUrl = "/avatars/mech_drone.glb",
-  onUserInteraction,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [users, setUsers] = useState<Map<string, User>>(new Map());
@@ -777,14 +775,6 @@ const JamScene: React.FC<JamSceneProps> = ({
   };
 
   const handleKeyPress = (event: KeyboardEvent) => {
-    // Interact with nearby users with F key
-    if (event.key.toLowerCase() === "f") {
-      const nearestUser = findNearestUser();
-      if (nearestUser && onUserInteraction) {
-        onUserInteraction(nearestUser.id);
-      }
-    }
-
     // Toggle camera mode with C key
     if (event.key.toLowerCase() === "c") {
       thirdPersonMode.current = !thirdPersonMode.current;
@@ -797,27 +787,6 @@ const JamScene: React.FC<JamSceneProps> = ({
         messageInputRef.current?.focus();
       }, 100);
     }
-  };
-
-  const findNearestUser = (): User | null => {
-    if (!avatarRef.current) return null;
-
-    let nearestUser = null;
-    let minDistance = Infinity;
-
-    users.forEach((user) => {
-      if (user.id !== userId && user.avatar) {
-        const distance = user.avatar.position.distanceTo(
-          avatarRef.current!.position
-        );
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestUser = user;
-        }
-      }
-    });
-
-    return minDistance < 5 ? nearestUser : null; // Only return if within 5 units
   };
 
   const animate = () => {
@@ -936,35 +905,6 @@ const JamScene: React.FC<JamSceneProps> = ({
     }
   };
 
-  const updateNearbyUsers = () => {
-    if (!avatarRef.current) return;
-
-    const nearby: User[] = [];
-    const maxDistance = 10; // Units in the world
-
-    users.forEach((user) => {
-      if (user.id !== userId && user.avatar) {
-        const distance = user.avatar.position.distanceTo(
-          avatarRef.current!.position
-        );
-        if (distance < maxDistance) {
-          nearby.push(user);
-        }
-      }
-    });
-
-    // Only update state if the nearby users have changed
-    const currentNearbyIds = new Set(nearbyUsers.map((u) => u.id));
-    const newNearbyIds = new Set(nearby.map((u) => u.id));
-
-    if (
-      currentNearbyIds.size !== newNearbyIds.size ||
-      ![...currentNearbyIds].every((id) => newNearbyIds.has(id))
-    ) {
-      setNearbyUsers(nearby);
-    }
-  };
-
   // Add useEffect to monitor user positions
   useEffect(() => {
     if (!avatarRef.current) return;
@@ -1020,14 +960,6 @@ const JamScene: React.FC<JamSceneProps> = ({
     console.log(`Voice chat ${isVoiceChatActive ? "disabled" : "enabled"}`);
   };
 
-  const formatTimestamp = (timestamp: number): string => {
-    const date = new Date(timestamp);
-    return `${date.getHours().toString().padStart(2, "0")}:${date
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
-  };
-
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!messageInput.trim() || !socket) return;
@@ -1046,7 +978,6 @@ const JamScene: React.FC<JamSceneProps> = ({
     setMessageInput("");
   };
 
-  // Update the message listener
   useEffect(() => {
     if (!socket) return;
 
@@ -1058,7 +989,7 @@ const JamScene: React.FC<JamSceneProps> = ({
           userName: messageData.userName,
           text: messageData.message,
           timestamp: Date.now(),
-          type: messageData.type, // Use the type directly from the server
+          type: messageData.type,
         },
       ]);
     };
