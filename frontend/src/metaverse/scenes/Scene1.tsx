@@ -2,7 +2,9 @@ import React, { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
-import { useSocket } from "socket"
+import { useSocket } from "socket";
+import nipplejs from "nipplejs";
+
 interface User {
     id: string;
     position: THREE.Vector3;
@@ -12,10 +14,23 @@ interface User {
     lastUpdate: number;
 }
 
+interface JoystickState {
+    isActive: boolean;
+    startPos: { x: number; y: number };
+    currentPos: { x: number; y: number };
+    angle: number;
+    force: number;
+}
+
 const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
-
     const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
-
+    const [joystickState] = useState<JoystickState>({
+        isActive: false,
+        startPos: { x: 0, y: 0 },
+        currentPos: { x: 0, y: 0 },
+        angle: 0,
+        force: 0,
+    });
 
     const mountRef = useRef<HTMLDivElement>(null);
 
@@ -28,15 +43,15 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
     const thirdPersonMode = useRef<boolean>(true);
     const cameraOffsetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 1, 3));
     const keyStateRef = useRef<{ [key: string]: boolean | number }>({});
+    const joystickRef = useRef<any>(null);
 
-    const cameraAnglesRef = useRef({ yaw: 0, pitch: 0 }); // Yaw (horizontal), pitch (vertical)
-    const cameraDistanceRef = useRef(3); // Default distance from avatar
-    const targetDistanceRef = useRef(3); // For smooth zoom transitions
-    const minDistance = 1.5; // Closest zoom
-    const maxDistance = 6; // Farthest zoom
-    const minPitch = -Math.PI / 6; // Limit looking too far down
-    const maxPitch = Math.PI / 2.5; // Limit looking too far up
-
+    const cameraAnglesRef = useRef({ yaw: 0, pitch: 0 });
+    const cameraDistanceRef = useRef(3);
+    const targetDistanceRef = useRef(3);
+    const minDistance = 1.5;
+    const maxDistance = 6;
+    const minPitch = -Math.PI / 6;
+    const maxPitch = Math.PI / 2.5;
 
     const lastPositionSent = useRef<THREE.Vector3>(new THREE.Vector3());
     const lastRotationSent = useRef<THREE.Euler>(new THREE.Euler());
@@ -69,7 +84,7 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
             direction = new THREE.Vector3();
             direction.x = keyStateRef.current["joystickX"] as number;
             direction.z = -(keyStateRef.current["joystickY"] as number);
-            const force = keyStateRef.current["joystickForce"] as number;
+            const force = Math.min(Math.max(keyStateRef.current["joystickForce"] || 0, 0), 1);
             direction.multiplyScalar(force);
         }
 
@@ -134,42 +149,53 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         if (!avatarRef.current || !cameraRef.current) return;
 
         if (thirdPersonMode.current) {
-            // Get current angles and distance
             const { yaw, pitch } = cameraAnglesRef.current;
             const currentDistance = cameraDistanceRef.current;
 
-            // Calculate camera position in spherical coordinates
             const sinPitch = Math.sin(pitch);
             const cosPitch = Math.cos(pitch);
             const sinYaw = Math.sin(yaw);
             const cosYaw = Math.cos(yaw);
 
-            // Compute offset relative to avatar
             offset.set(
                 currentDistance * cosPitch * sinYaw,
                 currentDistance * sinPitch,
                 currentDistance * cosPitch * cosYaw
             );
 
-            // Position camera behind avatar
             targetPosition.copy(avatarRef.current.position).add(offset);
 
-            // Smoothly interpolate camera position (frame-rate independent)
-            const lerpFactor = 1 - Math.pow(0.02, deltaTime); // Adjustable damping
+            const lerpFactor = 1 - Math.pow(0.02, deltaTime);
             cameraRef.current.position.lerp(targetPosition, lerpFactor);
 
-            // Make camera look at avatar's head
             avatarHeadPosition.copy(avatarRef.current.position);
-            avatarHeadPosition.y += 1; // Adjust for avatar height
+            avatarHeadPosition.y += 1;
             cameraRef.current.lookAt(avatarHeadPosition);
 
-            // Smoothly interpolate zoom
             cameraDistanceRef.current = THREE.MathUtils.lerp(
                 cameraDistanceRef.current,
                 targetDistanceRef.current,
                 lerpFactor
             );
         }
+    };
+
+    const setupKeyboardControls = () => {
+        const onKeyDown = (event: KeyboardEvent) => {
+            keyStateRef.current[event.code] = true;
+        };
+
+        const onKeyUp = (event: KeyboardEvent) => {
+            keyStateRef.current[event.code] = false;
+        };
+
+        window.addEventListener("keydown", onKeyDown);
+        window.addEventListener("keyup", onKeyUp);
+
+        return () => {
+            window.removeEventListener("keydown", onKeyDown);
+            window.removeEventListener("keyup", onKeyUp);
+        };
     };
 
     const setupMouseLookControls = () => {
@@ -181,42 +207,34 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
 
         document.addEventListener("pointerlockchange", onPointerLockChange);
 
-        // Request pointer lock on click
         mountRef.current?.addEventListener("click", () => {
             if (!isPointerLocked && !isChatOpen) {
                 mountRef.current?.requestPointerLock();
             }
         });
 
-        // Handle mouse movement for free-look
         const onMouseMove = (event: MouseEvent) => {
             if (!isPointerLocked || !avatarRef.current || !cameraRef.current) return;
 
             const movementX = event.movementX || 0;
             const movementY = event.movementY || 0;
 
-            // Update camera yaw and pitch
-            cameraAnglesRef.current.yaw -= movementX * 0.002; // Horizontal rotation
-            cameraAnglesRef.current.pitch -= movementY * 0.002; // Vertical rotation
+            cameraAnglesRef.current.yaw -= movementX * 0.002;
+            cameraAnglesRef.current.pitch -= movementY * 0.002;
 
-            // Clamp pitch to avoid flipping
             cameraAnglesRef.current.pitch = THREE.MathUtils.clamp(
                 cameraAnglesRef.current.pitch,
                 minPitch,
                 maxPitch
             );
-
-            // Normalize yaw to avoid large values
             cameraAnglesRef.current.yaw = cameraAnglesRef.current.yaw % (2 * Math.PI);
         };
 
         document.addEventListener("mousemove", onMouseMove);
 
-        // Handle mouse wheel for zooming
         const onMouseWheel = (event: WheelEvent) => {
             if (!avatarRef.current || !cameraRef.current) return;
 
-            // Adjust zoom distance
             targetDistanceRef.current += event.deltaY * 0.002;
             targetDistanceRef.current = THREE.MathUtils.clamp(
                 targetDistanceRef.current,
@@ -226,59 +244,163 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         };
 
         mountRef.current?.addEventListener("wheel", onMouseWheel);
+
+        return () => {
+            document.removeEventListener("pointerlockchange", onPointerLockChange);
+            document.removeEventListener("mousemove", onMouseMove);
+            mountRef.current?.removeEventListener("wheel", onMouseWheel);
+        };
     };
 
-    const animate = () => {
-        animationFrameId.current = requestAnimationFrame(animate);
-        const deltaTime = clock.getDelta(); // Time since last frame
-        handleMovement(deltaTime);
-        updateCameraPosition(deltaTime);
-        if (rendererRef.current && cameraRef.current) {
-            rendererRef.current.render(sceneRef.current, cameraRef.current);
-        }
+    const setupMobileControls = () => {
+        const joystickContainer = document.createElement("div");
+        joystickContainer.style.position = "absolute";
+        joystickContainer.style.left = "30px";
+        joystickContainer.style.bottom = "30px";
+        joystickContainer.style.width = "120px";
+        joystickContainer.style.height = "120px";
+        joystickContainer.style.zIndex = "1000";
+        mountRef.current?.appendChild(joystickContainer);
+
+        const options = {
+            zone: joystickContainer,
+            color: "white",
+            size: 120,
+            multitouch: true,
+            maxNumberOfNipples: 1,
+            mode: "static" as const,
+            position: { left: "60px", bottom: "60px" },
+        };
+
+        const manager = nipplejs.create(options);
+        joystickRef.current = manager;
+
+        manager.on("move", (_event: any, data: any) => {
+            const forceX = data.vector.x;
+            const forceY = data.vector.y;
+            const force = Math.min(data.force / 2, 1);
+
+            keyStateRef.current["joystickActive"] = true;
+            keyStateRef.current["joystickX"] = forceX;
+            keyStateRef.current["joystickY"] = forceY;
+            keyStateRef.current["joystickForce"] = force;
+        });
+
+        manager.on("end", () => {
+            keyStateRef.current["joystickActive"] = false;
+            keyStateRef.current["joystickX"] = 0;
+            keyStateRef.current["joystickY"] = 0;
+            keyStateRef.current["joystickForce"] = 0;
+        });
+
+        const cleanupTouch = setupTouchRotation();
+
+        return () => {
+            manager.destroy();
+            joystickContainer.remove();
+            cleanupTouch();
+        };
     };
 
-    const addNameTag = (avatar: THREE.Object3D, name: string) => {
-        // Calculate avatar height to position the name tag appropriately
-        const box = new THREE.Box3().setFromObject(avatar);
-        const height = box.max.y - box.min.y;
+    const setupTouchRotation = () => {
+        let isRotating = false;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        let initialPinchDistance = 0;
+        let isPinching = false;
 
-        // Create canvas for the name tag
-        const canvas = document.createElement("canvas");
-        canvas.width = 256;
-        canvas.height = 64;
-        const context = canvas.getContext("2d");
+        const onTouchStart = (e: TouchEvent) => {
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
 
-        if (context) {
-            // Clear canvas
-            context.clearRect(0, 0, canvas.width, canvas.height);
+            const screenWidth = window.innerWidth;
+            const touch = e.touches[0];
 
-            // Add simple text with no styling
-            context.fillStyle = "#ffffff";
-            context.font = "24px Arial";
-            context.textAlign = "center";
-            context.textBaseline = "middle";
-            context.fillText(name, canvas.width / 2, canvas.height / 2);
+            if (e.touches.length === 1 && touch.clientX > screenWidth / 2) {
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+                isRotating = true;
+            }
 
-            // Create texture and sprite
-            const texture = new THREE.CanvasTexture(canvas);
-            const spriteMaterial = new THREE.SpriteMaterial({
-                map: texture,
-                transparent: true,
-                depthTest: false,
-            });
+            if (e.touches.length === 2) {
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                initialPinchDistance = Math.hypot(
+                    touch1.clientX - touch2.clientX,
+                    touch1.clientY - touch2.clientY
+                );
+                isPinching = true;
+                isRotating = false;
+            }
+        };
 
-            const sprite = new THREE.Sprite(spriteMaterial);
+        const onTouchMove = (e: TouchEvent) => {
+            if (!avatarRef.current || !cameraRef.current) return;
 
-            // Position just above the avatar's head
-            sprite.position.y = height + 0.1;
-            sprite.scale.set(1, 0.25, 1);
+            if (e.touches.length > 1) {
+                e.preventDefault();
+            }
 
-            // Mark as name tag for camera orientation updates
-            sprite.userData = { isNameTag: true };
+            const screenWidth = window.innerWidth;
 
-            avatar.add(sprite);
-        }
+            if (isRotating && e.touches.length === 1 && e.touches[0].clientX > screenWidth / 2) {
+                const touch = e.touches[0];
+                const deltaX = touch.clientX - touchStartX;
+                const deltaY = touch.clientY - touchStartY;
+
+                cameraAnglesRef.current.yaw -= deltaX * 0.005;
+                cameraAnglesRef.current.pitch -= deltaY * 0.005;
+
+                cameraAnglesRef.current.pitch = THREE.MathUtils.clamp(
+                    cameraAnglesRef.current.pitch,
+                    minPitch,
+                    maxPitch
+                );
+                cameraAnglesRef.current.yaw = cameraAnglesRef.current.yaw % (2 * Math.PI);
+
+                touchStartX = touch.clientX;
+                touchStartY = touch.clientY;
+            }
+
+            if (isPinching && e.touches.length === 2) {
+                const touch1 = e.touches[0];
+                const touch2 = e.touches[1];
+                const currentPinchDistance = Math.hypot(
+                    touch1.clientX - touch2.clientX,
+                    touch1.clientY - touch2.clientY
+                );
+
+                const pinchDelta = (currentPinchDistance - initialPinchDistance) * 0.01;
+                targetDistanceRef.current -= pinchDelta;
+                targetDistanceRef.current = THREE.MathUtils.clamp(
+                    targetDistanceRef.current,
+                    minDistance,
+                    maxDistance
+                );
+
+                initialPinchDistance = currentPinchDistance;
+            }
+        };
+
+        const onTouchEnd = (e: TouchEvent) => {
+            if (e.touches.length < 2) {
+                isPinching = false;
+            }
+            if (e.touches.length === 0) {
+                isRotating = false;
+            }
+        };
+
+        mountRef.current?.addEventListener("touchstart", onTouchStart, { passive: false });
+        mountRef.current?.addEventListener("touchmove", onTouchMove, { passive: false });
+        mountRef.current?.addEventListener("touchend", onTouchEnd, { passive: true });
+
+        return () => {
+            mountRef.current?.removeEventListener("touchstart", onTouchStart);
+            mountRef.current?.removeEventListener("touchmove", onTouchMove);
+            mountRef.current?.removeEventListener("touchend", onTouchEnd);
+        };
     };
 
     const loadAvatar = (url: string) => {
@@ -293,19 +415,16 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
             const loader = new GLTFLoader();
             loader.setDRACOLoader(dracoLoader);
 
-            const absoluteUrl = url.startsWith("http")
-                ? url
-                : `${window.location.origin}${url}`;
+            const absoluteUrl = url.startsWith("http") ? url : `${window.location.origin}${url}`;
 
             loader.load(
                 absoluteUrl,
                 (gltf) => {
                     const avatar = gltf.scene;
                     avatar.scale.set(1, 1, 1);
-                    // Set random initial position
-                    const range = 50; // Within floor bounds (-50 to 50)
-                    const randomX = Math.random() * range * 2 - range; // -50 to 50
-                    const randomZ = Math.random() * range * 2 - range; // -50 to 50
+                    const range = 50;
+                    const randomX = Math.random() * range * 2 - range;
+                    const randomZ = Math.random() * range * 2 - range;
                     avatar.position.set(randomX, 0, randomZ);
                     avatar.traverse((child) => {
                         if (child instanceof THREE.Mesh) {
@@ -317,7 +436,6 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
                     sceneRef.current.add(avatar);
                     addNameTag(avatar, userName || "Anonymous");
 
-                    // Log bounding box for debugging
                     const box = new THREE.Box3().setFromObject(avatar);
                     console.log("Avatar bounding box:", {
                         min: box.min.toArray(),
@@ -334,14 +452,54 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         }
     };
 
+    const addNameTag = (avatar: THREE.Object3D, name: string) => {
+        const box = new THREE.Box3().setFromObject(avatar);
+        const height = box.max.y - box.min.y;
+
+        const canvas = document.createElement("canvas");
+        canvas.width = 256;
+        canvas.height = 64;
+        const context = canvas.getContext("2d");
+
+        if (context) {
+            context.clearRect(0, 0, canvas.width, canvas.height);
+            context.fillStyle = "#ffffff";
+            context.font = "24px Arial";
+            context.textAlign = "center";
+            context.textBaseline = "middle";
+            context.fillText(name, canvas.width / 2, canvas.height / 2);
+
+            const texture = new THREE.CanvasTexture(canvas);
+            const spriteMaterial = new THREE.SpriteMaterial({
+                map: texture,
+                transparent: true,
+                depthTest: false,
+            });
+
+            const sprite = new THREE.Sprite(spriteMaterial);
+            sprite.position.y = height + 0.1;
+            sprite.scale.set(1, 0.25, 1);
+            sprite.userData = { isNameTag: true };
+            avatar.add(sprite);
+        }
+    };
+
+    const animate = () => {
+        animationFrameId.current = requestAnimationFrame(animate);
+        const deltaTime = clock.getDelta();
+        handleMovement(deltaTime);
+        updateCameraPosition(deltaTime);
+        if (rendererRef.current && cameraRef.current) {
+            rendererRef.current.render(sceneRef.current, cameraRef.current);
+        }
+    };
+
     useEffect(() => {
         if (!mountRef.current) return;
 
-        // Scene setup
         const scene = sceneRef.current;
         scene.background = new THREE.Color(0x87ceeb);
 
-        // Floor
         const floorSize = 100;
         const floorGeometry = new THREE.PlaneGeometry(floorSize, floorSize, 1, 1);
         const floorMaterial = new THREE.MeshStandardMaterial({
@@ -355,7 +513,6 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         floor.receiveShadow = true;
         scene.add(floor);
 
-        // Camera
         const camera = new THREE.PerspectiveCamera(
             50,
             window.innerWidth / window.innerHeight,
@@ -365,7 +522,6 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         camera.position.set(0, 2, 3);
         cameraRef.current = camera;
 
-        // Renderer
         const renderer = new THREE.WebGLRenderer({
             antialias: true,
             powerPreference: "high-performance",
@@ -373,17 +529,16 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         renderer.setSize(window.innerWidth, window.innerHeight);
         renderer.shadowMap.enabled = true;
         renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap pixel ratio
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         mountRef.current.appendChild(renderer.domElement);
         rendererRef.current = renderer;
 
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(5, 10, 7);
         directionalLight.castShadow = true;
-        directionalLight.shadow.mapSize.width = 1024; // Reduced resolution
+        directionalLight.shadow.mapSize.width = 1024;
         directionalLight.shadow.mapSize.height = 1024;
         directionalLight.shadow.camera.near = 0.5;
         directionalLight.shadow.camera.far = 500;
@@ -393,19 +548,20 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         directionalLight.shadow.camera.bottom = -100;
         scene.add(directionalLight);
 
+        const cleanupKeyboardControls = setupKeyboardControls();
+        const cleanupMouseControls = setupMouseLookControls();
+        let cleanupMobileControls: (() => void) | undefined;
 
-        setupMouseLookControls();
-
-        // Load avatar
-        if (isConnected) {
-            loadAvatar(avatarUrl);
-
+        if (window.innerWidth <= 768) {
+            cleanupMobileControls = setupMobileControls();
         }
 
-        // Start animation
+        if (isConnected) {
+            loadAvatar(avatarUrl);
+        }
+
         animate();
 
-        // Handle window resize
         const handleResize = () => {
             if (cameraRef.current && rendererRef.current) {
                 cameraRef.current.aspect = window.innerWidth / window.innerHeight;
@@ -415,18 +571,29 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         };
         window.addEventListener("resize", handleResize);
 
-        // Cleanup
         return () => {
             window.removeEventListener("resize", handleResize);
             if (animationFrameId.current) {
                 cancelAnimationFrame(animationFrameId.current);
             }
-            if (mountRef.current && renderer.domElement) {
-                mountRef.current.removeChild(renderer.domElement);
+            if (mountRef.current && rendererRef.current?.domElement) {
+                mountRef.current.removeChild(rendererRef.current.domElement);
             }
-            renderer.dispose();
+            rendererRef.current?.dispose();
+            cleanupKeyboardControls();
+            cleanupMouseControls();
+            cleanupMobileControls?.();
+            sceneRef.current.traverse((object) => {
+                if (object instanceof THREE.Mesh) {
+                    object.geometry.dispose();
+                    if (object.material instanceof THREE.Material) {
+                        object.material.dispose();
+                    }
+                }
+            });
+            sceneRef.current.clear();
         };
-    }, [avatarUrl, userId, userName, isConnected, socket]);
+    }, [avatarUrl, userId, userName, isConnected]);
 
     return (
         <div className="scene-container" style={{ width: "100vw", height: "100vh" }}>
