@@ -29,6 +29,15 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
     const cameraOffsetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 1, 3));
     const keyStateRef = useRef<{ [key: string]: boolean | number }>({});
 
+    const cameraAnglesRef = useRef({ yaw: 0, pitch: 0 }); // Yaw (horizontal), pitch (vertical)
+    const cameraDistanceRef = useRef(3); // Default distance from avatar
+    const targetDistanceRef = useRef(3); // For smooth zoom transitions
+    const minDistance = 1.5; // Closest zoom
+    const maxDistance = 6; // Farthest zoom
+    const minPitch = -Math.PI / 6; // Limit looking too far down
+    const maxPitch = Math.PI / 2.5; // Limit looking too far up
+
+
     const lastPositionSent = useRef<THREE.Vector3>(new THREE.Vector3());
     const lastRotationSent = useRef<THREE.Euler>(new THREE.Euler());
 
@@ -37,9 +46,11 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
     const offset = new THREE.Vector3();
     const avatarHeadPosition = new THREE.Vector3();
 
+    const clock = new THREE.Clock();
+
     const { socket, isConnected } = useSocket();
 
-    const handleMovement = () => {
+    const handleMovement = (deltaTime: number) => {
         if (!avatarRef.current || !isConnected) return;
 
         const moveSpeed = 0.1;
@@ -69,10 +80,10 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
                 0,
                 direction.z * moveSpeed
             );
-            moveVector.applyAxisAngle(
-                new THREE.Vector3(0, 1, 0),
-                avatarRef.current.rotation.y
-            );
+
+            // Align movement with camera's yaw (like GTA)
+            const cameraYaw = cameraAnglesRef.current.yaw;
+            moveVector.applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraYaw);
 
             const newPosition = new THREE.Vector3()
                 .copy(avatarRef.current.position)
@@ -87,11 +98,19 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
             ) {
                 avatarRef.current.position.copy(newPosition);
 
-                // Send movement update if changed
+                // Rotate avatar to face movement direction (smoothly)
+                if (direction.length() > 0) {
+                    const targetRotation = Math.atan2(moveVector.x, moveVector.z);
+                    avatarRef.current.rotation.y = THREE.MathUtils.lerp(
+                        avatarRef.current.rotation.y,
+                        targetRotation,
+                        1 - Math.pow(0.02, deltaTime)
+                    );
+                }
+
+                // Send movement update
                 const posChanged = !newPosition.equals(lastPositionSent.current);
-                const rotChanged = !avatarRef.current.rotation.equals(
-                    lastRotationSent.current
-                );
+                const rotChanged = !avatarRef.current.rotation.equals(lastRotationSent.current);
                 if (posChanged || rotChanged) {
                     const position = {
                         x: newPosition.x,
@@ -111,17 +130,45 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         }
     };
 
-    const updateCameraPosition = () => {
+    const updateCameraPosition = (deltaTime: number) => {
         if (!avatarRef.current || !cameraRef.current) return;
 
         if (thirdPersonMode.current) {
-            offset.copy(cameraOffsetRef.current);
-            offset.applyQuaternion(avatarRef.current.quaternion);
+            // Get current angles and distance
+            const { yaw, pitch } = cameraAnglesRef.current;
+            const currentDistance = cameraDistanceRef.current;
+
+            // Calculate camera position in spherical coordinates
+            const sinPitch = Math.sin(pitch);
+            const cosPitch = Math.cos(pitch);
+            const sinYaw = Math.sin(yaw);
+            const cosYaw = Math.cos(yaw);
+
+            // Compute offset relative to avatar
+            offset.set(
+                currentDistance * cosPitch * sinYaw,
+                currentDistance * sinPitch,
+                currentDistance * cosPitch * cosYaw
+            );
+
+            // Position camera behind avatar
             targetPosition.copy(avatarRef.current.position).add(offset);
-            cameraRef.current.position.lerp(targetPosition, 0.1); // Faster lerp
+
+            // Smoothly interpolate camera position (frame-rate independent)
+            const lerpFactor = 1 - Math.pow(0.02, deltaTime); // Adjustable damping
+            cameraRef.current.position.lerp(targetPosition, lerpFactor);
+
+            // Make camera look at avatar's head
             avatarHeadPosition.copy(avatarRef.current.position);
-            avatarHeadPosition.y += 1; // Adjusted for typical avatar height
+            avatarHeadPosition.y += 1; // Adjust for avatar height
             cameraRef.current.lookAt(avatarHeadPosition);
+
+            // Smoothly interpolate zoom
+            cameraDistanceRef.current = THREE.MathUtils.lerp(
+                cameraDistanceRef.current,
+                targetDistanceRef.current,
+                lerpFactor
+            );
         }
     };
 
@@ -141,26 +188,51 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
             }
         });
 
-        // Handle mouse movement - only rotates the avatar, not the camera directly
+        // Handle mouse movement for free-look
         const onMouseMove = (event: MouseEvent) => {
             if (!isPointerLocked || !avatarRef.current || !cameraRef.current) return;
 
             const movementX = event.movementX || 0;
+            const movementY = event.movementY || 0;
 
-            // Rotate avatar horizontally
-            avatarRef.current.rotation.y -= movementX * 0.002;
+            // Update camera yaw and pitch
+            cameraAnglesRef.current.yaw -= movementX * 0.002; // Horizontal rotation
+            cameraAnglesRef.current.pitch -= movementY * 0.002; // Vertical rotation
 
-            // The camera will follow this rotation in updateCameraPosition()
-            // This separation ensures camera doesn't move during WASD movement
+            // Clamp pitch to avoid flipping
+            cameraAnglesRef.current.pitch = THREE.MathUtils.clamp(
+                cameraAnglesRef.current.pitch,
+                minPitch,
+                maxPitch
+            );
+
+            // Normalize yaw to avoid large values
+            cameraAnglesRef.current.yaw = cameraAnglesRef.current.yaw % (2 * Math.PI);
         };
 
         document.addEventListener("mousemove", onMouseMove);
+
+        // Handle mouse wheel for zooming
+        const onMouseWheel = (event: WheelEvent) => {
+            if (!avatarRef.current || !cameraRef.current) return;
+
+            // Adjust zoom distance
+            targetDistanceRef.current += event.deltaY * 0.002;
+            targetDistanceRef.current = THREE.MathUtils.clamp(
+                targetDistanceRef.current,
+                minDistance,
+                maxDistance
+            );
+        };
+
+        mountRef.current?.addEventListener("wheel", onMouseWheel);
     };
 
     const animate = () => {
         animationFrameId.current = requestAnimationFrame(animate);
-        handleMovement();
-        updateCameraPosition();
+        const deltaTime = clock.getDelta(); // Time since last frame
+        handleMovement(deltaTime);
+        updateCameraPosition(deltaTime);
         if (rendererRef.current && cameraRef.current) {
             rendererRef.current.render(sceneRef.current, cameraRef.current);
         }
