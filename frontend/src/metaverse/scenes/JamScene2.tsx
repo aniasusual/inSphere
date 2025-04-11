@@ -7,6 +7,7 @@ import nipplejs from "nipplejs";
 import "../MetaverseStyles.css";
 import logo from "@assets/hyperlocalNobg.png";
 import { useSocket } from "socket";
+import VoiceCall from "@metaverse/components/VoiceCall";
 
 interface User {
   id: string;
@@ -345,7 +346,6 @@ const JamScene: React.FC<JamSceneProps> = ({
       });
     };
 
-    // Load avatar
 
     // Add event listeners
     window.addEventListener("resize", handleResize);
@@ -1018,14 +1018,12 @@ const JamScene: React.FC<JamSceneProps> = ({
 
         {/* Online Users */}
         <div
-          className={`user-box online-users ${
-            isOnlineUsersCollapsed ? "collapsed" : ""
-          }`}
+          className={`user-box online-users ${isOnlineUsersCollapsed ? "collapsed" : ""
+            }`}
         >
           <div
-            className={`user-box-header ${
-              isOnlineUsersCollapsed ? "collapsed" : ""
-            }`}
+            className={`user-box-header ${isOnlineUsersCollapsed ? "collapsed" : ""
+              }`}
             onClick={(e) => {
               e.stopPropagation();
               setIsOnlineUsersCollapsed(!isOnlineUsersCollapsed);
@@ -1056,14 +1054,12 @@ const JamScene: React.FC<JamSceneProps> = ({
 
         {/* Nearby Users */}
         <div
-          className={`user-box nearby-users ${
-            isNearbyUsersCollapsed ? "collapsed" : ""
-          }`}
+          className={`user-box nearby-users ${isNearbyUsersCollapsed ? "collapsed" : ""
+            }`}
         >
           <div
-            className={`user-box-header ${
-              isNearbyUsersCollapsed ? "collapsed" : ""
-            }`}
+            className={`user-box-header ${isNearbyUsersCollapsed ? "collapsed" : ""
+              }`}
             onClick={(e) => {
               e.stopPropagation();
               setIsNearbyUsersCollapsed(!isNearbyUsersCollapsed);
@@ -1153,7 +1149,7 @@ const JamScene: React.FC<JamSceneProps> = ({
                 onClick={toggleVoiceChat}
               >
                 <span className="material-icons">
-                  {isVoiceChatActive ? "mic_off" : "mic"}
+                  {isVoiceChatActive ? <VoiceCall nearbyUsers={nearbyUsers} currentUserId={userId} /> : "mic"}
                 </span>
               </button>
 
@@ -1186,9 +1182,8 @@ const JamScene: React.FC<JamSceneProps> = ({
         <div className="chat-panel">
           <div className="chat-header">
             <h3
-              className={`text-xl font-bold ${
-                isGlobalChat ? "global-active" : ""
-              }`}
+              className={`text-xl font-bold ${isGlobalChat ? "global-active" : ""
+                }`}
             >
               Chat
             </h3>
@@ -1200,9 +1195,8 @@ const JamScene: React.FC<JamSceneProps> = ({
             {messages.map((msg, index) => (
               <div
                 key={`${msg.timestamp}-${index}`}
-                className={`chat-message ${
-                  msg.type === "system" ? "system-message" : msg.type
-                }`}
+                className={`chat-message ${msg.type === "system" ? "system-message" : msg.type
+                  }`}
               >
                 {msg.type === "system" ? (
                   <span>
