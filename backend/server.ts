@@ -93,6 +93,7 @@ io.on('connection', (socket) => {
             lastUpdate: Date.now(),
         });
 
+
         // Broadcast to others in the jam that a new user joined
         socket.to(jamId).emit('userJoined', {
             userId,
@@ -101,6 +102,7 @@ io.on('connection', (socket) => {
             name: userName,
             avatarUrl,
         });
+
 
         // Send system message to all users in the jam
         io.to(jamId).emit('systemMessage', {
@@ -159,28 +161,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Handle disconnection
-    socket.on('disconnect', () => {
-        const user = JamUsers.get(socket.id);
-        if (user) {
-            // Send system message to all users in the jam
-            io.to(user.jamId).emit('systemMessage', {
-                type: 'userLeft',
-                userName: user.name,
-                timestamp: Date.now()
-            });
 
-            io.to(user.jamId).emit('userLeft', {
-                userId: user.userId,
-                avatarUrl: user.avatarUrl
-            });
-            JamUsers.delete(socket.id);
-        }
-        console.log('User disconnected:', socket.id);
-    });
-
-
-    socket.on('chatMessage', ({ jamId, userId, userName, message, timestamp, isGlobal }) => {
+    socket.on('chatMessage', ({ jamId, userId, userName, message, timestamp, nearbyUsers, isGlobal }) => {
         const user = JamUsers.get(socket.id);
         if (!user) return;
 
@@ -197,34 +179,24 @@ io.on('connection', (socket) => {
                 type: 'global'
             });
         } else {
-            // Find nearby users (within 2 units)
-            const nearbyUsers = jamUsers.filter(jamUser => {
-                if (jamUser.userId === userId) return false;
 
-                const distance = Math.sqrt(
-                    Math.pow(jamUser.position.x - user.position.x, 2) +
-                    Math.pow(jamUser.position.y - user.position.y, 2) +
-                    Math.pow(jamUser.position.z - user.position.z, 2)
-                );
+            if (nearbyUsers) {
+                nearbyUsers.forEach((nearbyUser: any) => {
+                    const nearbySocket = Array.from(JamUsers.entries())
+                        .find(([_, u]) => u.userId === nearbyUser.id)?.[0];
 
-                return distance <= 2;
-            });
-
+                    if (nearbySocket) {
+                        io.to(nearbySocket).emit('message', {
+                            userId,
+                            userName,
+                            message,
+                            timestamp,
+                            type: 'nearby'
+                        });
+                    }
+                });
+            }
             // Send message to nearby users
-            nearbyUsers.forEach(nearbyUser => {
-                const nearbySocket = Array.from(JamUsers.entries())
-                    .find(([_, u]) => u.userId === nearbyUser.userId)?.[0];
-
-                if (nearbySocket) {
-                    io.to(nearbySocket).emit('message', {
-                        userId,
-                        userName,
-                        message,
-                        timestamp,
-                        type: 'nearby'
-                    });
-                }
-            });
 
             // Also send to the sender
             socket.emit('message', {
@@ -238,6 +210,21 @@ io.on('connection', (socket) => {
     });
 
     socket.on('disconnect', () => {
+        const user = JamUsers.get(socket.id);
+        if (user) {
+            // Send system message to all users in the jam
+            io.to(user.jamId).emit('systemMessage', {
+                type: 'userLeft',
+                userName: user.name,
+                timestamp: Date.now()
+            });
+
+            io.to(user.jamId).emit('userLeft', {
+                userId: user.userId,
+                avatarUrl: user.avatarUrl
+            });
+            JamUsers.delete(socket.id);
+        }
         console.log('User disconnected:', socket.id);
     });
 
