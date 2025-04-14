@@ -1,16 +1,47 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useSocket } from "socket";
 
-const VoiceCall = ({ nearbyUsers, currentUserId }) => {
-  const [peerConnections, setPeerConnections] = useState(new Map()); // Track multiple connections
+interface User {
+  id: string;
+}
+
+interface VoiceCallProps {
+  nearbyUsers: User[];
+  currentUserId: string;
+}
+
+interface VoiceOffer {
+  offer: RTCSessionDescriptionInit;
+  fromUserId: string;
+}
+
+interface VoiceAnswer {
+  answer: RTCSessionDescriptionInit;
+  fromUserId: string;
+}
+
+interface VoiceCandidate {
+  candidate: RTCIceCandidateInit;
+  fromUserId: string;
+}
+
+const VoiceCall: React.FC<VoiceCallProps> = ({
+  nearbyUsers,
+  currentUserId,
+}) => {
+  const [peerConnections, setPeerConnections] = useState<
+    Map<string, RTCPeerConnection>
+  >(new Map());
   const [isAudioEnabled, setIsAudioEnabled] = useState(false);
-  const [connectedUsers, setConnectedUsers] = useState(new Set());
+  const [connectedUsers, setConnectedUsers] = useState<Set<string>>(new Set());
   const { socket } = useSocket();
 
-  const localAudioRef = useRef(null);
-  const remoteAudioRefs = useRef(new Map()); // Track multiple remote audio elements
-  const localStreamRef = useRef(null);
-  const iceCandidatesQueue = useRef([]);
+  const localAudioRef = useRef<HTMLAudioElement>(null);
+  const remoteAudioRefs = useRef<Map<string, HTMLAudioElement>>(new Map());
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const iceCandidatesQueue = useRef<
+    { candidate: RTCIceCandidateInit; fromUserId: string }[]
+  >([]);
 
   const pc_config = {
     iceServers: [
@@ -43,15 +74,17 @@ const VoiceCall = ({ nearbyUsers, currentUserId }) => {
     }
   };
 
-  const createPeerConnection = async (targetUserId) => {
+  const createPeerConnection = async (targetUserId: string) => {
     try {
       const newPC = new RTCPeerConnection(pc_config);
 
       // Add local stream if mic is enabled
       if (localStreamRef.current && isAudioEnabled) {
-        localStreamRef.current.getTracks().forEach((track) => {
-          newPC.addTrack(track, localStreamRef.current);
-        });
+        localStreamRef.current
+          .getTracks()
+          .forEach((track: MediaStreamTrack) => {
+            newPC.addTrack(track, localStreamRef.current!);
+          });
       }
 
       // Handle ICE candidates
@@ -90,7 +123,7 @@ const VoiceCall = ({ nearbyUsers, currentUserId }) => {
     }
   };
 
-  const handleDisconnect = (userId) => {
+  const handleDisconnect = (userId: string) => {
     const pc = peerConnections.get(userId);
     if (pc) {
       pc.close();
@@ -120,7 +153,7 @@ const VoiceCall = ({ nearbyUsers, currentUserId }) => {
 
   // Handle nearby users changes
   useEffect(() => {
-    nearbyUsers.forEach(async (user) => {
+    nearbyUsers.forEach(async (user: User) => {
       if (!peerConnections.has(user.id)) {
         const pc = await createPeerConnection(user.id);
         if (pc) {
@@ -140,7 +173,7 @@ const VoiceCall = ({ nearbyUsers, currentUserId }) => {
 
     // Cleanup connections for users no longer nearby
     peerConnections.forEach((_, userId) => {
-      if (!nearbyUsers.find((u) => u.id === userId)) {
+      if (!nearbyUsers.find((u: User) => u.id === userId)) {
         handleDisconnect(userId);
       }
     });
@@ -149,7 +182,7 @@ const VoiceCall = ({ nearbyUsers, currentUserId }) => {
   useEffect(() => {
     if (!socket) return;
 
-    const handleVoiceOffer = async ({ offer, fromUserId }) => {
+    const handleVoiceOffer = async ({ offer, fromUserId }: VoiceOffer) => {
       try {
         console.log("Received voice offer from:", fromUserId);
         setConnectedUsers((prev) => new Set([...prev, fromUserId]));
@@ -176,32 +209,35 @@ const VoiceCall = ({ nearbyUsers, currentUserId }) => {
       }
     };
 
-    const handleVoiceAnswer = async ({ answer, fromUserId }) => {
+    const handleVoiceAnswer = async ({ answer, fromUserId }: VoiceAnswer) => {
       try {
         console.log("Received voice answer");
         if (
           peerConnections.has(fromUserId) &&
-          peerConnections.get(fromUserId).signalingState !== "stable"
+          peerConnections.get(fromUserId)?.signalingState !== "stable"
         ) {
           await peerConnections
             .get(fromUserId)
-            .setRemoteDescription(new RTCSessionDescription(answer));
+            ?.setRemoteDescription(new RTCSessionDescription(answer));
         }
       } catch (err) {
         console.error("Error handling answer:", err);
       }
     };
 
-    const handleVoiceCandidate = async ({ candidate, fromUserId }) => {
+    const handleVoiceCandidate = async ({
+      candidate,
+      fromUserId,
+    }: VoiceCandidate) => {
       try {
         console.log("Received ICE candidate");
         if (
           peerConnections.has(fromUserId) &&
-          peerConnections.get(fromUserId).remoteDescription
+          peerConnections.get(fromUserId)?.remoteDescription
         ) {
           await peerConnections
             .get(fromUserId)
-            .addIceCandidate(new RTCIceCandidate(candidate));
+            ?.addIceCandidate(new RTCIceCandidate(candidate));
         } else {
           // Queue this candidate for later
           iceCandidatesQueue.current.push({ candidate, fromUserId });
