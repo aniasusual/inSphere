@@ -8,6 +8,7 @@ import { Toast } from "@metaverse/components/Toast";
 import logo from "@assets/hyperlocalNobg.png";
 
 import "./Scene1.css";
+import VoiceCall from "@metaverse/components/VoiceCall";
 
 const NEARBY_DISTANCE = 5;
 
@@ -76,6 +77,7 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
   const [messageInput, setMessageInput] = useState<string>("");
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
+  const [isVoiceChatActive, setIsVoiceChatActive] = useState<boolean>(false);
 
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
   const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
@@ -802,6 +804,10 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
     setMessageInput("");
   };
 
+  const toggleVoiceChat = () => {
+    setIsVoiceChatOpen(!isVoiceChatOpen);
+  };
+
   const handleKeyUp = (event: KeyboardEvent) => {
     keyStateRef.current[event.code] = false;
   };
@@ -1161,7 +1167,7 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
               <span className="material-icons">chat</span>
             </button>
 
-            {/* <button
+            <button
               className={`action-btn ${isVoiceChatActive ? "active" : ""}`}
               onClick={toggleVoiceChat}
             >
@@ -1172,7 +1178,7 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
                   "mic"
                 )}
               </span>
-            </button> */}
+            </button>
 
             {/* Help Button (Mobile Only) */}
             {/* {window.innerWidth <= 768 && (
