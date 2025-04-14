@@ -805,7 +805,7 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
   };
 
   const toggleVoiceChat = () => {
-    setIsVoiceChatOpen(!isVoiceChatOpen);
+    setIsVoiceChatActive(true);
   };
 
   const handleKeyUp = (event: KeyboardEvent) => {
@@ -1170,14 +1170,13 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
             <button
               className={`action-btn ${isVoiceChatActive ? "active" : ""}`}
               onClick={toggleVoiceChat}
+              aria-label="Toggle voice chat"
             >
-              <span className="material-icons">
-                {isVoiceChatActive ? (
-                  <VoiceCall nearbyUsers={nearbyUsers} currentUserId={userId} />
-                ) : (
-                  "mic"
-                )}
-              </span>
+              {isVoiceChatActive ? (
+                <VoiceCall nearbyUsers={nearbyUsers} currentUserId={userId} />
+              ) : (
+                <span className="material-icons">mic_off</span>
+              )}
             </button>
 
             {/* Help Button (Mobile Only) */}
