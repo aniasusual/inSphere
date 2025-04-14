@@ -22,7 +22,7 @@ cloudinary.v2.config({
     api_secret: process.env.CLOUDINARY_API_SECRET as string,
 });
 
-export const userSocketIDs = new Map();
+export const userSocketIDs = new Map<string, string>();
 
 
 const httpServer = createServer(app);
@@ -69,7 +69,9 @@ io.on('connection', (socket) => {
 
     const userId = socket.data.user?._id;
 
-    userSocketIDs.set(userId, socket.id);
+    userSocketIDs.set(userId.toString(), socket.id);
+
+    console.log("userSocketIDs", userSocketIDs);
     console.log(`User ${userId} connected`);
 
     if (!userId) {
@@ -206,6 +208,60 @@ io.on('connection', (socket) => {
                 timestamp,
                 type: 'self'
             });
+        }
+    });
+
+    // Add these voice call related socket events in your io.on('connection') block
+
+    socket.on('voiceOffer', ({ offer, targetUserId }) => {
+        console.log("targetUserId", targetUserId);
+        const targetSocketId = userSocketIDs.get(targetUserId);
+        console.log("userSocketIDs", userSocketIDs);
+        if (targetSocketId) {
+            console.log(`Forwarding voice offer from ${socket.id} to ${targetSocketId}`);
+            io.to(targetSocketId).emit('voiceOffer', {
+                offer,
+                fromUserId: userId
+            });
+        } else {
+            console.log(`Target user ${targetUserId} not found for voice offer`);
+            // Inform caller that target is not available
+            socket.emit('userUnavailable', { targetUserId });
+        }
+    });
+
+    socket.on('voiceAnswer', ({ answer, targetUserId }) => {
+        const targetSocketId = userSocketIDs.get(targetUserId);
+        if (targetSocketId) {
+            console.log(`Forwarding voice answer from ${socket.id} to ${targetSocketId}`);
+            io.to(targetSocketId).emit('voiceAnswer', {
+                answer,
+                fromUserId: userId
+            });
+        } else {
+            console.log(`Target user ${targetUserId} not found for voice answer`);
+        }
+    });
+
+    socket.on('voiceCandidate', ({ candidate, targetUserId }) => {
+
+        const targetSocketId = userSocketIDs.get(targetUserId);
+        if (targetSocketId) {
+            console.log(`Forwarding ICE candidate from ${socket.id} to ${targetSocketId}`);
+            io.to(targetSocketId).emit('voiceCandidate', {
+                candidate,
+                fromUserId: userId
+            });
+        } else {
+            console.log(`Target user ${targetUserId} not found for ICE candidate`);
+        }
+    });
+
+    // Add this to handle disconnects more gracefully
+    socket.on('endCall', ({ targetUserId }) => {
+        const targetSocketId = userSocketIDs.get(targetUserId);
+        if (targetSocketId) {
+            io.to(targetSocketId).emit('callEnded', { fromUserId: userId });
         }
     });
 
