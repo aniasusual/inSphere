@@ -506,7 +506,7 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         (gltf) => {
           const avatar = gltf.scene;
           avatar.scale.set(1, 1, 1);
-          const range = 50;
+          const range = 5;
           const randomX = Math.random() * range * 2 - range;
           const randomZ = Math.random() * range * 2 - range;
           avatar.position.set(randomX, 0, randomZ);
@@ -840,7 +840,7 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
     const scene = sceneRef.current;
     scene.background = new THREE.Color(0x87ceeb);
 
-    const floorSize = 100;
+    const floorSize = 10;
     const floorGeometry = new THREE.PlaneGeometry(floorSize, floorSize, 1, 1);
     const floorMaterial = new THREE.MeshStandardMaterial({
       color: 0x4a7c59,
