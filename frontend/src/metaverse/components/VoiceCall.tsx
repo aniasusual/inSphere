@@ -25,10 +25,7 @@ interface VoiceCandidate {
   fromUserId: string;
 }
 
-const VoiceCall: React.FC<VoiceCallProps> = ({
-  nearbyUsers,
-  currentUserId,
-}) => {
+const VoiceCall: React.FC<VoiceCallProps> = ({ nearbyUsers }) => {
   const [peerConnections, setPeerConnections] = useState<
     Map<string, RTCPeerConnection>
   >(new Map());
@@ -256,7 +253,7 @@ const VoiceCall: React.FC<VoiceCallProps> = ({
       socket.off("voiceAnswer", handleVoiceAnswer);
       socket.off("voiceCandidate", handleVoiceCandidate);
       // Clean up all peer connections
-      peerConnections.forEach((pc, userId) => {
+      peerConnections.forEach((_, userId) => {
         handleDisconnect(userId);
       });
     };

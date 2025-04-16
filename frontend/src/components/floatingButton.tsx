@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { Plus, MessageSquarePlus, Users } from "lucide-react";
+import { useState } from "react";
+import { Plus, MessageSquarePlus } from "lucide-react";
 import ChannelCreationForm from "./CreateChannel";
-import { XCircle } from "lucide-react";
 import PostCreationForm from "./CreatePost";
 import CreateJam from "./createJam";
 

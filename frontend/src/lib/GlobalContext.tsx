@@ -1,19 +1,19 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 // Define the shape of your context state
 interface GlobalState {
-    user: string | null;
-    //   isLoggedIn: boolean;
-    //   setUser: (user: string | null) => void;
-    //   setIsLoggedIn: (isLoggedIn: boolean) => void;
+  user: string | null;
+  //   isLoggedIn: boolean;
+  //   setUser: (user: string | null) => void;
+  //   setIsLoggedIn: (isLoggedIn: boolean) => void;
 }
 
 // Define default values for context
 const defaultState: GlobalState = {
-    user: null,
-    //   isLoggedIn: false,
-    //   setUser: () => {},
-    //   setIsLoggedIn: () => {},
+  user: null,
+  //   isLoggedIn: false,
+  //   setUser: () => {},
+  //   setIsLoggedIn: () => {},
 };
 
 // Create the context
@@ -24,17 +24,15 @@ export const useGlobalContext = () => useContext(GlobalContext);
 
 // Provider component
 interface GlobalProviderProps {
-    children: ReactNode;
+  children: ReactNode;
 }
 
 export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
-    const [user, setUser] = useState<string | null>(null);
-    // const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [user] = useState<string | null>(null);
+  // const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
 
-    return (
-        // <GlobalContext.Provider value={{ user, isLoggedIn, setUser, setIsLoggedIn }}>
-        <GlobalContext.Provider value={{ user }}>
-            {children}
-        </GlobalContext.Provider>
-    );
+  return (
+    // <GlobalContext.Provider value={{ user, isLoggedIn, setUser, setIsLoggedIn }}>
+    <GlobalContext.Provider value={{ user }}>{children}</GlobalContext.Provider>
+  );
 };

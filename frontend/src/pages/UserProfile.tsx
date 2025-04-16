@@ -181,7 +181,6 @@ const EditProfileMenu: React.FC<EditProfileMenuProps> = ({ onClose, user }) => {
 
 const UserProfile: React.FC = () => {
   const [pageUser, setPageUser] = useState<User | null>(null);
-  const [posts, setPosts] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState<"all" | "public" | "private">(
     "all"
   );
@@ -215,7 +214,7 @@ const UserProfile: React.FC = () => {
           }/api/v1/user/fetchUserById/${id}`,
           config
         );
-        setPageUser(data.user);
+        setPageUser(data.user as User);
       } catch (err) {
         setError("Failed to load user profile. Please try again.");
         console.error(err);
@@ -225,7 +224,7 @@ const UserProfile: React.FC = () => {
     };
 
     if (isOwnProfile && user) {
-      setPageUser(user);
+      setPageUser(user as User);
       setLoading(false);
     } else if (id) {
       fetchUserById();

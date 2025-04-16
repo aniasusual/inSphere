@@ -18,11 +18,6 @@ import {
 import axios from "axios";
 import { toaster } from "./ui/toaster";
 
-interface Channel {
-  id: string;
-  name: string;
-}
-
 interface PostFormData {
   title: string;
   content: string;
@@ -37,17 +32,6 @@ interface MediaPreview {
   url: string;
   type: "image" | "video";
 }
-
-const sampleChannels: Channel[] = [
-  { id: "1", name: "Local Events" },
-  { id: "2", name: "Community Discussions" },
-  { id: "3", name: "Buy & Sell" },
-  { id: "4", name: "Housing" },
-  { id: "5", name: "Tech Talk" },
-  { id: "6", name: "Food & Dining" },
-  { id: "7", name: "Sports & Fitness" },
-  { id: "8", name: "Arts & Culture" },
-];
 
 const MAX_FILE_SIZE = 100 * 1024 * 1024;
 const ALLOWED_IMAGE_TYPES = [
@@ -73,8 +57,6 @@ const PostCreationForm = ({ onClose }: Props) => {
   });
 
   const [mediaPreviews, setMediaPreviews] = useState<MediaPreview[]>([]);
-  const [searchTerm, setSearchTerm] = useState("");
-  const [isSelectOpen, setIsSelectOpen] = useState(false);
   const [hashtagInput, setHashtagInput] = useState("");
   const [uploadError, setUploadError] = useState<string>("");
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -87,7 +69,7 @@ const PostCreationForm = ({ onClose }: Props) => {
         selectRef.current &&
         !selectRef.current.contains(event.target as Node)
       ) {
-        setIsSelectOpen(false);
+        // setIsSelectOpen(false);
       }
     };
 
@@ -245,43 +227,6 @@ const PostCreationForm = ({ onClose }: Props) => {
       });
     }
   };
-
-  // const filteredChannels = sampleChannels.filter((channel) =>
-  //   channel.name.toLowerCase().includes(searchTerm.toLowerCase())
-  // );
-
-  // const selectedChannel = sampleChannels.find(
-  //   (channel) => channel.id === formData.channelId
-  // );
-
-  // const renderMediaPreview = (preview: MediaPreview, index: number) => {
-  //   return (
-  //     <div key={index} className="relative flex-none group">
-  //       {preview.type === "image" ? (
-  //         <img
-  //           src={preview.url}
-  //           alt={`Preview ${index + 1}`}
-  //           className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg"
-  //         />
-  //       ) : (
-  //         <video
-  //           src={preview.url}
-  //           className="w-24 h-24 sm:w-32 sm:h-32 object-cover rounded-lg"
-  //           controls
-  //         />
-  //       )}
-  //       <button
-  //         type="button"
-  //         onClick={() => removeMedia(index)}
-  //         className="absolute top-2 right-2 p-1 bg-red-500 rounded-full
-  //                            text-white opacity-0 group-hover:opacity-100
-  //                            transition-opacity duration-200"
-  //       >
-  //         <X className="h-4 w-4" />
-  //       </button>
-  //     </div>
-  //   );
-  // };
 
   const inputClasses = `
     w-full px-5 py-4 
@@ -459,7 +404,6 @@ const PostCreationForm = ({ onClose }: Props) => {
             </motion.div>
 
             {/* Media Upload */}
-            {/* Media Upload */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -634,112 +578,3 @@ const PostCreationForm = ({ onClose }: Props) => {
 };
 
 export default PostCreationForm;
-
-//  {
-//    /* Channel Selection */
-//  }
-//  <motion.div
-//    initial={{ opacity: 0, x: -20 }}
-//    animate={{ opacity: 1, x: 0 }}
-//    transition={{ delay: 0.2 }}
-//    className="space-y-4"
-//    ref={selectRef}
-//  >
-//    <label className={labelClasses}>Select Channel</label>
-//    <div className="relative">
-//      <button
-//        type="button"
-//        className={`${inputClasses} text-left flex items-center justify-between`}
-//        onClick={() => setIsSelectOpen(!isSelectOpen)}
-//      >
-//        <span className="truncate">
-//          {selectedChannel?.name || "General Post"}
-//        </span>
-//        <ChevronDown
-//          className={`h-4 w-4 transition-transform duration-200 ${
-//            isSelectOpen ? "rotate-180" : ""
-//          }`}
-//        />
-//      </button>
-
-//      <AnimatePresence>
-//        {isSelectOpen && (
-//          <motion.div
-//            initial={{ opacity: 0, y: -10 }}
-//            animate={{ opacity: 1, y: 0 }}
-//            exit={{ opacity: 0, y: -10 }}
-//            className="absolute z-50 w-full mt-2 bg-white dark:bg-gray-900 border-2 border-gray-100 dark:border-gray-700 rounded-xl shadow-xl overflow-hidden"
-//          >
-//            {/* Search Input */}
-//            <div className="p-3 border-b border-gray-100 dark:border-gray-700">
-//              <div className="relative">
-//                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-//                <input
-//                  type="text"
-//                  placeholder="Search channels..."
-//                  value={searchTerm}
-//                  onChange={(e) => setSearchTerm(e.target.value)}
-//                  className="w-full pl-10 pr-4 py-2 bg-gray-50 dark:bg-gray-800
-//                                          border-0 rounded-lg focus:ring-0
-//                                          text-gray-900 dark:text-gray-100
-//                                          placeholder-gray-400 dark:placeholder-gray-500"
-//                />
-//              </div>
-//            </div>
-
-//            {/* Channel List */}
-//            <div className="max-h-64 overflow-y-auto">
-//              {/* General Post Option */}
-//              <div
-//                className={`p-3 cursor-pointer transition-colors duration-200
-//                                      ${
-//                                        formData.channelId === "general"
-//                                          ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
-//                                          : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100"
-//                                      }`}
-//                onClick={() => {
-//                  setFormData({ ...formData, channelId: "general" });
-//                  setIsSelectOpen(false);
-//                  setSearchTerm("");
-//                }}
-//              >
-//                General Post
-//              </div>
-
-//              <div className="h-px bg-gray-100 dark:bg-gray-700" />
-
-//              {/* Filtered Channels */}
-//              {filteredChannels.map((channel) => (
-//                <div
-//                  key={channel.id}
-//                  className={`p-3 cursor-pointer transition-colors duration-200
-//                                          ${
-//                                            formData.channelId === channel.id
-//                                              ? "bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400"
-//                                              : "hover:bg-gray-50 dark:hover:bg-gray-800 text-gray-900 dark:text-gray-100"
-//                                          }`}
-//                  onClick={() => {
-//                    setFormData({
-//                      ...formData,
-//                      channelId: channel.id,
-//                    });
-//                    setIsSelectOpen(false);
-//                    setSearchTerm("");
-//                  }}
-//                >
-//                  {channel.name}
-//                </div>
-//              ))}
-
-//              {/* No Results Message */}
-//              {filteredChannels.length === 0 && searchTerm && (
-//                <div className="p-3 text-center text-gray-500 dark:text-gray-400">
-//                  No channels found
-//                </div>
-//              )}
-//            </div>
-//          </motion.div>
-//        )}
-//      </AnimatePresence>
-//    </div>
-//  </motion.div>;

@@ -4,7 +4,6 @@ import StoriesComponent from "@components/Stories";
 import { IconListDetails } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
 import { useSocket } from "socket";
-import ChatPage from "./Chat";
 import axios from "axios";
 import { useSelector } from "react-redux";
 import { RootState } from "store";

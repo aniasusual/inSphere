@@ -1,6 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
 import * as THREE from "three";
-import { OrbitControls } from "three/examples/jsm/controls/OrbitControls";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import nipplejs from "nipplejs";
@@ -31,14 +30,6 @@ interface JamSceneProps {
   userId?: string;
   userName?: string;
   avatarUrl?: string;
-}
-
-interface JoystickState {
-  isActive: boolean;
-  startPos: { x: number; y: number };
-  currentPos: { x: number; y: number };
-  angle: number;
-  force: number;
 }
 
 interface Toast {
@@ -95,13 +86,6 @@ const JamScene: React.FC<JamSceneProps> = ({
   const [users, setUsers] = useState<Map<string, User>>(new Map());
   // const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [joystickState, setJoystickState] = useState<JoystickState>({
-    isActive: false,
-    startPos: { x: 0, y: 0 },
-    currentPos: { x: 0, y: 0 },
-    angle: 0,
-    force: 0,
-  });
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [messageInput, setMessageInput] = useState<string>("");
@@ -119,14 +103,12 @@ const JamScene: React.FC<JamSceneProps> = ({
   const sceneRef = useRef<THREE.Scene>(new THREE.Scene());
   const cameraRef = useRef<THREE.PerspectiveCamera | null>(null);
   const rendererRef = useRef<THREE.WebGLRenderer | null>(null);
-  const controlsRef = useRef<OrbitControls | null>(null);
   const avatarRef = useRef<THREE.Object3D | null>(null);
   const keyStateRef = useRef<{ [key: string]: boolean | number }>({});
   const animationFrameId = useRef<number | null>(null);
   const joystickRef = useRef<any>(null);
   const cameraOffsetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 2, 5));
   const thirdPersonMode = useRef<boolean>(true);
-  const chatRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
 
   const lastPositionSent = useRef<THREE.Vector3>(new THREE.Vector3());
@@ -346,7 +328,6 @@ const JamScene: React.FC<JamSceneProps> = ({
       });
     };
 
-
     // Add event listeners
     window.addEventListener("resize", handleResize);
     window.addEventListener("keydown", handleKeyDown);
@@ -439,10 +420,10 @@ const JamScene: React.FC<JamSceneProps> = ({
         });
       },
       (progress) => {
-        // console.log(
-        //   `Loading avatar for ${name}:`,
-        //   (progress.loaded / progress.total) * 100
-        // );
+        console.log(
+          `Loading avatar for ${name}:`,
+          (progress.loaded / progress.total) * 100
+        );
       },
       (error) => {
         console.error(`Error loading avatar for ${name}:`, error);
@@ -648,11 +629,10 @@ const JamScene: React.FC<JamSceneProps> = ({
           setIsLoading(false);
         },
         (progress) => {
-          // Progress callback
-          // console.log(
-          //   "Loading progress:",
-          //   (progress.loaded / progress.total) * 100
-          // );
+          console.log(
+            "Loading progress:",
+            (progress.loaded / progress.total) * 100
+          );
         },
         (error) => {
           console.error("Error loading avatar:", error);
@@ -1018,12 +998,14 @@ const JamScene: React.FC<JamSceneProps> = ({
 
         {/* Online Users */}
         <div
-          className={`user-box online-users ${isOnlineUsersCollapsed ? "collapsed" : ""
-            }`}
+          className={`user-box online-users ${
+            isOnlineUsersCollapsed ? "collapsed" : ""
+          }`}
         >
           <div
-            className={`user-box-header ${isOnlineUsersCollapsed ? "collapsed" : ""
-              }`}
+            className={`user-box-header ${
+              isOnlineUsersCollapsed ? "collapsed" : ""
+            }`}
             onClick={(e) => {
               e.stopPropagation();
               setIsOnlineUsersCollapsed(!isOnlineUsersCollapsed);
@@ -1054,12 +1036,14 @@ const JamScene: React.FC<JamSceneProps> = ({
 
         {/* Nearby Users */}
         <div
-          className={`user-box nearby-users ${isNearbyUsersCollapsed ? "collapsed" : ""
-            }`}
+          className={`user-box nearby-users ${
+            isNearbyUsersCollapsed ? "collapsed" : ""
+          }`}
         >
           <div
-            className={`user-box-header ${isNearbyUsersCollapsed ? "collapsed" : ""
-              }`}
+            className={`user-box-header ${
+              isNearbyUsersCollapsed ? "collapsed" : ""
+            }`}
             onClick={(e) => {
               e.stopPropagation();
               setIsNearbyUsersCollapsed(!isNearbyUsersCollapsed);
@@ -1149,7 +1133,14 @@ const JamScene: React.FC<JamSceneProps> = ({
                 onClick={toggleVoiceChat}
               >
                 <span className="material-icons">
-                  {isVoiceChatActive ? <VoiceCall nearbyUsers={nearbyUsers} currentUserId={userId} /> : "mic"}
+                  {isVoiceChatActive ? (
+                    <VoiceCall
+                      nearbyUsers={nearbyUsers}
+                      currentUserId={userId || "anonymous"}
+                    />
+                  ) : (
+                    "mic"
+                  )}
                 </span>
               </button>
 
@@ -1182,8 +1173,9 @@ const JamScene: React.FC<JamSceneProps> = ({
         <div className="chat-panel">
           <div className="chat-header">
             <h3
-              className={`text-xl font-bold ${isGlobalChat ? "global-active" : ""
-                }`}
+              className={`text-xl font-bold ${
+                isGlobalChat ? "global-active" : ""
+              }`}
             >
               Chat
             </h3>
@@ -1195,8 +1187,9 @@ const JamScene: React.FC<JamSceneProps> = ({
             {messages.map((msg, index) => (
               <div
                 key={`${msg.timestamp}-${index}`}
-                className={`chat-message ${msg.type === "system" ? "system-message" : msg.type
-                  }`}
+                className={`chat-message ${
+                  msg.type === "system" ? "system-message" : msg.type
+                }`}
               >
                 {msg.type === "system" ? (
                   <span>
