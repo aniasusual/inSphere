@@ -151,7 +151,12 @@ export function SignupFormDemo() {
               onChange={registerDataChange}
             />
             {validationError && (
-              <Typography variant="small" color="red">
+              <Typography
+                variant="small"
+                color="red"
+                onPointerEnterCapture={() => {}}
+                onPointerLeaveCapture={() => {}}
+              >
                 {validationError}
               </Typography>
             )}
@@ -186,7 +191,11 @@ export function SignupFormDemo() {
 
           {loader ? (
             <div className="flex justify-center items-center">
-              <Spinner color="red" />
+              <Spinner
+                color="red"
+                onPointerEnterCapture={() => {}}
+                onPointerLeaveCapture={() => {}}
+              />
             </div>
           ) : (
             <button
