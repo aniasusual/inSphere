@@ -4,22 +4,22 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
-// Increase Node.js memory limit
-const v8 = require('v8');
-v8.setFlagsFromString('--max-old-space-size=4096');
-
+// Load environment variables
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config({ path: 'backend/config/config.env' });
 }
+
 import cloudinary from "cloudinary";
 import { authenticateToken } from "./utils/socketAuthenticator";
 
+// Error handling
 process.on("uncaughtException", (err: Error) => {
-    console.log(`Error: ${err.message}`);
-    console.log(`Shutting down the server due to Uncaught Exception`);
+    console.error(`Error: ${err.message}`);
+    console.error(`Shutting down the server due to Uncaught Exception`);
     process.exit(1);
 });
 
+// Configure cloudinary
 cloudinary.v2.config({
     cloud_name: process.env.CLOUDINARY_NAME as string,
     api_key: process.env.CLOUDINARY_API_KEY as string,
@@ -28,30 +28,56 @@ cloudinary.v2.config({
 
 export const userSocketIDs = new Map<string, string>();
 
+// Get port from environment or use default
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
+// Create HTTP server with production settings
 const httpServer = createServer(app);
+
+// Configure Socket.IO with production settings
 const io = new Server(httpServer, {
     cors: {
         origin: process.env.FRONTEND_URL,
         methods: ['GET', 'POST'],
         credentials: true
     },
+    pingTimeout: 60000,
+    pingInterval: 25000,
+    transports: ['websocket', 'polling'],
+    maxHttpBufferSize: 1e8, // 100MB
+    connectTimeout: 45000,
+    allowUpgrades: true,
+    perMessageDeflate: true
 });
 
-// Connect to database first
-connectDatabase().then(() => {
-    // Start server after database connection
-    httpServer.listen(PORT, '0.0.0.0', () => {
-        console.log(`Server is running on port ${PORT}`);
-    });
-}).catch((err) => {
-    console.error('Failed to start server:', err);
-    process.exit(1);
-});
+// Connect to database and start server
+const startServer = async () => {
+    try {
+        // Connect to database
+        await connectDatabase();
 
+        // Start server
+        httpServer.listen(PORT, '0.0.0.0', () => {
+            console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
+            console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+        });
+
+        // Handle server errors
+        httpServer.on('error', (error) => {
+            console.error('Server error:', error);
+            process.exit(1);
+        });
+
+    } catch (error) {
+        console.error('Failed to start server:', error);
+        process.exit(1);
+    }
+};
+
+// Set Socket.IO instance on app
 app.set("io", io);
 
+// Socket.IO authentication middleware
 io.use(async (socket, next) => {
     try {
         const token = socket.handshake.auth.token;
@@ -287,12 +313,16 @@ io.on('connection', (socket) => {
 
 });
 
+// Handle unhandled promise rejections
 process.on("unhandledRejection", (err: Error) => {
-    console.log(`Error: ${err.message}`);
-    console.log(`Shutting down the server due to Unhandled Promise Rejection`);
+    console.error(`Error: ${err.message}`);
+    console.error(`Shutting down the server due to Unhandled Promise Rejection`);
 
     httpServer.close(() => {
         process.exit(1);
     });
 });
+
+// Start the server
+startServer();
 

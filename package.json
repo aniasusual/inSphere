@@ -5,7 +5,8 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon backend/server.ts",
-    "start": "ts-node backend/server.ts"
+    "start": "NODE_ENV=production node --max-old-space-size=4096 -r ts-node/register backend/server.ts",
+    "prestart": "npm install"
   },
   "author": "",
   "license": "ISC",
