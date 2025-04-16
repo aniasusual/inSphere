@@ -229,7 +229,8 @@ export const findUsersAround = async function (req: Request, res: Response) {
 
 export const updateUserLocation = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-        const userId = req.user._id;
+        const userId = req.user?._id;
+
         const { longitude, latitude } = req.body;
 
         if (!longitude && !latitude) {

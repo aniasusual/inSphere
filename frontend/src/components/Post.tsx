@@ -240,7 +240,7 @@ function PostItem({
             >
               Copy Link
             </button>
-            {navigator.share && (
+            {navigator.share !== undefined && (
               <button
                 onClick={triggerNativeShare}
                 className="px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600"
@@ -284,6 +284,9 @@ function PostItem({
                   alt={item.creator?.firstName || "unknown user"}
                   size="md"
                   className="border-2 border-blue-500 shadow-lg"
+                  placeholder="blur"
+                  onPointerEnterCapture={() => {}}
+                  onPointerLeaveCapture={() => {}}
                 />
               </Link>
             </motion.div>
@@ -416,10 +419,11 @@ function PostItem({
               stroke={1.5}
               size={30}
               fill={isBookmarked ? "currentColor" : "none"}
-              className={`hover:cursor-pointer transition-colors ${isBookmarked
-                ? "text-purple-500"
-                : "hover:text-purple-500 dark:text-gray-300"
-                }`}
+              className={`hover:cursor-pointer transition-colors ${
+                isBookmarked
+                  ? "text-purple-500"
+                  : "hover:text-purple-500 dark:text-gray-300"
+              }`}
               onClick={(e) => toggleBookmark(e)}
             />
           </motion.div>
@@ -442,8 +446,8 @@ function PostItem({
         >
           <span className="font-bold">
             {item.creator?.username || "Unknown"}
-          </span>:
-          <div className="font-bold text-center">{item.title}</div>
+          </span>
+          :<div className="font-bold text-center">{item.title}</div>
           {item.description || "No description"}
         </motion.div>
 
