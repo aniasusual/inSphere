@@ -1,57 +1,62 @@
-import React, { useState, useRef } from 'react';
-import { Camera, X, Send, Image as ImageIcon } from 'lucide-react';
+import React, { useState, useRef } from "react";
+import { Camera, X, Send, Image as ImageIcon } from "lucide-react";
 
-const CreateStoryComponent = ({ onStoryCreated, onCancel }) => {
+interface CreateStoryProps {
+  onStoryCreated: (story: { image: string; caption: string }) => void;
+  onCancel: () => void;
+}
+
+const CreateStoryComponent: React.FC<CreateStoryProps> = ({
+  onStoryCreated,
+  onCancel,
+}): JSX.Element => {
   const [isOpen, setIsOpen] = useState(false);
-  const [previewImage, setPreviewImage] = useState(null);
-  const [captionText, setCaptionText] = useState('');
+  const [previewImage, setPreviewImage] = useState<string | null>(null);
+  const [captionText, setCaptionText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = useRef(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleOpen = () => {
     setIsOpen(true);
   };
 
-  const handleClose = () => {
+  const handleClose = (): void => {
     setIsOpen(false);
     setPreviewImage(null);
-    setCaptionText('');
+    setCaptionText("");
     if (onCancel) onCancel();
   };
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files[0];
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>): void => {
+    const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e) => {
-        setPreviewImage(e.target.result);
+      reader.onload = (e: ProgressEvent<FileReader>): void => {
+        if (e.target?.result && typeof e.target.result === "string") {
+          setPreviewImage(e.target.result);
+        }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const triggerFileInput = () => {
-    fileInputRef.current.click();
+  const triggerFileInput = (): void => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = (): void => {
+    if (!previewImage) return;
+
     setIsUploading(true);
-    
     // Simulate upload process
     setTimeout(() => {
+      onStoryCreated({
+        image: previewImage,
+        caption: captionText,
+      });
       setIsUploading(false);
-      
-      // Create a new story object
-      const newStory = {
-        id: Date.now(),
-        image: previewImage || "/api/placeholder/400/600",
-        timestamp: "now"
-      };
-      
-      if (onStoryCreated) {
-        onStoryCreated(newStory);
-      }
-      
       handleClose();
     }, 1500);
   };
@@ -62,8 +67,10 @@ const CreateStoryComponent = ({ onStoryCreated, onCancel }) => {
       <div className="relative w-full sm:w-96 md:w-[450px] h-auto bg-white dark:bg-gray-800 rounded-2xl overflow-hidden shadow-xl transition-all max-h-[90vh] flex flex-col">
         {/* Header */}
         <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between">
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">Create Story</h3>
-          <button 
+          <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
+            Create Story
+          </h3>
+          <button
             onClick={handleClose}
             className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
           >
@@ -74,8 +81,8 @@ const CreateStoryComponent = ({ onStoryCreated, onCancel }) => {
         {/* Content */}
         <div className="flex-grow overflow-auto p-4 flex flex-col items-center">
           {!previewImage ? (
-            <div 
-              onClick={triggerFileInput} 
+            <div
+              onClick={triggerFileInput}
               className="w-full h-64 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 dark:hover:border-gray-500 transition-colors p-4"
             >
               <ImageIcon className="w-16 h-16 text-gray-400 dark:text-gray-500 mb-4" />
@@ -88,12 +95,12 @@ const CreateStoryComponent = ({ onStoryCreated, onCancel }) => {
             </div>
           ) : (
             <div className="relative w-full">
-              <img 
-                src={previewImage} 
-                alt="Preview" 
+              <img
+                src={previewImage}
+                alt="Preview"
                 className="w-full h-64 object-cover rounded-xl"
               />
-              <button 
+              <button
                 onClick={() => setPreviewImage(null)}
                 className="absolute top-2 right-2 bg-black/60 rounded-full p-1 text-white"
               >
@@ -101,15 +108,15 @@ const CreateStoryComponent = ({ onStoryCreated, onCancel }) => {
               </button>
             </div>
           )}
-          
-          <input 
-            type="file" 
-            ref={fileInputRef} 
-            className="hidden" 
-            accept="image/*" 
+
+          <input
+            type="file"
+            ref={fileInputRef}
+            className="hidden"
+            accept="image/*"
             onChange={handleFileSelect}
           />
-          
+
           <div className="w-full mt-4">
             <textarea
               placeholder="Add a caption to your story..."
@@ -134,8 +141,8 @@ const CreateStoryComponent = ({ onStoryCreated, onCancel }) => {
             disabled={!previewImage || isUploading}
             className={`px-4 py-2 rounded-lg flex items-center ${
               !previewImage || isUploading
-                ? 'bg-blue-400 dark:bg-blue-500 opacity-50 cursor-not-allowed'
-                : 'bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700'
+                ? "bg-blue-400 dark:bg-blue-500 opacity-50 cursor-not-allowed"
+                : "bg-blue-500 dark:bg-blue-600 hover:bg-blue-600 dark:hover:bg-blue-700"
             } text-white font-medium transition-colors`}
           >
             {isUploading ? (
