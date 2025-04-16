@@ -1,5 +1,5 @@
 "use client";
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Label } from "@components/ui/aceternity/label";
 import { Input } from "@components/ui/aceternity/input";
 import { cn } from "../lib/utils";
@@ -154,6 +154,7 @@ export function SignupFormDemo() {
               <Typography
                 variant="small"
                 color="red"
+                placeholder="blur"
                 onPointerEnterCapture={() => {}}
                 onPointerLeaveCapture={() => {}}
               >

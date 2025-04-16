@@ -2,7 +2,7 @@
 
 import { PlaceholdersAndVanishInput } from "@components/ui/aceternity/placeholders-and-vanish-input";
 
-export function SearchBox({ setSearchText, handleSearchChange }: any) {
+export function SearchBox({ handleSearchChange }: any) {
   const placeholders = [
     "Search users by username",
     "Search posts by hashtags",
@@ -23,7 +23,7 @@ export function SearchBox({ setSearchText, handleSearchChange }: any) {
       <PlaceholdersAndVanishInput
         placeholders={placeholders}
         onChange={handleSearchChange}
-      // onSubmit={handleSubmit}
+        // onSubmit={handleSubmit}
       />
     </div>
   );

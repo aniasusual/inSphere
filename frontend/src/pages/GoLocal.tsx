@@ -1,14 +1,12 @@
 import { SegmentedControl } from "@components/ui/segmented-control";
-import { IconListDetails } from "@tabler/icons-react";
-import { useEffect, useState } from "react";
 import { IconMap } from "@tabler/icons-react";
+import { useEffect, useState } from "react";
 import { Slider } from "@components/ui/slider";
 import {
   Select,
   SelectContent,
   SelectGroup,
   SelectItem,
-  SelectLabel,
   SelectTrigger,
   SelectValue,
 } from "@components/ui/select";
@@ -16,19 +14,16 @@ import BentoGrid from "@components/Grid";
 import CryptoCard from "@components/UserCard";
 import { ExpandableCard } from "@components/ui/aceternity/ExpandableCard";
 
-import { HStack } from "@chakra-ui/react";
-import { Button } from "@components/ui/button";
-import { RiArrowRightLine } from "react-icons/ri";
 import axios from "axios";
 
 export function Golocal() {
   const [value, setValue] = useState("List"); // For SegmentedControl
   const initialValue = [0.5];
+  const [listView] = useState(false);
 
   const [sliderValue, setSliderValue] = useState(initialValue); // For Slider
 
   const [selectedCategory, setSelectedCategory] = useState("users"); // For Select dropdown
-  const [listView, setlistView] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const [fetchedData, setFetchedData] = useState({
@@ -62,7 +57,8 @@ export function Golocal() {
         };
 
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BACKEND_URL
+          `${
+            import.meta.env.VITE_API_BACKEND_URL
           }/api/v1/user/find-user-around`,
           {
             longitude: parsedData.longitude,
@@ -99,7 +95,8 @@ export function Golocal() {
         };
 
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BACKEND_URL
+          `${
+            import.meta.env.VITE_API_BACKEND_URL
           }/api/v1/post/find-post-around`,
           {
             longitude: parsedData.longitude,
@@ -121,7 +118,7 @@ export function Golocal() {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     const fetchJams = async () => {
       setLoading(true);
@@ -138,8 +135,7 @@ export function Golocal() {
         };
 
         const { data } = await axios.post(
-          `${import.meta.env.VITE_API_BACKEND_URL
-          }/api/v1/jam/find-jams-around`,
+          `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/jam/find-jams-around`,
           {
             longitude: parsedData.longitude,
             latitude: parsedData.latitude,
@@ -148,7 +144,7 @@ export function Golocal() {
           config
         );
 
-        console.log("jams: ", data.jams)
+        console.log("jams: ", data.jams);
 
         setFetchedData({
           ...fetchedData,
@@ -162,18 +158,15 @@ export function Golocal() {
       } finally {
         setLoading(false);
       }
-    }
+    };
 
     if (selectedCategory === "users") {
       fetchUsers();
-    }
-    else if (selectedCategory === "posts") {
+    } else if (selectedCategory === "posts") {
       fetchPosts();
-    }
-    else if (selectedCategory === "jams") {
+    } else if (selectedCategory === "jams") {
       fetchJams();
     }
-
   }, [sliderValue, selectedCategory]);
 
   return (

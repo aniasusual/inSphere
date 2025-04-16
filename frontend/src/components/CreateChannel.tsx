@@ -3,7 +3,6 @@ import { Card } from "@components/ui/shadcn/card";
 import { Button } from "@components/ui/shadcn/button";
 import { Switch } from "@components/ui/shadcn/switch";
 import { Globe, Users, X, Hash } from "lucide-react";
-import { Alert, AlertDescription } from "@components/ui/shadcn/alert";
 import { motion } from "framer-motion";
 import axios from "axios";
 import { toaster } from "./ui/toaster";
@@ -28,9 +27,6 @@ const ChannelCreationForm = ({ onClose }: Props) => {
     radius: 0,
     hashtags: [],
   });
-  const [error, setError] = useState<string>("");
-  const [loading, setLoading] = useState<boolean>(false);
-  const [showSuccess, setShowSuccess] = useState<boolean>(false);
 
   const [hashtagInput, setHashtagInput] = useState("");
 
@@ -69,9 +65,6 @@ const ChannelCreationForm = ({ onClose }: Props) => {
         type: "error",
       });
     }
-
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
   };
 
   const handleAddHashtag = (e: React.KeyboardEvent<HTMLInputElement>) => {

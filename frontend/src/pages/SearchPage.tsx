@@ -9,11 +9,29 @@ import { toaster } from "@components/ui/toaster";
 import CryptoCard from "@components/UserCard";
 import BentoGrid from "@components/Grid";
 
+interface SearchResult {
+  _id: string;
+  id?: string; // For Jam type
+  username?: string;
+  firstName?: string;
+  email?: string;
+  avatar?: { url: string };
+  title?: string;
+  description: string;
+  creator?: {
+    _id: string;
+    username: string;
+  };
+  mediaFiles?: { url: string }[];
+  displayImage?: { url: string };
+  name?: string;
+}
+
 export function Search() {
   const [listView, setListView] = useState(false);
   const [searchCategory, setSearchCategory] = useState("jam");
   const [searchText, setSearchText] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
+  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
 
   const handleSearchChange = (e: any) => {
@@ -28,7 +46,10 @@ export function Search() {
     { id: "post", label: "Posts" },
   ];
 
-  class ErrorBoundary extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  class ErrorBoundary extends Component<
+    { children: ReactNode },
+    { hasError: boolean }
+  > {
     state = { hasError: false };
 
     static getDerivedStateFromError() {
@@ -37,7 +58,11 @@ export function Search() {
 
     render() {
       if (this.state.hasError) {
-        return <p className="text-center text-red-600">Something went wrong. Please try again.</p>;
+        return (
+          <p className="text-center text-red-600">
+            Something went wrong. Please try again.
+          </p>
+        );
       }
       return this.props.children;
     }
@@ -49,7 +74,9 @@ export function Search() {
       try {
         const limit = 10;
         const page = 1;
-        const baseUrl = `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/${searchCategory}/getSearchData`;
+        const baseUrl = `${
+          import.meta.env.VITE_API_BACKEND_URL
+        }/api/v1/${searchCategory}/getSearchData`;
         const params = new URLSearchParams({
           limit: limit.toString(),
           page: page.toString(),
@@ -85,7 +112,10 @@ export function Search() {
 
   return (
     <div className="flex flex-col justify-center items-center w-full">
-      <SearchBox setSearchText={setSearchText} handleSearchChange={handleSearchChange} />
+      <SearchBox
+        setSearchText={setSearchText}
+        handleSearchChange={handleSearchChange}
+      />
       <ErrorBoundary>
         <div className="flex justify-center gap-2 items-center p-4">
           <HStack>
@@ -93,8 +123,9 @@ export function Search() {
               <Button
                 key={category.id}
                 onClick={() => setSearchCategory(category.id)}
-                className={`text-sm p-4 outline-none ${category.id === searchCategory ? "bg-red-700 text-white" : ""
-                  }`}
+                className={`text-sm p-4 outline-none ${
+                  category.id === searchCategory ? "bg-red-700 text-white" : ""
+                }`}
               >
                 {category.label}
               </Button>
@@ -125,7 +156,16 @@ export function Search() {
                 <>
                   <span>showing {searchResults.length} results</span>
                   {searchResults.length > 0 ? (
-                    <ExpandableCard listView={listView} jams={searchResults} />
+                    <ExpandableCard
+                      listView={listView}
+                      jams={searchResults.map((result) => ({
+                        id: result._id,
+                        name: result.name || "",
+                        creator: { username: result.creator?.username || "" },
+                        displayImage: { url: result.displayImage?.url || "" },
+                        description: result.description || "",
+                      }))}
+                    />
                   ) : (
                     <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
                       No jams found. Try a different search term!
@@ -137,43 +177,41 @@ export function Search() {
           )}
 
           {searchCategory === "user" && (
-            <div className="max-w-3xl gap-2 flex flex-col justify-center items-center">
-              {loading ? (
-                <div className="flex justify-center items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 dark:border-white"></div>
-                </div>
-              ) : (
-                <>
-                  <span>showing {searchResults.length} results</span>
-                  {searchResults.length > 0 ? (
-                    searchResults.map((item) => <CryptoCard key={item._id} user={item} />)
-                  ) : (
-                    <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
-                      No users found. Try a different search term!
-                    </p>
-                  )}
-                </>
-              )}
+            <div className="w-full gap-2 flex flex-col justify-center items-center">
+              <span>showing {searchResults.length} results</span>
+              {searchResults.length != 0 &&
+                searchResults.map((item) => {
+                  return <CryptoCard key={item._id} user={item} />;
+                })}
             </div>
           )}
 
           {searchCategory === "post" && (
             <div className="w-full">
-              {loading ? (
-                <div className="flex justify-center items-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 dark:border-white"></div>
-                </div>
+              <span>showing {searchResults.length} results</span>
+              {searchResults.length > 0 ? (
+                <BentoGrid
+                  posts={searchResults.map((result) => ({
+                    _id: result._id,
+                    title: result.title || "",
+                    description: result.description || "",
+                    mediaFiles:
+                      result.mediaFiles?.map((file) => ({
+                        _id: Math.random().toString(36).substr(2, 9),
+                        url: file.url || "",
+                        type: "image",
+                      })) || [],
+                    creator: result.creator || { _id: "", username: "" },
+                    likes: [],
+                    savedBy: [],
+                    hashtags: [],
+                    createdAt: new Date().toISOString(),
+                  }))}
+                />
               ) : (
-                <>
-                  <span>showing {searchResults.length} results</span>
-                  {searchResults.length > 0 ? (
-                    <BentoGrid posts={searchResults} />
-                  ) : (
-                    <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
-                      No posts found. Try a different search term!
-                    </p>
-                  )}
-                </>
+                <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
+                  No posts found. Try a different search term!
+                </p>
               )}
             </div>
           )}

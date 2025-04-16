@@ -1,6 +1,5 @@
 import { Drawer } from "./Drawer";
 import logo from "@assets/hyperlocalNobg.png";
-import { checkLocationPermission } from "@lib/utils";
 
 import { IconMoon, IconBrightnessDown } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -45,11 +44,11 @@ export function TopNav() {
       <div className="flex flex-row justify-center items-center gap-5">
         {/* <Switch className="mr-5">Location</Switch> */}
         <button className="relative text-sm font-small text-black dark:text-white p-1 rounded-full">
-            <Badge className="absolute top-0 right-0 h-5 min-w-[10px] bg-red-600 dark:bg-red-600 text-black dark:bg-white translate-x-2/3 -translate-y-2/3 shadow-md">
-              3
-            </Badge>
+          <Badge className="absolute top-0 right-0 h-5 min-w-[10px] bg-red-600 dark:bg-red-600 text-black dark:bg-white translate-x-2/3 -translate-y-2/3 shadow-md">
+            3
+          </Badge>
           <Link to={"/chat"}>
-            <MessageCircle size={26}/>
+            <MessageCircle size={26} />
           </Link>
         </button>
         <div>

@@ -14,17 +14,12 @@ import {
   AvatarFallback,
   AvatarImage,
 } from "@components/ui/shadcn/avatar";
-import { Separator } from "@components/ui/shadcn/separator";
 import {
   MessageSquare,
   Send,
   Users,
   MapPin,
-  Clock,
-  ThumbsUp,
   MessageCircle,
-  Share2,
-  MoreHorizontal,
   Image as ImageIcon,
   Smile,
 } from "lucide-react";
@@ -45,14 +40,18 @@ interface Message {
 }
 
 interface Post {
-  id: string;
+  _id: string;
   user: User;
   content: string;
   image?: string;
-  likes: number;
+  likes: any[];
   comments: number;
   timestamp: Date;
   hashtags: string[];
+  creator: {
+    _id: string;
+    username: string;
+  };
 }
 
 interface ChannelData {
@@ -197,14 +196,18 @@ const ChannelPage = () => {
 
   const [posts] = useState<Post[]>([
     {
-      id: "1",
+      _id: "1",
       user: { id: "2", name: "Alice Smith", avatar: "/api/placeholder/32/32" },
       content: "Just launched my new project! Looking for beta testers.",
       image: "/api/placeholder/400/300",
-      likes: 24,
+      likes: [],
       comments: 8,
       timestamp: new Date(),
       hashtags: ["#launch", "#beta", "#tech"],
+      creator: {
+        _id: "2",
+        username: "Alice Smith",
+      },
     },
   ]);
 
