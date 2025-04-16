@@ -4,6 +4,10 @@ import dotenv from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
+// Increase Node.js memory limit
+const v8 = require('v8');
+v8.setFlagsFromString('--max-old-space-size=4096');
+
 if (process.env.NODE_ENV !== 'production') {
     dotenv.config({ path: 'backend/config/config.env' });
 }
@@ -24,28 +28,29 @@ cloudinary.v2.config({
 
 export const userSocketIDs = new Map<string, string>();
 
+const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
         origin: process.env.FRONTEND_URL,
         methods: ['GET', 'POST'],
-        credentials: true // Add this if you're using credentials
-
+        credentials: true
     },
 });
 
-connectDatabase();
-httpServer.listen(process.env.PORT, () => {
-    console.log(`Server is working on http://localhost:${process.env.PORT}`);
+// Connect to database first
+connectDatabase().then(() => {
+    // Start server after database connection
+    httpServer.listen(PORT, '0.0.0.0', () => {
+        console.log(`Server is running on port ${PORT}`);
+    });
+}).catch((err) => {
+    console.error('Failed to start server:', err);
+    process.exit(1);
 });
 
 app.set("io", io);
-
-
-// const server = app.listen(process.env.PORT, () => {
-//     console.log(`Server is working on http://localhost:${process.env.PORT}`);
-// });
 
 io.use(async (socket, next) => {
     try {
@@ -63,7 +68,6 @@ io.use(async (socket, next) => {
 });
 
 const JamUsers = new Map(); // Map<socketId, { jamId, userId, position, rotation, name }>
-
 
 io.on('connection', (socket) => {
 
@@ -95,7 +99,6 @@ io.on('connection', (socket) => {
             lastUpdate: Date.now(),
         });
 
-
         // Broadcast to others in the jam that a new user joined
         socket.to(jamId).emit('userJoined', {
             userId,
@@ -104,7 +107,6 @@ io.on('connection', (socket) => {
             name: userName,
             avatarUrl,
         });
-
 
         // Send system message to all users in the jam
         io.to(jamId).emit('systemMessage', {
@@ -162,7 +164,6 @@ io.on('connection', (socket) => {
             socket.leave(jamId);
         }
     });
-
 
     socket.on('chatMessage', ({ jamId, userId, userName, message, timestamp, nearbyUsers, isGlobal }) => {
         const user = JamUsers.get(socket.id);
@@ -286,7 +287,6 @@ io.on('connection', (socket) => {
 
 });
 
-
 process.on("unhandledRejection", (err: Error) => {
     console.log(`Error: ${err.message}`);
     console.log(`Shutting down the server due to Unhandled Promise Rejection`);
@@ -294,6 +294,5 @@ process.on("unhandledRejection", (err: Error) => {
     httpServer.close(() => {
         process.exit(1);
     });
-
 });
 
