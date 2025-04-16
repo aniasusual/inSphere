@@ -6,6 +6,8 @@ import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import nipplejs from "nipplejs";
 import "../MetaverseStyles.css";
 import logo from "@assets/hyperlocalNobg.png";
+import { useSocket } from "socket";
+import VoiceCall from "@metaverse/components/VoiceCall";
 
 interface User {
   id: string;
@@ -21,6 +23,7 @@ interface Message {
   userName: string;
   text: string;
   timestamp: number;
+  type?: "system" | "self" | "nearby" | "global";
 }
 
 interface JamSceneProps {
@@ -28,7 +31,6 @@ interface JamSceneProps {
   userId?: string;
   userName?: string;
   avatarUrl?: string;
-  onUserInteraction?: (targetUserId: string) => void;
 }
 
 interface JoystickState {
@@ -39,16 +41,59 @@ interface JoystickState {
   force: number;
 }
 
+interface Toast {
+  id: number;
+  message: string;
+  type: "join" | "leave";
+}
+
+interface ChatMessage {
+  userId: string;
+  userName: string;
+  message: string;
+  timestamp: string;
+  type: "self" | "nearby" | "system";
+}
+
+interface SystemMessage {
+  type: "userJoined" | "userLeft";
+  userName: string;
+  timestamp: number;
+}
+
+interface UserMovement {
+  userId: string;
+  position: { x: number; y: number; z: number };
+  rotation: { x: number; y: number; z: number };
+}
+
+interface UserLeft {
+  userId: string;
+}
+
+const Toast: React.FC<{ message: string; type: "join" | "leave" }> = ({
+  message,
+  type,
+}) => {
+  return (
+    <div className={`toast ${type}`}>
+      <span className="material-icons">
+        {type === "join" ? "person_add" : "person_remove"}
+      </span>
+      {message}
+    </div>
+  );
+};
+
 const JamScene: React.FC<JamSceneProps> = ({
   jamId,
-  userId = `user-${Math.floor(Math.random() * 10000)}`,
-  userName = `User ${Math.floor(Math.random() * 1000)}`,
+  userId,
+  userName,
   avatarUrl = "/avatars/mech_drone.glb",
-  onUserInteraction,
 }) => {
   const mountRef = useRef<HTMLDivElement>(null);
   const [users, setUsers] = useState<Map<string, User>>(new Map());
-  const [isConnected, setIsConnected] = useState<boolean>(false);
+  // const [isConnected, setIsConnected] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [joystickState, setJoystickState] = useState<JoystickState>({
     isActive: false,
@@ -64,6 +109,11 @@ const JamScene: React.FC<JamSceneProps> = ({
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
+  const [toasts, setToasts] = useState<Toast[]>([]);
+  const toastIdRef = useRef(0);
+  const [isNearbyUsersCollapsed, setIsNearbyUsersCollapsed] = useState(false);
+  const [isOnlineUsersCollapsed, setIsOnlineUsersCollapsed] = useState(false);
+  const [isGlobalChat, setIsGlobalChat] = useState<boolean>(false);
 
   // Scene refs
   const sceneRef = useRef<THREE.Scene>(new THREE.Scene());
@@ -79,9 +129,56 @@ const JamScene: React.FC<JamSceneProps> = ({
   const chatRef = useRef<HTMLDivElement>(null);
   const messageInputRef = useRef<HTMLInputElement>(null);
 
+  const lastPositionSent = useRef<THREE.Vector3>(new THREE.Vector3());
+  const lastRotationSent = useRef<THREE.Euler>(new THREE.Euler());
+
+  const { socket, isConnected } = useSocket();
+
+  const addToast = (message: string, type: "join" | "leave") => {
+    const id = toastIdRef.current++;
+    setToasts((prev) => [...prev, { id, message, type }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((toast) => toast.id !== id));
+    }, 3000); // Remove toast after 3 seconds
+  };
+
+  // Update setupMouseLookControls to handle rotation separately from movement
+  const setupMouseLookControls = () => {
+    let isPointerLocked = false;
+
+    const onPointerLockChange = () => {
+      isPointerLocked = document.pointerLockElement === mountRef.current;
+    };
+
+    document.addEventListener("pointerlockchange", onPointerLockChange);
+
+    // Request pointer lock on click
+    mountRef.current?.addEventListener("click", () => {
+      if (!isPointerLocked && !isChatOpen) {
+        mountRef.current?.requestPointerLock();
+      }
+    });
+
+    // Handle mouse movement - only rotates the avatar, not the camera directly
+    const onMouseMove = (event: MouseEvent) => {
+      if (!isPointerLocked || !avatarRef.current || !cameraRef.current) return;
+
+      const movementX = event.movementX || 0;
+
+      // Rotate avatar horizontally
+      avatarRef.current.rotation.y -= movementX * 0.002;
+
+      // The camera will follow this rotation in updateCameraPosition()
+      // This separation ensures camera doesn't move during WASD movement
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+  };
+
   // Initialize scene
   useEffect(() => {
-    if (!mountRef.current) return;
+    console.log("socket: ", socket, isConnected);
+    if (!mountRef.current || !socket) return;
 
     // Initialize scene
     const scene = sceneRef.current;
@@ -159,8 +256,96 @@ const JamScene: React.FC<JamSceneProps> = ({
       setupMobileControls();
     }
 
-    // Load avatar
-    loadAvatar(avatarUrl);
+    // Socket listeners
+    const setupSocketListeners = () => {
+      socket.emit("joinJam", {
+        jamId,
+        userId,
+        userName,
+        position: { x: 0, y: 0, z: 0 },
+        rotation: { x: 0, y: 0, z: 0 },
+        avatarUrl,
+      });
+
+      socket.on("currentUsers", (jamUsers: any[]) => {
+        jamUsers.forEach((userData) => addUserToScene(userData));
+      });
+
+      socket.on("userJoined", (userData: any) => {
+        addUserToScene(userData);
+      });
+
+      socket.on(
+        "systemMessage",
+        ({ type, userName, timestamp }: SystemMessage) => {
+          let messageText = "";
+          if (type === "userJoined") {
+            messageText = `${userName} joined the metaverse`;
+            addToast(messageText, "join");
+          } else if (type === "userLeft") {
+            messageText = `${userName} left the metaverse`;
+            addToast(messageText, "leave");
+          }
+
+          const newMessage: Message = {
+            userId: "system",
+            userName: "System",
+            text: messageText,
+            timestamp,
+            type: "system",
+          };
+
+          setMessages((prev) => [...prev, newMessage]);
+        }
+      );
+
+      socket.on(
+        "userMoved",
+        ({ userId: movedUserId, position, rotation }: UserMovement) => {
+          setUsers((prev) => {
+            const newUsers = new Map(prev);
+            const user = newUsers.get(movedUserId);
+            if (user && user.avatar) {
+              user.position.set(position.x, position.y, position.z);
+              user.rotation.set(rotation.x, rotation.y, rotation.z);
+              user.avatar.position.lerp(
+                new THREE.Vector3(position.x, position.y, position.z),
+                0.1
+              );
+              user.avatar.rotation.set(rotation.x, rotation.y, rotation.z);
+              user.lastUpdate = Date.now();
+            }
+            return newUsers;
+          });
+        }
+      );
+
+      socket.on("userLeft", ({ userId: leftUserId }: UserLeft) => {
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          const user = newUsers.get(leftUserId);
+          if (user && user.avatar) {
+            sceneRef.current.remove(user.avatar);
+          }
+          newUsers.delete(leftUserId);
+          return newUsers;
+        });
+      });
+
+      // Add handler for leaveJam event
+      socket.on("userLeftJam", ({ userId: leftUserId }: UserLeft) => {
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          const user = newUsers.get(leftUserId);
+          if (user && user.avatar) {
+            sceneRef.current.remove(user.avatar);
+          }
+          newUsers.delete(leftUserId);
+          return newUsers;
+        });
+      });
+    };
+
 
     // Add event listeners
     window.addEventListener("resize", handleResize);
@@ -172,12 +357,22 @@ const JamScene: React.FC<JamSceneProps> = ({
     setupMouseLookControls();
 
     // Setup simulated users (for testing)
-    setupSimulatedUsers();
+    // setupSimulatedUsers();
 
     // Start animation loop
     animate();
 
+    if (isConnected) {
+      loadAvatar(avatarUrl);
+      setupSocketListeners();
+    }
+
     return () => {
+      socket.off("currentUsers");
+      socket.off("userJoined");
+      socket.off("userMoved");
+      socket.off("userLeft");
+      socket.off("userLeftJam");
       window.removeEventListener("resize", handleResize);
       window.removeEventListener("keydown", handleKeyDown);
       window.removeEventListener("keyup", handleKeyUp);
@@ -188,11 +383,113 @@ const JamScene: React.FC<JamSceneProps> = ({
       if (animationFrameId.current) {
         cancelAnimationFrame(animationFrameId.current);
       }
-      document.removeEventListener("pointerlockchange", onPointerLockChange);
-      document.removeEventListener("mousemove", onMouseMove);
+      // document.removeEventListener("pointerlockchange", onPointerLockChange);
+      // document.removeEventListener("mousemove", onMouseMove);
       mountRef.current?.removeChild(renderer.domElement);
     };
-  }, []);
+  }, [jamId, userId, userName, avatarUrl, socket, isConnected]);
+
+  const addUserToScene = (userData: any) => {
+    console.log("userData: ", userData);
+
+    const { userId: id, position, rotation, name, avatarUrl } = userData;
+    if (id === userId) return; // Skip self
+
+    // Use the same avatar loading logic as the main user
+    const dracoLoader = new DRACOLoader();
+    dracoLoader.setDecoderPath("https://www.gstatic.com/draco/v1/decoders/");
+
+    const loader = new GLTFLoader();
+    loader.setDRACOLoader(dracoLoader);
+
+    // Ensure URL is absolute
+    const absoluteUrl = avatarUrl.startsWith("http")
+      ? avatarUrl
+      : `${window.location.origin}${avatarUrl}`;
+
+    loader.load(
+      absoluteUrl,
+      (gltf) => {
+        const avatar = gltf.scene;
+        avatar.scale.set(1, 1, 1);
+        avatar.position.set(position.x, position.y, position.z);
+        avatar.rotation.set(rotation.x, rotation.y, rotation.z);
+
+        avatar.traverse((child) => {
+          if (child instanceof THREE.Mesh) {
+            child.castShadow = true;
+            child.receiveShadow = true;
+          }
+        });
+
+        addNameTag(avatar, name || "Anonymous");
+        sceneRef.current.add(avatar);
+
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          newUsers.set(id, {
+            id,
+            position: new THREE.Vector3(position.x, position.y, position.z),
+            rotation: new THREE.Euler(rotation.x, rotation.y, rotation.z),
+            name,
+            avatar: avatar,
+            lastUpdate: Date.now(),
+          });
+          return newUsers;
+        });
+      },
+      (progress) => {
+        // console.log(
+        //   `Loading avatar for ${name}:`,
+        //   (progress.loaded / progress.total) * 100
+        // );
+      },
+      (error) => {
+        console.error(`Error loading avatar for ${name}:`, error);
+        // Create a simple capsule character as fallback
+        const group = new THREE.Group();
+
+        // Body
+        const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
+        const material = new THREE.MeshStandardMaterial({ color: 0x0088ff });
+        const body = new THREE.Mesh(geometry, material);
+        body.position.y = 1;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        group.add(body);
+
+        // Head
+        const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
+        const headMaterial = new THREE.MeshStandardMaterial({
+          color: 0xffdbac,
+        });
+        const head = new THREE.Mesh(headGeometry, headMaterial);
+        head.position.y = 2;
+        head.castShadow = true;
+        head.receiveShadow = true;
+        group.add(head);
+
+        group.position.set(position.x, position.y, position.z);
+        group.rotation.set(rotation.x, rotation.y, rotation.z);
+
+        addNameTag(group, name || "Anonymous");
+        sceneRef.current.add(group);
+
+        setUsers((prev) => {
+          const newUsers = new Map(prev);
+          newUsers.set(id, {
+            id,
+            position: new THREE.Vector3(position.x, position.y, position.z),
+            rotation: new THREE.Euler(rotation.x, rotation.y, rotation.z),
+            name,
+            avatar: group,
+            lastUpdate: Date.now(),
+          });
+          return newUsers;
+        });
+      }
+    );
+  };
 
   const setupMobileControls = () => {
     // Create movement joystick container (left side)
@@ -298,108 +595,6 @@ const JamScene: React.FC<JamSceneProps> = ({
     );
   };
 
-  const setupSimulatedUsers = () => {
-    const simulatedUsers = [
-      {
-        id: "user-1",
-        name: "Alice",
-        position: new THREE.Vector3(5, 0, 5),
-        rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-      },
-      {
-        id: "user-2",
-        name: "Bob",
-        position: new THREE.Vector3(-5, 0, 3),
-        rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-      },
-      {
-        id: "user-3",
-        name: "Charlie",
-        position: new THREE.Vector3(0, 0, -8),
-        rotation: new THREE.Euler(0, Math.random() * Math.PI * 2, 0),
-      },
-    ];
-
-    simulatedUsers.forEach((userData) => {
-      const geometry = new THREE.CapsuleGeometry(0.5, 1, 4, 8);
-      const material = new THREE.MeshStandardMaterial({
-        color: Math.random() * 0xffffff,
-      });
-      const userMesh = new THREE.Group();
-
-      // Body
-      const body = new THREE.Mesh(geometry, material);
-      body.position.y = 1;
-      userMesh.add(body);
-
-      // Head
-      const headGeometry = new THREE.SphereGeometry(0.3, 16, 16);
-      const headMaterial = new THREE.MeshStandardMaterial({ color: 0xffdbac });
-      const head = new THREE.Mesh(headGeometry, headMaterial);
-      head.position.y = 2;
-      userMesh.add(head);
-
-      // Nametag
-      const canvas = document.createElement("canvas");
-      canvas.width = 256;
-      canvas.height = 64;
-      const context = canvas.getContext("2d");
-      if (context) {
-        context.clearRect(0, 0, canvas.width, canvas.height);
-        context.fillStyle = "#ffffff";
-        context.font = "Bold 24px Arial";
-        context.textAlign = "center"; // Center horizontally
-        context.textBaseline = "middle"; // Center vertically
-        context.fillText(userData.name, canvas.width / 2, canvas.height / 2);
-
-        const texture = new THREE.CanvasTexture(canvas);
-        const spriteMaterial = new THREE.SpriteMaterial({
-          map: texture,
-          transparent: true,
-          depthTest: false,
-        });
-
-        const sprite = new THREE.Sprite(spriteMaterial);
-        sprite.position.y = 2.5; // Lowered from 2.5 to 1.6 to match your avatar
-        sprite.scale.set(1.2, 0.3, 1); // Consistent scale
-        userMesh.add(sprite);
-      }
-
-      userMesh.position.copy(userData.position);
-      userMesh.rotation.copy(userData.rotation);
-      sceneRef.current.add(userMesh);
-
-      setUsers((prev) => {
-        const newUsers = new Map(prev);
-        newUsers.set(userData.id, {
-          id: userData.id,
-          position: userData.position,
-          rotation: userData.rotation,
-          name: userData.name,
-          avatar: userMesh,
-          lastUpdate: Date.now(),
-        });
-        return newUsers;
-      });
-    });
-
-    // Sample messages remain unchanged
-    setMessages([
-      {
-        userId: "user-1",
-        userName: "Alice",
-        text: "Hey everyone! Welcome to the metaverse!",
-        timestamp: Date.now() - 60000,
-      },
-      {
-        userId: "user-2",
-        userName: "Bob",
-        text: "This is so cool! Love the graphics.",
-        timestamp: Date.now() - 30000,
-      },
-    ]);
-  };
-
   const loadAvatar = (url: string) => {
     if (!url) {
       console.error("No avatar URL provided");
@@ -434,16 +629,16 @@ const JamScene: React.FC<JamSceneProps> = ({
           sceneRef.current.add(avatar);
 
           // Add nametag to avatar
-          addNameTag(avatar, userName);
+          addNameTag(avatar, userName || "Anonymous");
 
           // Add initial user
           setUsers((prev) => {
             const newUsers = new Map(prev);
-            newUsers.set(userId, {
-              id: userId,
+            newUsers.set(userId || "anonymous", {
+              id: userId || "anonymous",
               position: new THREE.Vector3(0, 0, 0),
               rotation: new THREE.Euler(0, 0, 0),
-              name: userName,
+              name: userName || "Anonymous",
               avatar: avatar,
               lastUpdate: Date.now(),
             });
@@ -454,10 +649,10 @@ const JamScene: React.FC<JamSceneProps> = ({
         },
         (progress) => {
           // Progress callback
-          console.log(
-            "Loading progress:",
-            (progress.loaded / progress.total) * 100
-          );
+          // console.log(
+          //   "Loading progress:",
+          //   (progress.loaded / progress.total) * 100
+          // );
         },
         (error) => {
           console.error("Error loading avatar:", error);
@@ -488,16 +683,16 @@ const JamScene: React.FC<JamSceneProps> = ({
           sceneRef.current.add(group);
 
           // Add nametag
-          addNameTag(group, userName);
+          addNameTag(group, userName || "Anonymous");
 
           // Add user with fallback avatar
           setUsers((prev) => {
             const newUsers = new Map(prev);
-            newUsers.set(userId, {
-              id: userId,
+            newUsers.set(userId || "anonymous", {
+              id: userId || "anonymous",
               position: new THREE.Vector3(0, 0, 0),
               rotation: new THREE.Euler(0, 0, 0),
-              name: userName,
+              name: userName || "Anonymous",
               avatar: group,
               lastUpdate: Date.now(),
             });
@@ -580,14 +775,6 @@ const JamScene: React.FC<JamSceneProps> = ({
   };
 
   const handleKeyPress = (event: KeyboardEvent) => {
-    // Interact with nearby users with F key
-    if (event.key.toLowerCase() === "f") {
-      const nearestUser = findNearestUser();
-      if (nearestUser && onUserInteraction) {
-        onUserInteraction(nearestUser.id);
-      }
-    }
-
     // Toggle camera mode with C key
     if (event.key.toLowerCase() === "c") {
       thirdPersonMode.current = !thirdPersonMode.current;
@@ -602,27 +789,6 @@ const JamScene: React.FC<JamSceneProps> = ({
     }
   };
 
-  const findNearestUser = (): User | null => {
-    if (!avatarRef.current) return null;
-
-    let nearestUser = null;
-    let minDistance = Infinity;
-
-    users.forEach((user) => {
-      if (user.id !== userId && user.avatar) {
-        const distance = user.avatar.position.distanceTo(
-          avatarRef.current!.position
-        );
-        if (distance < minDistance) {
-          minDistance = distance;
-          nearestUser = user;
-        }
-      }
-    });
-
-    return minDistance < 5 ? nearestUser : null; // Only return if within 5 units
-  };
-
   const animate = () => {
     animationFrameId.current = requestAnimationFrame(animate);
 
@@ -632,9 +798,6 @@ const JamScene: React.FC<JamSceneProps> = ({
     // Update camera position in TPP mode
     updateCameraPosition();
 
-    // Update nearby users list
-    updateNearbyUsers();
-
     // Render scene
     if (rendererRef.current && cameraRef.current) {
       rendererRef.current.render(sceneRef.current, cameraRef.current);
@@ -642,80 +805,73 @@ const JamScene: React.FC<JamSceneProps> = ({
   };
 
   const handleMovement = () => {
-    if (!avatarRef.current) return;
+    if (!avatarRef.current || !isConnected) return;
 
     const moveSpeed = 0.1;
     let direction = new THREE.Vector3(0, 0, 0);
 
-    // Handle keyboard movement (for desktop)
-    if (keyStateRef.current["ArrowUp"] || keyStateRef.current["KeyW"]) {
+    if (keyStateRef.current["ArrowUp"] || keyStateRef.current["KeyW"])
       direction.z -= 1;
-    }
-    if (keyStateRef.current["ArrowDown"] || keyStateRef.current["KeyS"]) {
+    if (keyStateRef.current["ArrowDown"] || keyStateRef.current["KeyS"])
       direction.z += 1;
-    }
-    if (keyStateRef.current["ArrowLeft"] || keyStateRef.current["KeyA"]) {
+    if (keyStateRef.current["ArrowLeft"] || keyStateRef.current["KeyA"])
       direction.x -= 1;
-    }
-    if (keyStateRef.current["ArrowRight"] || keyStateRef.current["KeyD"]) {
+    if (keyStateRef.current["ArrowRight"] || keyStateRef.current["KeyD"])
       direction.x += 1;
-    }
 
-    // Handle joystick movement for mobile - use direct vector values
     if (keyStateRef.current["joystickActive"]) {
-      // Clear keyboard direction when joystick is active
       direction = new THREE.Vector3();
-
-      // Map joystick X to movement X (left/right)
       direction.x = keyStateRef.current["joystickX"] as number;
-
-      // Map joystick Y to movement Z (forward/backward)
-      // Invert Y because pushing up should move forward (negative Z)
       direction.z = -(keyStateRef.current["joystickY"] as number);
-
-      // Apply force for variable speed
       const force = keyStateRef.current["joystickForce"] as number;
       direction.multiplyScalar(force);
     }
 
     if (direction.length() > 0) {
-      // Normalize for consistent movement speed in all directions
       direction.normalize();
-
-      // Create movement vector in local space
       const moveVector = new THREE.Vector3(
         direction.x * moveSpeed,
         0,
         direction.z * moveSpeed
       );
-
-      // Apply avatar's current rotation to the movement vector
       moveVector.applyAxisAngle(
         new THREE.Vector3(0, 1, 0),
         avatarRef.current.rotation.y
       );
 
-      // Calculate new position
       const newPosition = new THREE.Vector3()
         .copy(avatarRef.current.position)
         .add(moveVector);
-
-      // Define floor boundaries (floor size is 100, so half is 50)
       const floorSize = 50;
-      const minX = -floorSize;
-      const maxX = floorSize;
-      const minZ = -floorSize;
-      const maxZ = floorSize;
 
-      // Check if new position is within floor boundaries
       if (
-        newPosition.x >= minX &&
-        newPosition.x <= maxX &&
-        newPosition.z >= minZ &&
-        newPosition.z <= maxZ
+        newPosition.x >= -floorSize &&
+        newPosition.x <= floorSize &&
+        newPosition.z >= -floorSize &&
+        newPosition.z <= floorSize
       ) {
-        // Only apply movement if within boundaries
         avatarRef.current.position.copy(newPosition);
+
+        // Send movement update if changed
+        const posChanged = !newPosition.equals(lastPositionSent.current);
+        const rotChanged = !avatarRef.current.rotation.equals(
+          lastRotationSent.current
+        );
+        if (posChanged || rotChanged) {
+          const position = {
+            x: newPosition.x,
+            y: newPosition.y,
+            z: newPosition.z,
+          };
+          const rotation = {
+            x: avatarRef.current.rotation.x,
+            y: avatarRef.current.rotation.y,
+            z: avatarRef.current.rotation.z,
+          };
+          socket.emit("updateMovement", { userId, position, rotation });
+          lastPositionSent.current.copy(newPosition);
+          lastRotationSent.current.copy(avatarRef.current.rotation);
+        }
       }
     }
   };
@@ -749,65 +905,43 @@ const JamScene: React.FC<JamSceneProps> = ({
     }
   };
 
-  // Update setupMouseLookControls to handle rotation separately from movement
-  const setupMouseLookControls = () => {
-    let isPointerLocked = false;
-
-    const onPointerLockChange = () => {
-      isPointerLocked = document.pointerLockElement === mountRef.current;
-    };
-
-    document.addEventListener("pointerlockchange", onPointerLockChange);
-
-    // Request pointer lock on click
-    mountRef.current?.addEventListener("click", () => {
-      if (!isPointerLocked && !isChatOpen) {
-        mountRef.current?.requestPointerLock();
-      }
-    });
-
-    // Handle mouse movement - only rotates the avatar, not the camera directly
-    const onMouseMove = (event: MouseEvent) => {
-      if (!isPointerLocked || !avatarRef.current || !cameraRef.current) return;
-
-      const movementX = event.movementX || 0;
-
-      // Rotate avatar horizontally
-      avatarRef.current.rotation.y -= movementX * 0.002;
-
-      // The camera will follow this rotation in updateCameraPosition()
-      // This separation ensures camera doesn't move during WASD movement
-    };
-
-    document.addEventListener("mousemove", onMouseMove);
-  };
-
-  const updateNearbyUsers = () => {
+  // Add useEffect to monitor user positions
+  useEffect(() => {
     if (!avatarRef.current) return;
 
-    const nearby: User[] = [];
-    const maxDistance = 10; // Units in the world
+    const checkNearbyUsers = () => {
+      const nearby: User[] = [];
+      const maxDistance = 2;
 
-    users.forEach((user) => {
-      if (user.id !== userId && user.avatar) {
-        const distance = user.avatar.position.distanceTo(
-          avatarRef.current!.position
-        );
-        if (distance < maxDistance) {
-          nearby.push(user);
+      users.forEach((user) => {
+        if (user.id !== userId && user.avatar) {
+          const distance = user.avatar.position.distanceTo(
+            avatarRef.current!.position
+          );
+          if (distance < maxDistance) {
+            nearby.push(user);
+          }
         }
-      }
-    });
+      });
 
-    setNearbyUsers(nearby);
-  };
+      setNearbyUsers(nearby);
+    };
+
+    // Check immediately
+    checkNearbyUsers();
+
+    // Set up an interval to check periodically
+    const intervalId = setInterval(checkNearbyUsers, 1000); // Check every second
+
+    return () => clearInterval(intervalId);
+  }, [users, userId, avatarRef.current?.position]);
 
   const sendMessage = () => {
     if (!messageInput.trim()) return;
 
     const newMessage: Message = {
-      userId: userId,
-      userName: userName,
+      userId: userId || "anonymous",
+      userName: userName || "Anonymous",
       text: messageInput,
       timestamp: Date.now(),
     };
@@ -826,13 +960,46 @@ const JamScene: React.FC<JamSceneProps> = ({
     console.log(`Voice chat ${isVoiceChatActive ? "disabled" : "enabled"}`);
   };
 
-  const formatTimestamp = (timestamp: number): string => {
-    const date = new Date(timestamp);
-    return `${date.getHours().toString().padStart(2, "0")}:${date
-      .getMinutes()
-      .toString()
-      .padStart(2, "0")}`;
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!messageInput.trim() || !socket) return;
+
+    const timestamp = new Date().toISOString();
+    const messageData = {
+      jamId: jamId,
+      userId: userId,
+      userName: userName,
+      message: messageInput.trim(),
+      timestamp: timestamp,
+      isGlobal: isGlobalChat,
+    };
+
+    socket.emit("chatMessage", messageData);
+    setMessageInput("");
   };
+
+  useEffect(() => {
+    if (!socket) return;
+
+    const handleMessage = (messageData: ChatMessage) => {
+      setMessages((prev) => [
+        ...prev,
+        {
+          userId: messageData.userId,
+          userName: messageData.userName,
+          text: messageData.message,
+          timestamp: Date.now(),
+          type: messageData.type,
+        },
+      ]);
+    };
+
+    socket.on("message", handleMessage);
+
+    return () => {
+      socket.off("message", handleMessage);
+    };
+  }, [socket]);
 
   return (
     <div className="scene-container">
@@ -846,22 +1013,79 @@ const JamScene: React.FC<JamSceneProps> = ({
           <div>Mouse: Look around</div>
           <div>C: Toggle camera mode</div>
           <div>T: Open chat</div>
-          <div>F: Interact</div>
           <div>V: Voice chat</div>
         </div>
 
-        {/* Nearby Users */}
-        <div className="nearby-users">
-          <div className="font-bold mb-1">
-            Online Users ({nearbyUsers.length})
+        {/* Online Users */}
+        <div
+          className={`user-box online-users ${isOnlineUsersCollapsed ? "collapsed" : ""
+            }`}
+        >
+          <div
+            className={`user-box-header ${isOnlineUsersCollapsed ? "collapsed" : ""
+              }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsOnlineUsersCollapsed(!isOnlineUsersCollapsed);
+            }}
+          >
+            <div className="font-bold">Online Users ({users.size})</div>
+            <span className="material-icons">
+              {isOnlineUsersCollapsed ? "expand_more" : "expand_less"}
+            </span>
           </div>
-          {nearbyUsers.map((user) => (
-            <div key={user.id} className="flex items-center mb-1">
-              <div className="w-2 h-2 rounded-full bg-red-500 mr-2" />{" "}
-              {/* Red highlight */}
-              <div>{user.name}</div>
-            </div>
-          ))}
+          <div className="user-box-content">
+            {Array.from(users.values()).map((user) => (
+              <div key={user.id} className="flex items-center mb-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                <a
+                  href={`/user/${user.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-green-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {user.name}
+                </a>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Nearby Users */}
+        <div
+          className={`user-box nearby-users ${isNearbyUsersCollapsed ? "collapsed" : ""
+            }`}
+        >
+          <div
+            className={`user-box-header ${isNearbyUsersCollapsed ? "collapsed" : ""
+              }`}
+            onClick={(e) => {
+              e.stopPropagation();
+              setIsNearbyUsersCollapsed(!isNearbyUsersCollapsed);
+            }}
+          >
+            <div className="font-bold">Nearby Users ({nearbyUsers.length})</div>
+            <span className="material-icons">
+              {isNearbyUsersCollapsed ? "expand_more" : "expand_less"}
+            </span>
+          </div>
+          <div className="user-box-content">
+            {nearbyUsers.map((user) => (
+              <div key={user.id} className="flex items-center mb-1">
+                <div className="w-2 h-2 rounded-full bg-green-500 mr-2" />
+                <a
+                  href={`/user/${user.id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="hover:text-green-400 transition-colors"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {user.name}
+                </a>
+              </div>
+            ))}
+          </div>
         </div>
 
         {/* Voice Chat Indicator */}
@@ -883,6 +1107,18 @@ const JamScene: React.FC<JamSceneProps> = ({
           {/* Collapsible menu (appears above) */}
           {isActionMenuOpen && (
             <div className="collapsible-menu">
+              <button
+                className="action-btn"
+                onClick={() => {
+                  if (socket) {
+                    socket.emit("leaveJam", { jamId });
+                    window.location.href = "/";
+                  }
+                }}
+              >
+                <span className="material-icons">exit_to_app</span>
+              </button>
+
               <button
                 className="action-btn"
                 onClick={() => {
@@ -913,7 +1149,7 @@ const JamScene: React.FC<JamSceneProps> = ({
                 onClick={toggleVoiceChat}
               >
                 <span className="material-icons">
-                  {isVoiceChatActive ? "mic_off" : "mic"}
+                  {isVoiceChatActive ? <VoiceCall nearbyUsers={nearbyUsers} currentUserId={userId} /> : "mic"}
                 </span>
               </button>
 
@@ -945,7 +1181,12 @@ const JamScene: React.FC<JamSceneProps> = ({
       {isChatOpen && (
         <div className="chat-panel">
           <div className="chat-header">
-            <h3 className="text-xl font-bold">Chat</h3>
+            <h3
+              className={`text-xl font-bold ${isGlobalChat ? "global-active" : ""
+                }`}
+            >
+              Chat
+            </h3>
             <button className="icon-btn" onClick={() => setIsChatOpen(false)}>
               <span className="material-icons">close</span>
             </button>
@@ -953,37 +1194,52 @@ const JamScene: React.FC<JamSceneProps> = ({
           <div className="chat-messages">
             {messages.map((msg, index) => (
               <div
-                key={index}
-                className={`chat-message ${
-                  msg.userId === userId ? "self" : "other"
-                }`}
+                key={`${msg.timestamp}-${index}`}
+                className={`chat-message ${msg.type === "system" ? "system-message" : msg.type
+                  }`}
               >
-                <div className="flex justify-between items-center mb-1">
-                  <span className="font-bold">{msg.userName}</span>
-                  <span className="text-xs text-gray-400">
-                    {formatTimestamp(msg.timestamp)}
+                {msg.type === "system" ? (
+                  <span>
+                    <span className="font-bold">{msg.userName}:</span>{" "}
+                    {msg.text}
                   </span>
-                </div>
-                <p>{msg.text}</p>
+                ) : (
+                  <>
+                    <span className="font-bold">{msg.userName}:</span>{" "}
+                    {msg.text}
+                  </>
+                )}
               </div>
             ))}
           </div>
-          <div className="chat-input">
-            <input
-              ref={messageInputRef}
-              type="text"
-              value={messageInput}
-              onChange={(e) => setMessageInput(e.target.value)}
-              placeholder="Type a message..."
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  sendMessage();
-                }
-                if (e.key === "Escape") setIsChatOpen(false);
-              }}
-            />
-            <button onClick={sendMessage}>Send</button>
+          <div className="chat-input-container">
+            <div className="chat-toggle">
+              <label className="toggle-label">
+                <input
+                  type="checkbox"
+                  checked={isGlobalChat}
+                  onChange={(e) => setIsGlobalChat(e.target.checked)}
+                />
+                <span className="toggle-text">Global Chat</span>
+              </label>
+            </div>
+            <div className="chat-input">
+              <input
+                ref={messageInputRef}
+                type="text"
+                value={messageInput}
+                onChange={(e) => setMessageInput(e.target.value)}
+                placeholder="Type a message..."
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSendMessage(e);
+                  }
+                  if (e.key === "Escape") setIsChatOpen(false);
+                }}
+              />
+              <button onClick={handleSendMessage}>Send</button>
+            </div>
           </div>
         </div>
       )}
@@ -997,6 +1253,13 @@ const JamScene: React.FC<JamSceneProps> = ({
           </div>
         </div>
       )}
+
+      {/* Add Toast Container */}
+      <div className="toast-container">
+        {toasts.map((toast) => (
+          <Toast key={toast.id} message={toast.message} type={toast.type} />
+        ))}
+      </div>
     </div>
   );
 };

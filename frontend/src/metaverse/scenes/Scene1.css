@@ -1,0 +1,134 @@
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@700&display=swap');
+
+/* User Box Styles */
+.user-box {
+    position: fixed;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 8px;
+    padding: 12px;
+    color: white;
+    min-width: 200px;
+    max-width: 300px;
+    z-index: 900;
+    backdrop-filter: blur(8px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: all 0.3s ease;
+    pointer-events: auto;
+}
+
+.user-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 4px 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 8px;
+    pointer-events: auto;
+}
+
+.user-box-header .material-icons {
+    transition: transform 0.3s ease;
+    pointer-events: none;
+}
+
+.user-box.collapsed .user-box-header .material-icons {
+    transform: rotate(180deg);
+}
+
+.user-box-content {
+    max-height: 300px;
+    overflow-y: auto;
+    transition: max-height 0.3s ease;
+    pointer-events: auto;
+}
+
+.user-box.collapsed .user-box-content {
+    max-height: 0;
+    overflow: hidden;
+}
+
+/* Desktop Layout */
+@media (min-width: 769px) {
+    .user-box.online-users {
+        top: 20px;
+        right: 20px;
+    }
+
+    .user-box.nearby-users {
+        top: 20px;
+        right: 240px;
+    }
+}
+
+/* Mobile Layout */
+@media (max-width: 768px) {
+    .user-box {
+        min-width: 160px;
+        max-width: 250px;
+        padding: 8px;
+    }
+
+    .user-box.online-users {
+        top: 60px;
+        right: 10px;
+    }
+
+    .user-box.nearby-users {
+        top: 60px;
+        right: 180px;
+    }
+
+    .user-box-content {
+        max-height: 200px;
+        font-size: 14px;
+    }
+
+    .user-box-header {
+        font-size: 14px;
+    }
+}
+
+/* Scrollbar Styles for User Box Content */
+.user-box-content::-webkit-scrollbar {
+    width: 4px;
+}
+
+.user-box-content::-webkit-scrollbar-track {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 2px;
+}
+
+.user-box-content::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 2px;
+}
+
+.user-box-content::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.4);
+}
+
+/* User Link Styles */
+.user-box a {
+    color: white;
+    text-decoration: none;
+    display: block;
+    padding: 4px 0;
+    transition: all 0.2s ease;
+    pointer-events: auto;
+}
+
+.user-box a:hover {
+    color: #4ade80;
+    transform: translateX(4px);
+}
+
+/* Status Indicator */
+.user-box .w-2 {
+    transition: all 0.2s ease;
+    pointer-events: none;
+}
+
+.user-box a:hover .w-2 {
+    transform: scale(1.2);
+}
