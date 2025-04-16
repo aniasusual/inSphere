@@ -5,7 +5,7 @@
   "scripts": {
     "build": "tsc",
     "dev": "nodemon backend/server.ts",
-    "start": "node backend/server.ts"
+    "start": "ts-node backend/server.ts"
   },
   "author": "",
   "license": "ISC",
