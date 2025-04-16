@@ -83,7 +83,6 @@ export function Post({ posts }: PostProps) {
 
 function PostItem({
   item,
-  index,
   setShowComments,
   setActivePostId,
 }: {

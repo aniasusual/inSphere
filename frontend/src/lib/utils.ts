@@ -62,7 +62,7 @@ const updateUserLocation = async (longitude: number, latitude: number) => {
     withCredentials: true
   };
 
-  const { data } = await axios.post(
+  await axios.post(
     `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/update-user-location`,
     {
       longitude,

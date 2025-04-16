@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Calendar, Users, Plus, Music, X, Image, Upload } from "lucide-react";
+import { Users, Plus, Music, X, Image, Upload } from "lucide-react";
 import { Card } from "@components/ui/shadcn/card";
 import { motion } from "framer-motion";
 import axios from "axios";

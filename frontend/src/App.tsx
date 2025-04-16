@@ -1,5 +1,4 @@
 import "./App.css";
-import HomeLoader from "@components/Loaders/HomeLoader";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SignupFormDemo } from "@pages/Register";
 import { LoginFormDemo } from "@pages/Login";
@@ -7,7 +6,7 @@ import MainLayout from "@components/layouts/MainLayout";
 import Home from "@pages/Home";
 import { Search } from "@pages/SearchPage";
 import { Golocal } from "@pages/GoLocal";
-import { toaster, Toaster } from "@components/ui/toaster";
+import { Toaster } from "@components/ui/toaster";
 import { useEffect, useState } from "react";
 import { useDispatch } from "react-redux";
 import { loaduser } from "actions/userActions";
@@ -21,7 +20,7 @@ import UserProfile from "@pages/UserProfile";
 import { SinglePost } from "@pages/SinglePost";
 import { JamPage } from "@pages/Jam";
 
-function App() {
+const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
 
   useEffect(() => {
@@ -53,14 +52,6 @@ function App() {
       }
     };
   }, []);
-
-  // Handler to manually stop tracking
-  const handleStopTracking = (): void => {
-    if (stopTracking) {
-      stopTracking();
-      setStopTracking(undefined);
-    }
-  };
 
   return (
     <SocketProvider>
@@ -125,6 +116,6 @@ function App() {
       </BrowserRouter>
     </SocketProvider>
   );
-}
+};
 
 export default App;
