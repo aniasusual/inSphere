@@ -55,21 +55,10 @@ function App() {
   }, []);
 
   // Handler to manually stop tracking
-  const handleStopTracking = () => {
+  const handleStopTracking = (): void => {
     if (stopTracking) {
       stopTracking();
       setStopTracking(undefined);
-      toaster.create({
-        title: `Location tracking stopped manually`,
-        description: "You will be able to access location based features now ",
-        type: "success",
-      });
-    } else {
-      toaster.create({
-        title: `Some error occured! Location not updated`,
-        description: "You might want to restart",
-        type: "warning",
-      });
     }
   };
 
