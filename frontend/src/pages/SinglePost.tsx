@@ -51,7 +51,9 @@ export function SinglePost() {
     const fetchPost = async () => {
       try {
         const { data } = await axios.get(
-          `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/post/detail/${postId}`,
+          `${
+            import.meta.env.VITE_API_BACKEND_URL
+          }/api/v1/post/detail/${postId}`,
           { withCredentials: true }
         );
         setPost(data.post);
@@ -135,7 +137,8 @@ export function SinglePost() {
 
     try {
       const { data } = await axios.get(
-        `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/follow/${post?.creator?._id
+        `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/user/follow/${
+          post?.creator?._id
         }`,
         { withCredentials: true }
       );
@@ -253,10 +256,13 @@ export function SinglePost() {
               transition={{ duration: 0.2 }}
             >
               <Avatar
-                src={post.creator?.avatar?.url || defaultImage}
-                alt={post.creator?.firstName || "unknown user"}
+                src={post.creator.avatar?.url}
+                alt={post.creator.username}
                 size="md"
-                className="border-2 border-blue-500 shadow-lg"
+                className="border-2 border-blue-500"
+                placeholder="blur"
+                onPointerEnterCapture={() => {}}
+                onPointerLeaveCapture={() => {}}
               />
             </motion.div>
             <div className="pl-5">
@@ -383,10 +389,11 @@ export function SinglePost() {
               stroke={1.5}
               size={30}
               fill={isBookmarked ? "currentColor" : "none"}
-              className={`hover:cursor-pointer transition-colors ${isBookmarked
-                ? "text-purple-500"
-                : "hover:text-purple-500 dark:text-gray-300"
-                }`}
+              className={`hover:cursor-pointer transition-colors ${
+                isBookmarked
+                  ? "text-purple-500"
+                  : "hover:text-purple-500 dark:text-gray-300"
+              }`}
               onClick={toggleBookmark}
             />
           </motion.div>
@@ -413,8 +420,8 @@ export function SinglePost() {
           : {post.description || "No description"} */}
           <span className="font-bold">
             {post.creator?.username || "Unknown"}
-          </span>:
-          <div className="font-bold text-center">{post.title}</div>
+          </span>
+          :<div className="font-bold text-center">{post.title}</div>
           {post.description || "No description"}
         </motion.div>
 
