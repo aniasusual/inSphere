@@ -21,14 +21,6 @@ interface User {
   lastUpdate: number;
 }
 
-interface JoystickState {
-  isActive: boolean;
-  startPos: { x: number; y: number };
-  currentPos: { x: number; y: number };
-  angle: number;
-  force: number;
-}
-
 interface ChatMessage {
   userId: string;
   userName: string;
@@ -63,7 +55,17 @@ interface UserMovement {
   rotation: { x: number; y: number; z: number };
 }
 
-const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
+const Scene1 = ({
+  jamId,
+  userId,
+  userName,
+  avatarUrl,
+}: {
+  jamId: string;
+  userId: string;
+  userName: string;
+  avatarUrl: string;
+}) => {
   const [isChatOpen, setIsChatOpen] = useState<boolean>(false);
   const [users, setUsers] = useState<Map<string, User>>(new Map());
   const [toasts, setToasts] = useState<Toast[]>([]);
@@ -75,20 +77,11 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
   const [isGlobalChat, setIsGlobalChat] = useState<boolean>(false);
   const messageInputRef = useRef<HTMLInputElement>(null);
   const [messageInput, setMessageInput] = useState<string>("");
-  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
+  const [isHelpOpen] = useState<boolean>(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
   const [isVoiceChatActive, setIsVoiceChatActive] = useState<boolean>(false);
 
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
-  const [onlineUsers, setOnlineUsers] = useState<User[]>([]);
-
-  const [joystickState] = useState<JoystickState>({
-    isActive: false,
-    startPos: { x: 0, y: 0 },
-    currentPos: { x: 0, y: 0 },
-    angle: 0,
-    force: 0,
-  });
 
   const mountRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +92,6 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
   const animationFrameId = useRef<number | null>(null);
   const avatarRef = useRef<THREE.Object3D | null>(null);
   const thirdPersonMode = useRef<boolean>(true);
-  const cameraOffsetRef = useRef<THREE.Vector3>(new THREE.Vector3(0, 1, 3));
   const keyStateRef = useRef<{ [key: string]: boolean | number }>({});
   const joystickRef = useRef<any>(null);
   const toastIdRef = useRef(0);
@@ -709,10 +701,10 @@ const Scene1 = ({ jamId, userId, userName, avatarUrl }) => {
         });
       },
       (progress) => {
-        // console.log(
-        //   `Loading avatar for ${name}:`,
-        //   (progress.loaded / progress.total) * 100
-        // );
+        console.log(
+          `Loading avatar for ${name}:`,
+          (progress.loaded / progress.total) * 100
+        );
       },
       (error) => {
         console.error(`Error loading avatar for ${name}:`, error);

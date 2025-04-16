@@ -83,7 +83,6 @@ export function Post({ posts }: PostProps) {
 
 function PostItem({
   item,
-  index,
   setShowComments,
   setActivePostId,
 }: {
@@ -94,7 +93,7 @@ function PostItem({
 }) {
   const [isLiked, setIsLiked] = useState(false);
   const [isBookmarked, setIsBookmarked] = useState(false);
-  const [likeCount, setLikeCount] = useState(item.likes?.length || 0);
+  const [likeCount] = useState(item.likes?.length || 0);
   const [isFollowing, setIsFollowing] = useState(false);
 
   const { user } = useSelector((state: RootState) => state.user);

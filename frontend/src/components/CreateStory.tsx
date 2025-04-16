@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { Camera, X, Send, Image as ImageIcon } from "lucide-react";
+import { X, Send, Image as ImageIcon } from "lucide-react";
 
 interface CreateStoryProps {
   onStoryCreated: (story: { image: string; caption: string }) => void;
@@ -9,54 +9,58 @@ interface CreateStoryProps {
 const CreateStoryComponent: React.FC<CreateStoryProps> = ({
   onStoryCreated,
   onCancel,
-}): JSX.Element => {
-  const [isOpen, setIsOpen] = useState(false);
+}) => {
   const [previewImage, setPreviewImage] = useState<string | null>(null);
   const [captionText, setCaptionText] = useState("");
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleOpen = () => {
-    setIsOpen(true);
-  };
+  // const handleOpen = () => {
+  //   setIsOpen(true);
+  // };
 
-  const handleClose = (): void => {
-    setIsOpen(false);
+  const handleClose = () => {
     setPreviewImage(null);
     setCaptionText("");
     if (onCancel) onCancel();
   };
 
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>): void => {
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (e: ProgressEvent<FileReader>): void => {
-        if (e.target?.result && typeof e.target.result === "string") {
-          setPreviewImage(e.target.result);
+      reader.onload = (e) => {
+        if (e.target?.result) {
+          setPreviewImage(e.target.result as string);
         }
       };
       reader.readAsDataURL(file);
     }
   };
 
-  const triggerFileInput = (): void => {
+  const triggerFileInput = () => {
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
   };
 
-  const handleSubmit = (): void => {
-    if (!previewImage) return;
-
+  const handleSubmit = () => {
     setIsUploading(true);
+
     // Simulate upload process
     setTimeout(() => {
-      onStoryCreated({
-        image: previewImage,
-        caption: captionText,
-      });
       setIsUploading(false);
+
+      // Create a new story object
+      const newStory = {
+        image: previewImage || "/api/placeholder/400/600",
+        caption: captionText,
+      };
+
+      if (onStoryCreated) {
+        onStoryCreated(newStory);
+      }
+
       handleClose();
     }, 1500);
   };
