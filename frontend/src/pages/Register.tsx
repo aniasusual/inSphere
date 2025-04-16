@@ -8,17 +8,14 @@ import { IconBrandGoogle, IconEye, IconEyeOff } from "@tabler/icons-react";
 import logo from "../assets/hyperlocalsvg.svg";
 import { ShootingStars } from "../components/ui/aceternity/shooting-stars";
 import { StarsBackground } from "../components/ui/aceternity/stars-background";
-import { usernameValidator } from "@lib/validators";
 import axios from "axios";
 import { toaster } from "@components/ui/toaster";
-import { Typography } from "@material-tailwind/react";
 
 import { Spinner } from "@material-tailwind/react";
 import { Link } from "react-router-dom";
 
 export function SignupFormDemo() {
   const [showPassword, setShowPassword] = useState(false);
-  const [validationError, setValidationError] = useState("");
   const [loader, setLoader] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -64,16 +61,6 @@ export function SignupFormDemo() {
   const registerDataChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setUser({ ...user, [name]: value });
-
-    if (name === "username") {
-      const validationResult = usernameValidator(value);
-      if (!validationResult.isValid) {
-        setValidationError(validationResult.errorMessage);
-      } else {
-        setValidationError("");
-      }
-    }
-    // setUser({ ...user, [e.target.name]: e.target.value });
   };
 
   const [user, setUser] = useState({
@@ -150,17 +137,6 @@ export function SignupFormDemo() {
               value={username}
               onChange={registerDataChange}
             />
-            {validationError && (
-              <Typography
-                variant="small"
-                color="red"
-                placeholder="blur"
-                onPointerEnterCapture={() => {}}
-                onPointerLeaveCapture={() => {}}
-              >
-                {validationError}
-              </Typography>
-            )}
           </LabelInputContainer>
           <LabelInputContainer className="mb-4">
             <Label htmlFor="password" className="text-white">
