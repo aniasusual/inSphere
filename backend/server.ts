@@ -1,15 +1,15 @@
 import app from "./app";
 import connectDatabase from "./config/database";
-import dotenv from 'dotenv';
+import { config } from 'dotenv';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 
 // Load environment variables
 if (process.env.NODE_ENV !== 'production') {
-    dotenv.config({ path: './config/config.env' });
+    config({ path: './config/config.env' });
 }
 
-import cloudinary from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 import { authenticateToken } from "./utils/socketAuthenticator";
 
 // Error handling
@@ -20,7 +20,7 @@ process.on("uncaughtException", (err: Error) => {
 });
 
 // Configure cloudinary
-cloudinary.v2.config({
+cloudinary.config({
     cloud_name: process.env.CLOUDINARY_NAME as string,
     api_key: process.env.CLOUDINARY_API_KEY as string,
     api_secret: process.env.CLOUDINARY_API_SECRET as string,
