@@ -1,5 +1,4 @@
 import nodemailer from 'nodemailer';
-import hbs from 'nodemailer-express-handlebars';
 import path from 'path';
 
 interface EmailOptions {
@@ -31,7 +30,8 @@ export const sendEmail = async ({ email, subject, message }: EmailOptions): Prom
             },
         });
 
-        transporter.use('compile', hbs(hbsOptions));
+        const hbs = await import('nodemailer-express-handlebars');
+        transporter.use('compile', hbs.default(hbsOptions));
 
         // Prepare the email options
         const mailOptions = {
