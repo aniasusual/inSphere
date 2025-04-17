@@ -8,9 +8,9 @@ import { Search } from "@pages/SearchPage";
 import { Golocal } from "@pages/GoLocal";
 import { Toaster } from "@components/ui/toaster";
 import { useEffect, useState } from "react";
-import { useDispatch } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { loaduser } from "actions/userActions";
-import { AppDispatch } from "store";
+import { AppDispatch, RootState } from "store";
 import ChannelPage from "@pages/Channel";
 import { checkLocationPermission, fetchCoords } from "@lib/utils";
 
@@ -23,8 +23,12 @@ import { JamPage } from "@pages/Jam";
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
 
+  const { isAuthenticated } = useSelector((state: RootState) => state.user);
+
   useEffect(() => {
-    dispatch(loaduser());
+    if (isAuthenticated) {
+      dispatch(loaduser());
+    }
   }, [dispatch]);
 
   const [stopTracking, setStopTracking] = useState<(() => void) | undefined>();
@@ -37,7 +41,7 @@ const App: React.FC = () => {
 
   useEffect(() => {
     const initLocationTracking = async () => {
-      const stopFn = await fetchCoords();
+      const stopFn = await fetchCoords(isAuthenticated || false);
       setStopTracking(() => stopFn); // Save the cleanup function
     };
 
