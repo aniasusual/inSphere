@@ -6,7 +6,7 @@ import { Server } from 'socket.io';
 
 // Load environment variables
 if (process.env.NODE_ENV !== 'production') {
-    config({ path: './config/config.env' });
+    config({ path: 'config/config.env' });
 }
 
 import { v2 as cloudinary } from "cloudinary";
