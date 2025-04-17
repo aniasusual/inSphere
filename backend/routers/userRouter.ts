@@ -6,7 +6,7 @@ import dotenv from 'dotenv';
 import { sendToken } from "../utils/jwtToken";
 // Config
 if (process.env.NODE_ENV !== 'production') {
-    dotenv.config({ path: 'backend/config/config.env' });
+    dotenv.config({ path: 'config/config.env' });
 }
 
 const userRouter = Router();
