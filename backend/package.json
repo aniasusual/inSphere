@@ -4,18 +4,17 @@
   "main": "server.ts",
   "scripts": {
     "build": "tsc",
-    "dev": "nodemon backend/server.ts",
-    "start": "ts-node backend/server.ts",
-    "prod": "NODE_ENV=production node --max-old-space-size=4096 -r ts-node/register backend/server.ts"
+    "dev": "nodemon server.ts",
+    "start": "ts-node server.ts",
+    "prod": "NODE_ENV=production node --max-old-space-size=4096 -r ts-node/register server.ts"
   },
   "author": "",
   "license": "ISC",
-  "description": "",
   "devDependencies": {
-    "nodemon": "^3.1.9",
-    "typescript": "^5.7.2"
+    "nodemon": "^3.1.9"
   },
   "dependencies": {
+    "typescript": "^5.7.2",
     "@types/bcryptjs": "^2.4.6",
     "@types/body-parser": "^1.19.5",
     "@types/cookie-parser": "^1.4.8",
@@ -65,5 +64,6 @@
     "ts-node": "^10.9.2",
     "uuid": "^11.0.5",
     "validator": "^13.12.0"
-  }
+  },
+  "description": ""
 }
