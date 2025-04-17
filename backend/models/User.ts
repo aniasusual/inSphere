@@ -232,7 +232,7 @@ userSchema.methods.getJWTToken = function (): string {
     return jwt.sign(
         { id: this._id },
         process.env.JWT_SECRET,
-        { expiresIn: process.env.JWT_EXPIRE || "1d" }
+        { expiresIn: process.env.JWT_EXPIRE || "1d" } as jwt.SignOptions
     );
 };
 
