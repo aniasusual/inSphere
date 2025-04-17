@@ -73,7 +73,7 @@ const updateUserLocation = async (longitude: number, latitude: number) => {
 
 }
 
-export const fetchCoords = async (): Promise<(() => void) | undefined> => {
+export const fetchCoords = async (isAuthenticated: boolean): Promise<(() => void) | undefined> => {
 
   try {
 
@@ -93,8 +93,9 @@ export const fetchCoords = async (): Promise<(() => void) | undefined> => {
           "userCoordinates",
           JSON.stringify({ latitude, longitude })
         );
-
-        updateUserLocation(longitude, latitude);
+        if (isAuthenticated) {
+          updateUserLocation(longitude, latitude);
+        }
 
 
         // toaster.create({
