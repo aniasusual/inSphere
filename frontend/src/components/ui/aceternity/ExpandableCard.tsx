@@ -5,7 +5,7 @@ import { useOutsideClick } from "@hooks/use-outside-click";
 
 // Define the shape of a Jam object
 interface Jam {
-    id: string;
+    _id: string;
     name: string;
     creator: { username: string };
     displayImage: { url: string };
@@ -41,7 +41,7 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
         title: jam.name,
         src: jam.displayImage.url,
         ctaText: "Join",
-        ctaLink: `/join/jam/${jam.id}`,
+        ctaLink: `/join/jam/${jam._id}`,
         content: () => <p>{jam.description}</p>,
     })) || [];
 
