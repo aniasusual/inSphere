@@ -107,6 +107,10 @@ const Scene1 = ({
   const lastPositionSent = useRef<THREE.Vector3>(new THREE.Vector3());
   const lastRotationSent = useRef<THREE.Euler>(new THREE.Euler());
 
+  // Constants
+  const FLOOR_SIZE = 50;
+  const BUFFER_ZONE = 2;
+
   // Reusable vectors for camera calculations
   const targetPosition = new THREE.Vector3();
   const offset = new THREE.Vector3();
@@ -163,13 +167,12 @@ const Scene1 = ({
       const newPosition = new THREE.Vector3()
         .copy(avatarRef.current.position)
         .add(moveVector);
-      const floorSize = 50;
 
       if (
-        newPosition.x >= -floorSize &&
-        newPosition.x <= floorSize &&
-        newPosition.z >= -floorSize &&
-        newPosition.z <= floorSize
+        newPosition.x >= -FLOOR_SIZE / 2 + BUFFER_ZONE &&
+        newPosition.x <= FLOOR_SIZE / 2 - BUFFER_ZONE &&
+        newPosition.z >= -FLOOR_SIZE / 2 + BUFFER_ZONE &&
+        newPosition.z <= FLOOR_SIZE / 2 - BUFFER_ZONE
       ) {
         avatarRef.current.position.copy(newPosition);
 
@@ -547,7 +550,7 @@ const Scene1 = ({
           });
         },
         (progress) => {
-          console.log(progress)
+          console.log(progress);
         },
         (error) => {
           console.error("Error loading avatar:", error);
@@ -834,8 +837,7 @@ const Scene1 = ({
     const scene = sceneRef.current;
     scene.background = new THREE.Color(0x87ceeb);
 
-    const floorSize = 10;
-    const floorGeometry = new THREE.PlaneGeometry(floorSize, floorSize, 1, 1);
+    const floorGeometry = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 1, 1);
     const floorMaterial = new THREE.MeshStandardMaterial({
       color: 0x4a7c59,
       roughness: 0.8,
@@ -978,12 +980,14 @@ const Scene1 = ({
 
       {/* Online Users */}
       <div
-        className={`user-box online-users ${isOnlineUsersCollapsed ? "collapsed" : ""
-          }`}
+        className={`user-box online-users ${
+          isOnlineUsersCollapsed ? "collapsed" : ""
+        }`}
       >
         <div
-          className={`user-box-header ${isOnlineUsersCollapsed ? "collapsed" : ""
-            }`}
+          className={`user-box-header ${
+            isOnlineUsersCollapsed ? "collapsed" : ""
+          }`}
           onClick={(e) => {
             e.stopPropagation();
             setIsOnlineUsersCollapsed(!isOnlineUsersCollapsed);
@@ -1014,12 +1018,14 @@ const Scene1 = ({
 
       {/* Nearby Users */}
       <div
-        className={`user-box nearby-users ${isNearbyUsersCollapsed ? "collapsed" : ""
-          }`}
+        className={`user-box nearby-users ${
+          isNearbyUsersCollapsed ? "collapsed" : ""
+        }`}
       >
         <div
-          className={`user-box-header ${isNearbyUsersCollapsed ? "collapsed" : ""
-            }`}
+          className={`user-box-header ${
+            isNearbyUsersCollapsed ? "collapsed" : ""
+          }`}
           onClick={(e) => {
             e.stopPropagation();
             setIsNearbyUsersCollapsed(!isNearbyUsersCollapsed);
@@ -1052,8 +1058,9 @@ const Scene1 = ({
         <div className="chat-panel">
           <div className="chat-header">
             <h3
-              className={`text-xl font-bold ${isGlobalChat ? "global-active" : ""
-                }`}
+              className={`text-xl font-bold ${
+                isGlobalChat ? "global-active" : ""
+              }`}
             >
               Chat
             </h3>
@@ -1065,8 +1072,9 @@ const Scene1 = ({
             {messages.map((msg, index) => (
               <div
                 key={`${msg.timestamp}-${index}`}
-                className={`chat-message ${msg.type === "system" ? "system-message" : msg.type
-                  }`}
+                className={`chat-message ${
+                  msg.type === "system" ? "system-message" : msg.type
+                }`}
               >
                 {msg.type === "system" ? (
                   <span>
