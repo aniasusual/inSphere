@@ -9,29 +9,29 @@ import { toaster } from "@components/ui/toaster";
 import CryptoCard from "@components/UserCard";
 import BentoGrid from "@components/Grid";
 
-interface SearchResult {
-  _id: string;
-  id?: string; // For Jam type
-  username?: string;
-  firstName?: string;
-  email?: string;
-  avatar?: { url: string };
-  title?: string;
-  description: string;
-  creator?: {
-    _id: string;
-    username: string;
-  };
-  mediaFiles?: { url: string }[];
-  displayImage?: { url: string };
-  name?: string;
-}
+// interface SearchResult {
+//   _id: string;
+//   id: string; // For Jam type
+//   username?: string;
+//   firstName?: string;
+//   email?: string;
+//   avatar?: { url: string };
+//   title?: string;
+//   description: string;
+//   creator?: {
+//     _id: string;
+//     username: string;
+//   };
+//   mediaFiles?: { url: string }[];
+//   displayImage?: { url: string };
+//   name?: string;
+// }
 
 export function Search() {
   const [listView, setListView] = useState(false);
   const [searchCategory, setSearchCategory] = useState("jam");
   const [searchText, setSearchText] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<any>([]);
   const [loading, setLoading] = useState(false);
 
   const handleSearchChange = (e: any) => {
@@ -74,9 +74,8 @@ export function Search() {
       try {
         const limit = 10;
         const page = 1;
-        const baseUrl = `${
-          import.meta.env.VITE_API_BACKEND_URL
-        }/api/v1/${searchCategory}/getSearchData`;
+        const baseUrl = `${import.meta.env.VITE_API_BACKEND_URL
+          }/api/v1/${searchCategory}/getSearchData`;
         const params = new URLSearchParams({
           limit: limit.toString(),
           page: page.toString(),
@@ -123,9 +122,8 @@ export function Search() {
               <Button
                 key={category.id}
                 onClick={() => setSearchCategory(category.id)}
-                className={`text-sm p-4 outline-none ${
-                  category.id === searchCategory ? "bg-red-700 text-white" : ""
-                }`}
+                className={`text-sm p-4 outline-none ${category.id === searchCategory ? "bg-red-700 text-white" : ""
+                  }`}
               >
                 {category.label}
               </Button>
@@ -158,13 +156,7 @@ export function Search() {
                   {searchResults.length > 0 ? (
                     <ExpandableCard
                       listView={listView}
-                      jams={searchResults.map((result) => ({
-                        id: result._id,
-                        name: result.name || "",
-                        creator: { username: result.creator?.username || "" },
-                        displayImage: { url: result.displayImage?.url || "" },
-                        description: result.description || "",
-                      }))}
+                      jams={searchResults}
                     />
                   ) : (
                     <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
