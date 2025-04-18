@@ -1,7 +1,7 @@
 import { NextFunction, Request, Response } from "express"
 import { userModel } from "../models/User";
 import { ErrorHandler } from "../utils/errorHandler";
-import { sendEmail } from "../utils/apifeatures";
+// import { sendEmail } from "../utils/apifeatures";
 import crypto from "crypto";
 import { sendToken } from "../utils/jwtToken";
 
@@ -28,11 +28,11 @@ export const registerUser = async (req: Request, res: Response, next: NextFuncti
         const verificationUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/verify-email/${verificationToken}`;
         const message = `Please verify your email by clicking on the link: \n\n ${verificationUrl}`;
 
-        await sendEmail({
-            email: user.email,
-            subject: 'Email Verification',
-            message,
-        });
+        // await sendEmail({
+        //     email: user.email,
+        //     subject: 'Email Verification',
+        //     message,
+        // });
 
         res.status(201).json({
             success: true,
