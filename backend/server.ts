@@ -30,12 +30,6 @@ export const userSocketIDs = new Map<string, string>();
 
 // Get port from environment or use default
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
-console.log(`Attempting to start server on port ${PORT}`);
-console.log(`Environment variables:`, {
-    NODE_ENV: process.env.NODE_ENV,
-    PORT: process.env.PORT,
-    FRONTEND_URL: process.env.FRONTEND_URL
-});
 
 // Create HTTP server with production settings
 const httpServer = createServer(app);

@@ -546,7 +546,9 @@ const Scene1 = ({
             max: box.max.toArray(),
           });
         },
-        undefined,
+        (progress) => {
+          console.log(progress)
+        },
         (error) => {
           console.error("Error loading avatar:", error);
         }
@@ -976,14 +978,12 @@ const Scene1 = ({
 
       {/* Online Users */}
       <div
-        className={`user-box online-users ${
-          isOnlineUsersCollapsed ? "collapsed" : ""
-        }`}
+        className={`user-box online-users ${isOnlineUsersCollapsed ? "collapsed" : ""
+          }`}
       >
         <div
-          className={`user-box-header ${
-            isOnlineUsersCollapsed ? "collapsed" : ""
-          }`}
+          className={`user-box-header ${isOnlineUsersCollapsed ? "collapsed" : ""
+            }`}
           onClick={(e) => {
             e.stopPropagation();
             setIsOnlineUsersCollapsed(!isOnlineUsersCollapsed);
@@ -1014,14 +1014,12 @@ const Scene1 = ({
 
       {/* Nearby Users */}
       <div
-        className={`user-box nearby-users ${
-          isNearbyUsersCollapsed ? "collapsed" : ""
-        }`}
+        className={`user-box nearby-users ${isNearbyUsersCollapsed ? "collapsed" : ""
+          }`}
       >
         <div
-          className={`user-box-header ${
-            isNearbyUsersCollapsed ? "collapsed" : ""
-          }`}
+          className={`user-box-header ${isNearbyUsersCollapsed ? "collapsed" : ""
+            }`}
           onClick={(e) => {
             e.stopPropagation();
             setIsNearbyUsersCollapsed(!isNearbyUsersCollapsed);
@@ -1054,9 +1052,8 @@ const Scene1 = ({
         <div className="chat-panel">
           <div className="chat-header">
             <h3
-              className={`text-xl font-bold ${
-                isGlobalChat ? "global-active" : ""
-              }`}
+              className={`text-xl font-bold ${isGlobalChat ? "global-active" : ""
+                }`}
             >
               Chat
             </h3>
@@ -1068,9 +1065,8 @@ const Scene1 = ({
             {messages.map((msg, index) => (
               <div
                 key={`${msg.timestamp}-${index}`}
-                className={`chat-message ${
-                  msg.type === "system" ? "system-message" : msg.type
-                }`}
+                className={`chat-message ${msg.type === "system" ? "system-message" : msg.type
+                  }`}
               >
                 {msg.type === "system" ? (
                   <span>
