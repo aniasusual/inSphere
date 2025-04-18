@@ -15,7 +15,7 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.getSearchData = exports.followUser = exports.updateUserLocation = exports.findUsersAround = exports.fetchUserById = exports.logout = exports.getUserDetails = exports.loginUser = exports.registerUser = void 0;
 const User_1 = require("../models/User");
 const errorHandler_1 = require("../utils/errorHandler");
-const apifeatures_1 = require("../utils/apifeatures");
+// import { sendEmail } from "../utils/apifeatures";
 const crypto_1 = __importDefault(require("crypto"));
 const jwtToken_1 = require("../utils/jwtToken");
 const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, function* () {
@@ -36,11 +36,11 @@ const registerUser = (req, res, next) => __awaiter(void 0, void 0, void 0, funct
         }
         const verificationUrl = `${req.protocol}://${req.get('host')}/api/v1/auth/verify-email/${verificationToken}`;
         const message = `Please verify your email by clicking on the link: \n\n ${verificationUrl}`;
-        yield (0, apifeatures_1.sendEmail)({
-            email: user.email,
-            subject: 'Email Verification',
-            message,
-        });
+        // await sendEmail({
+        //     email: user.email,
+        //     subject: 'Email Verification',
+        //     message,
+        // });
         res.status(201).json({
             success: true,
             message: 'Registration successful! Please check your email to verify your account.',
