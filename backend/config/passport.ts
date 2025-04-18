@@ -37,11 +37,22 @@ passport.use(
                     return done(null, user); // Log the user in
                 } else {
                     // Create a new user if the email doesn't exist
+                    const baseUsername = profile.displayName?.split(" ").join("").toLowerCase() || "user";
+                    let username = baseUsername;
+                    let count = 1;
+
+                    // Keep trying until you find an available username
+                    while (await userModel.findOne({ username })) {
+                        username = `${baseUsername}${count++}`;
+                    }
+
                     user = await userModel.create({
                         email,
-                        name: profile.displayName,
+                        username,
                         googleId: profile.id,
-                        // Other fields as necessary
+                        firstName: profile.name?.givenName || "",
+                        lastName: profile.name?.familyName || "",
+                        isVerified: true, // Optionally set verified since Google email is verified
                     });
 
                     const token = user.getJWTToken();
