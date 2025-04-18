@@ -67,7 +67,6 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
     try {
         // Connect to database
         yield (0, database_1.default)();
-        console.log("lode ak: ", PORT);
         // Start server
         httpServer.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
