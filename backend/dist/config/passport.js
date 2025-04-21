@@ -21,7 +21,7 @@ passport_1.default.use(new GoogleStrategy({
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_CALLBACK_URL,
 }, (accessToken, refreshToken, profile, done) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a;
+    var _a, _b, _c, _d;
     try {
         const email = (_a = profile.emails) === null || _a === void 0 ? void 0 : _a[0].value;
         // Check if the email already exists
@@ -40,11 +40,20 @@ passport_1.default.use(new GoogleStrategy({
         }
         else {
             // Create a new user if the email doesn't exist
+            const baseUsername = ((_b = profile.displayName) === null || _b === void 0 ? void 0 : _b.split(" ").join("").toLowerCase()) || "user";
+            let username = baseUsername;
+            let count = 1;
+            // Keep trying until you find an available username
+            while (yield User_1.userModel.findOne({ username })) {
+                username = `${baseUsername}${count++}`;
+            }
             user = yield User_1.userModel.create({
                 email,
-                name: profile.displayName,
+                username,
                 googleId: profile.id,
-                // Other fields as necessary
+                firstName: ((_c = profile.name) === null || _c === void 0 ? void 0 : _c.givenName) || "",
+                lastName: ((_d = profile.name) === null || _d === void 0 ? void 0 : _d.familyName) || "",
+                isVerified: true, // Optionally set verified since Google email is verified
             });
             const token = user.getJWTToken();
             user.authToken = token;
