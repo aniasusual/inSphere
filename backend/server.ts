@@ -244,7 +244,6 @@ io.on('connection', (socket) => {
         const { targetUserId, fromUserId, type } = data;
         const targetSocketId = userSocketIDs.get(targetUserId);
         if (targetSocketId) {
-            console.log(`Relaying ${type} from ${fromUserId} to ${targetUserId} (socket ${targetSocketId})`);
             io.to(targetSocketId).emit('webrtcSignal', data);
         } else {
             console.error(`No socket found for targetUserId: ${targetUserId}`);
@@ -254,9 +253,7 @@ io.on('connection', (socket) => {
     socket.on('relayICECandidate', (data) => {
         const { targetUserId, fromUserId, candidate } = data;
         const targetSocketId = userSocketIDs.get(targetUserId);
-        console.log("lode k beej")
         if (targetSocketId) {
-            console.log(`Relaying ICE candidate from ${fromUserId} to ${targetUserId}`);
             io.to(targetSocketId).emit('iceCandidate', { fromUserId, candidate });
         } else {
             console.error(`No socket found for targetUserId: ${targetUserId}`);
