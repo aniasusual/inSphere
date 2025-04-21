@@ -8,7 +8,6 @@ import { Toast } from "@metaverse/components/Toast";
 import logo from "@assets/hyperlocalNobg.png";
 
 import "./Scene1.css";
-import VoiceCall from "@metaverse/components/VoiceCall";
 
 const NEARBY_DISTANCE = 5;
 
@@ -79,7 +78,6 @@ const Scene1 = ({
   const [messageInput, setMessageInput] = useState<string>("");
   const [isHelpOpen] = useState<boolean>(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
-  const [isVoiceChatActive, setIsVoiceChatActive] = useState<boolean>(false);
 
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
 
@@ -637,7 +635,6 @@ const Scene1 = ({
 
   const handleNewICECandidate = (data: any) => {
     const { candidate, fromUserId } = data;
-    console.log(`Received ICE candidate from ${fromUserId}:`, candidate);
     const pc = peerConnectionsRef.current.get(fromUserId);
 
     if (pc) {
@@ -700,7 +697,6 @@ const Scene1 = ({
     );
 
     socket.on('webrtcSignal', (data: any) => {
-      console.log('Received WebRTC signal:', data);
       if (data.type === 'offer') {
         handleIncomingCall(data);
       } else if (data.type === 'answer') {
@@ -709,7 +705,6 @@ const Scene1 = ({
     });
 
     socket.on('iceCandidate', (data: any) => {
-      console.log('Received ICE candidate:', data);
       handleNewICECandidate(data);
     });
   };
@@ -809,7 +804,6 @@ const Scene1 = ({
     );
 
     if (localStreamRef.current && userId > id) {
-      console.log(`Initiating call to ${id} from ${userId}`);
       initiateCall(id);
     } else {
       console.log(`Skipping call initiation to ${id} (waiting for offer)`);
@@ -937,21 +931,16 @@ const Scene1 = ({
       ]
     });
 
-    console.log("localStreamRef.current: ", localStreamRef.current)
 
-    console.log("pc:", pc);
     // Add local tracks
     if (localStreamRef.current && isMicOn) {
-      console.log(`Adding audio tracks to peer connection for ${targetUserId}`);
       localStreamRef.current.getAudioTracks().forEach(track => {
-        console.log('Adding track:', track);
         pc.addTrack(track, localStreamRef.current!);
       });
     }
 
     // Handle incoming tracks
     pc.ontrack = (event) => {
-      console.log(`Received track from ${targetUserId}:`, event);
       const audioElement = document.createElement('audio');
       audioElement.srcObject = event.streams[0];
       audioElement.autoplay = true;
@@ -962,9 +951,7 @@ const Scene1 = ({
 
     // ICE candidate handling
     pc.onicecandidate = (event) => {
-      console.log("event: ", event);
       if (event.candidate) {
-        console.log(`Generated ICE candidate for ${targetUserId}:`, event.candidate);
         socket.emit('relayICECandidate', {
           candidate: event.candidate,
           targetUserId,
@@ -977,14 +964,12 @@ const Scene1 = ({
 
     // Connection state monitoring
     pc.onconnectionstatechange = () => {
-      console.log(`Connection state with ${targetUserId}: ${pc.connectionState}`);
       if (pc.connectionState === 'failed') {
         console.error(`Connection failed with ${targetUserId}`);
       }
     };
 
     pc.oniceconnectionstatechange = () => {
-      console.log(`ICE connection state with ${targetUserId}: ${pc.iceConnectionState}`);
       if (pc.iceConnectionState === 'failed') {
         console.error(`ICE connection failed with ${targetUserId}`);
       }
