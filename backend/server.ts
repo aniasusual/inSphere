@@ -240,55 +240,26 @@ io.on('connection', (socket) => {
 
     // Add these voice call related socket events in your io.on('connection') block
 
-    socket.on('voiceOffer', ({ offer, targetUserId }) => {
-        console.log("targetUserId", targetUserId);
+    socket.on('webrtcSignal', (data) => {
+        const { targetUserId, fromUserId, type } = data;
         const targetSocketId = userSocketIDs.get(targetUserId);
-        console.log("userSocketIDs", userSocketIDs);
         if (targetSocketId) {
-            console.log(`Forwarding voice offer from ${socket.id} to ${targetSocketId}`);
-            io.to(targetSocketId).emit('voiceOffer', {
-                offer,
-                fromUserId: userId
-            });
+            console.log(`Relaying ${type} from ${fromUserId} to ${targetUserId} (socket ${targetSocketId})`);
+            io.to(targetSocketId).emit('webrtcSignal', data);
         } else {
-            console.log(`Target user ${targetUserId} not found for voice offer`);
-            // Inform caller that target is not available
-            socket.emit('userUnavailable', { targetUserId });
+            console.error(`No socket found for targetUserId: ${targetUserId}`);
         }
     });
 
-    socket.on('voiceAnswer', ({ answer, targetUserId }) => {
+    socket.on('relayICECandidate', (data) => {
+        const { targetUserId, fromUserId, candidate } = data;
         const targetSocketId = userSocketIDs.get(targetUserId);
+        console.log("lode k beej")
         if (targetSocketId) {
-            console.log(`Forwarding voice answer from ${socket.id} to ${targetSocketId}`);
-            io.to(targetSocketId).emit('voiceAnswer', {
-                answer,
-                fromUserId: userId
-            });
+            console.log(`Relaying ICE candidate from ${fromUserId} to ${targetUserId}`);
+            io.to(targetSocketId).emit('iceCandidate', { fromUserId, candidate });
         } else {
-            console.log(`Target user ${targetUserId} not found for voice answer`);
-        }
-    });
-
-    socket.on('voiceCandidate', ({ candidate, targetUserId }) => {
-
-        const targetSocketId = userSocketIDs.get(targetUserId);
-        if (targetSocketId) {
-            console.log(`Forwarding ICE candidate from ${socket.id} to ${targetSocketId}`);
-            io.to(targetSocketId).emit('voiceCandidate', {
-                candidate,
-                fromUserId: userId
-            });
-        } else {
-            console.log(`Target user ${targetUserId} not found for ICE candidate`);
-        }
-    });
-
-    // Add this to handle disconnects more gracefully
-    socket.on('endCall', ({ targetUserId }) => {
-        const targetSocketId = userSocketIDs.get(targetUserId);
-        if (targetSocketId) {
-            io.to(targetSocketId).emit('callEnded', { fromUserId: userId });
+            console.error(`No socket found for targetUserId: ${targetUserId}`);
         }
     });
 
