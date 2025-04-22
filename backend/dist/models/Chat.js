@@ -54,7 +54,7 @@ const ChatSchema = new mongoose_1.Schema({
             return this.type === 'group' || this.type === 'jam' || this.type === 'channel';
         }
     },
-    avatar: { type: String },
+    // avatar: { type: String },
     lastMessage: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Message'
@@ -71,6 +71,9 @@ const ChatSchema = new mongoose_1.Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    updatedAt: {
+        type: Date
     }
 }, { timestamps: true });
 // Ensure single chats have exactly 2 participants

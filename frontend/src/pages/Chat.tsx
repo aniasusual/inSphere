@@ -60,6 +60,7 @@ const ChatPage = () => {
 
   // Fetch chats from backend
   useEffect(() => {
+    console.log(typingUsers)
     const fetchChats = async () => {
       setLoadingChats(true);
       setError(null);

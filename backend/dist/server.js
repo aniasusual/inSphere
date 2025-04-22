@@ -64,7 +64,7 @@ const startServer = () => __awaiter(void 0, void 0, void 0, function* () {
         // Start server
         httpServer.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-            console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+            // console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
         });
         // Handle server errors
         httpServer.on('error', (error) => {
@@ -97,21 +97,47 @@ io.use((socket, next) => __awaiter(void 0, void 0, void 0, function* () {
     }
 }));
 const JamUsers = new Map(); // Map<socketId, { jamId, userId, position, rotation, name }>
+const ChatUsers = new Map(); // Map<chatId, Set<userId>>
 io.on('connection', (socket) => {
     var _a;
     const userId = (_a = socket.data.user) === null || _a === void 0 ? void 0 : _a._id;
     exports.userSocketIDs.set(userId.toString(), socket.id);
-    console.log("userSocketIDs", exports.userSocketIDs);
     console.log(`User ${userId} connected`);
     if (!userId) {
         socket.emit('error', { message: 'Unauthorized access.' });
         socket.disconnect();
         return;
     }
+    // Broadcast user online status
+    io.emit('userStatus', { userId, status: 'online' });
+    // Chat related events
+    socket.on('joinChat', ({ chatId }) => {
+        socket.join(chatId);
+        if (!ChatUsers.has(chatId)) {
+            ChatUsers.set(chatId, new Set());
+        }
+        ChatUsers.get(chatId).add(userId);
+    });
+    socket.on('leaveChat', ({ chatId }) => {
+        var _a, _b;
+        socket.leave(chatId);
+        (_a = ChatUsers.get(chatId)) === null || _a === void 0 ? void 0 : _a.delete(userId);
+        if (((_b = ChatUsers.get(chatId)) === null || _b === void 0 ? void 0 : _b.size) === 0) {
+            ChatUsers.delete(chatId);
+        }
+    });
+    socket.on('sendMessage', ({ chatId, message }) => {
+        io.to(chatId).emit('message', message);
+    });
+    socket.on('typing', ({ chatId }) => {
+        socket.to(chatId).emit('typing', { userId, chatId });
+    });
+    socket.on('stopTyping', ({ chatId }) => {
+        socket.to(chatId).emit('stopTyping', { userId, chatId });
+    });
     // Handle user joining a jam
     socket.on('joinJam', ({ jamId, userId, userName, position, rotation, avatarUrl }) => {
         socket.join(jamId); // Join the jam room
-        console.log("User joined jam:", jamId, userId);
         JamUsers.set(socket.id, {
             jamId,
             userId,
@@ -224,7 +250,6 @@ io.on('connection', (socket) => {
         const { targetUserId, fromUserId, type } = data;
         const targetSocketId = exports.userSocketIDs.get(targetUserId);
         if (targetSocketId) {
-            console.log(`Relaying ${type} from ${fromUserId} to ${targetUserId} (socket ${targetSocketId})`);
             io.to(targetSocketId).emit('webrtcSignal', data);
         }
         else {
@@ -234,9 +259,7 @@ io.on('connection', (socket) => {
     socket.on('relayICECandidate', (data) => {
         const { targetUserId, fromUserId, candidate } = data;
         const targetSocketId = exports.userSocketIDs.get(targetUserId);
-        console.log("lode k beej");
         if (targetSocketId) {
-            console.log(`Relaying ICE candidate from ${fromUserId} to ${targetUserId}`);
             io.to(targetSocketId).emit('iceCandidate', { fromUserId, candidate });
         }
         else {
