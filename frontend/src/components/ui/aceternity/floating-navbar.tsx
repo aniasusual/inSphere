@@ -1,10 +1,8 @@
 "use client";
-import { useState } from "react";
+
 import {
   motion,
-  AnimatePresence,
-  useScroll,
-  useMotionValueEvent,
+
 } from "framer-motion";
 import { cn } from "@lib/utils";
 import { Link, useLocation } from "react-router-dom";
@@ -104,8 +102,8 @@ export const FloatingNav = ({
               src={user.avatar?.url || defaultAvatar}
               alt={user.firstName || "User"}
               placeholder=""
-              onPointerEnterCapture={() => {}}
-              onPointerLeaveCapture={() => {}}
+              onPointerEnterCapture={() => { }}
+              onPointerLeaveCapture={() => { }}
             />
           </div>
         </Link>

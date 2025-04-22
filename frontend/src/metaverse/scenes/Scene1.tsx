@@ -906,7 +906,7 @@ const Scene1 = ({
       const stream = await setupMediaStream();
       if (stream) {
         // Add tracks to all existing peer connections
-        peerConnectionsRef.current.forEach((pc, remoteUserId) => {
+        peerConnectionsRef.current.forEach((pc, _) => {
           stream.getAudioTracks().forEach(track => {
             pc.addTrack(track, stream);
           });

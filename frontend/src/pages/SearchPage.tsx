@@ -171,7 +171,7 @@ export function Search() {
             <div className="w-full gap-2 flex flex-col justify-center items-center">
               <span>showing {searchResults.length} results</span>
               {searchResults.length != 0 &&
-                searchResults.map((item) => {
+                searchResults.map((item: any) => {
                   return <CryptoCard key={item._id} user={item} />;
                 })}
             </div>
@@ -182,12 +182,12 @@ export function Search() {
               <span>showing {searchResults.length} results</span>
               {searchResults.length > 0 ? (
                 <BentoGrid
-                  posts={searchResults.map((result) => ({
+                  posts={searchResults.map((result: any) => ({
                     _id: result._id,
                     title: result.title || "",
                     description: result.description || "",
                     mediaFiles:
-                      result.mediaFiles?.map((file) => ({
+                      result.mediaFiles?.map((file: any) => ({
                         _id: Math.random().toString(36).substr(2, 9),
                         url: file.url || "",
                         type: "image",

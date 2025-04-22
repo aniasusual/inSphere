@@ -103,16 +103,16 @@ const fetchMyFeedPosts = (req, res) => __awaiter(void 0, void 0, void 0, functio
         // Fetch posts, sorted by creation time (newest first)
         const posts = yield Post_1.Post
             .find({
-                creator: { $in: followedUserIds },
-                accessibility: 'public'
-            })
+            creator: { $in: followedUserIds },
+            accessibility: 'public'
+        })
             .sort({ createdAt: -1 }) // Ensures newest posts first, mixed across all users
             .skip(skip)
             .limit(limit)
             .populate({
-                path: 'creator',
-                select: 'username avatar firstName lastName _id'
-            })
+            path: 'creator',
+            select: 'username avatar firstName lastName _id'
+        })
             .lean();
         // Total count for pagination
         const totalPosts = yield Post_1.Post.countDocuments({
@@ -255,9 +255,9 @@ const getPostDetails = (req, res) => __awaiter(void 0, void 0, void 0, function*
         // Fetch the post and populate the creator field
         const post = yield Post_1.Post.findById(postId)
             .populate({
-                path: "creator",
-                select: "firstName username avatar", // Only fetch necessary fields
-            })
+            path: "creator",
+            select: "firstName username avatar", // Only fetch necessary fields
+        })
             .lean(); // Use lean() for better performance if you don't need a Mongoose document
         if (!post) {
             res.status(404).json({
@@ -431,7 +431,6 @@ const findPostsAround = (req, res) => __awaiter(void 0, void 0, void 0, function
             .populate('creator', 'username profilePicture') // Optional: populate creator info
             .populate('comments') // Optional: populate comments
             .lean(); // Convert to plain JavaScript objects
-        console.log("Posts found:", posts.length);
         // Return success response with found posts
         res.status(200).json({
             success: true,
