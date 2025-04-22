@@ -33,10 +33,9 @@ function Home() {
         setPosts(data.data.posts);
       }
 
-      console.log(data.data);
     };
 
-    const fetchRandomPosts = async () => {};
+    const fetchRandomPosts = async () => { };
 
     if (isAuthenticated) {
       fetchMyFeedPosts();

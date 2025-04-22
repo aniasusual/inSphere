@@ -86,7 +86,6 @@ export function Search() {
           withCredentials: true,
         });
 
-        console.log("Search results:", data.data);
         setSearchResults(data.data || []); // Ensure fallback to empty array if data.data is undefined
       } catch (error) {
         console.error("Failed to fetch data:", error);

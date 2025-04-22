@@ -59,7 +59,7 @@ const startServer = async () => {
         // Start server
         httpServer.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-            console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+            // console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
         });
 
         // Handle server errors
@@ -101,7 +101,6 @@ io.on('connection', (socket) => {
 
     userSocketIDs.set(userId.toString(), socket.id);
 
-    console.log("userSocketIDs", userSocketIDs);
     console.log(`User ${userId} connected`);
 
     if (!userId) {
@@ -114,7 +113,6 @@ io.on('connection', (socket) => {
     socket.on('joinJam', ({ jamId, userId, userName, position, rotation, avatarUrl }) => {
         socket.join(jamId); // Join the jam room
 
-        console.log("User joined jam:", jamId, userId);
         JamUsers.set(socket.id, {
             jamId,
             userId,

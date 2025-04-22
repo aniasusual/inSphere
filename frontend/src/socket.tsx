@@ -34,7 +34,6 @@ const SocketProvider: React.FC<SocketProviderProps> = ({ children }) => {
 
         // Add connection listeners
         newSocket.on('connect', () => {
-            console.log('Socket connected lora');
             setIsConnected(true);
         });
 
