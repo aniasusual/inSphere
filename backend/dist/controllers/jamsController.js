@@ -119,7 +119,7 @@ const getSearchData = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 .skip(skip)
                 .limit(limit)
                 .populate('creator', 'username email')
-                .populate('participants', 'username')
+                // .populate('participants', 'username', "_id")
                 .lean();
             message = `Retrieved ${jams.length} jams matching search query "${searchQuery}"`;
         }
@@ -143,7 +143,7 @@ const getSearchData = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         const formattedJams = jams
             .filter(jam => jam !== null)
             .map(jam => ({
-            id: jam._id,
+            _id: jam._id,
             name: jam.name,
             description: jam.description,
             creator: jam.creator,

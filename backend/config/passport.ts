@@ -37,11 +37,31 @@ passport.use(
                     return done(null, user); // Log the user in
                 } else {
                     // Create a new user if the email doesn't exist
+                    function generateRandomUsername(): string {
+                        const adjectives = ["fast", "cool", "smart", "brave", "funny", "sneaky", "happy"];
+                        const animals = ["tiger", "panda", "eagle", "lion", "shark", "wolf", "koala"];
+                        const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+                        const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+                        const randomNum = Math.floor(Math.random() * 10000);
+
+                        return `${randomAdj}${randomAnimal}${randomNum}`;
+                    }
+
+                    const username = generateRandomUsername();
+                    // let count = 1;
+
+                    // // Keep trying until you find an available username
+                    // while (await userModel.findOne({ username })) {
+                    //     username = `${baseUsername}${count++}`;
+                    // }
+
                     user = await userModel.create({
                         email,
-                        name: profile.displayName,
+                        username,
                         googleId: profile.id,
-                        // Other fields as necessary
+                        firstName: profile.name?.givenName || "",
+                        lastName: profile.name?.familyName || "",
+                        isVerified: true, // Optionally set verified since Google email is verified
                     });
 
                     const token = user.getJWTToken();

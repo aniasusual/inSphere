@@ -318,11 +318,9 @@ const getPostDetails = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.getPostDetails = getPostDetails;
 const getSearchData = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("reaches here");
     try {
         // Extract query parameters
         const { q, creator, accessibility, location, radius, limit = "10", page = "1", } = req.query;
-        console.log("reaches here");
         // Build the MongoDB query
         const query = {};
         // Text search across title, description, and hashtags
@@ -433,7 +431,6 @@ const findPostsAround = (req, res) => __awaiter(void 0, void 0, void 0, function
             .populate('creator', 'username profilePicture') // Optional: populate creator info
             .populate('comments') // Optional: populate comments
             .lean(); // Convert to plain JavaScript objects
-        console.log("Posts found:", posts.length);
         // Return success response with found posts
         res.status(200).json({
             success: true,

@@ -132,3 +132,31 @@
 .user-box a:hover .w-2 {
     transform: scale(1.2);
 }
+
+
+.mic-active {
+    background-color: rgba(0, 255, 0, 0.3) !important;
+}
+
+.mic-inactive {
+    background-color: rgba(255, 0, 0, 0.3) !important;
+}
+
+/* Add visual indication for users who are speaking */
+.user-speaking {
+    animation: pulse 1s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        text-shadow: 0 0 0 rgba(0, 255, 0, 0);
+    }
+
+    50% {
+        text-shadow: 0 0 10px rgba(0, 255, 0, 0.7);
+    }
+
+    100% {
+        text-shadow: 0 0 0 rgba(0, 255, 0, 0);
+    }
+}

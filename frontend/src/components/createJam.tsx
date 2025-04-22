@@ -56,7 +56,6 @@ const CreateJam = ({ onClose }: Props) => {
         formDataToSend.append("location[1]", parsedData.latitude);
       }
 
-      console.log("formData.displayImage: ", formData.displayImage);
       // Append the image file if it exists
       if (formData.displayImage) {
         formDataToSend.append("displayImage", formData.displayImage);
@@ -67,13 +66,12 @@ const CreateJam = ({ onClose }: Props) => {
         withCredentials: true,
       };
 
-      const { data } = await axios.post(
+      await axios.post(
         `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/jam/create`,
         formDataToSend,
         config
       );
 
-      console.log("Jam created:", data);
       setFormData({
         name: "",
         description: "",
@@ -106,7 +104,6 @@ const CreateJam = ({ onClose }: Props) => {
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
-    console.log("file: ", file);
     if (file) {
       // Update form data with the selected file
       setFormData((prev) => ({
@@ -376,8 +373,7 @@ const CreateJam = ({ onClose }: Props) => {
                   flex items-center justify-center gap-2
                   transition-all duration-300 ease-out
                   transform hover:scale-[1.02] hover:shadow-xl
-                  font-medium tracking-wide ${
-                    loading ? "opacity-50 cursor-not-allowed" : ""
+                  font-medium tracking-wide ${loading ? "opacity-50 cursor-not-allowed" : ""
                   }`}
               >
                 <Plus className="w-5 h-5" />

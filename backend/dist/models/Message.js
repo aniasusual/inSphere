@@ -37,7 +37,7 @@ exports.Message = void 0;
 const mongoose_1 = __importStar(require("mongoose"));
 // Create the Mongoose Schema
 const MessageSchema = new mongoose_1.Schema({
-    jam: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Jam', required: true },
+    jam: { type: mongoose_1.Schema.Types.ObjectId, ref: 'Jam' },
     conversationId: {
         type: mongoose_1.Schema.Types.ObjectId,
         ref: 'Conversation',

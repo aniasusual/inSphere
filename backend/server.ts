@@ -30,12 +30,6 @@ export const userSocketIDs = new Map<string, string>();
 
 // Get port from environment or use default
 const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4000;
-console.log(`Attempting to start server on port ${PORT}`);
-console.log(`Environment variables:`, {
-    NODE_ENV: process.env.NODE_ENV,
-    PORT: process.env.PORT,
-    FRONTEND_URL: process.env.FRONTEND_URL
-});
 
 // Create HTTP server with production settings
 const httpServer = createServer(app);
@@ -65,7 +59,7 @@ const startServer = async () => {
         // Start server
         httpServer.listen(PORT, '0.0.0.0', () => {
             console.log(`Server is running in ${process.env.NODE_ENV || 'development'} mode on port ${PORT}`);
-            console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
+            // console.log(`Memory usage: ${Math.round(process.memoryUsage().heapUsed / 1024 / 1024)}MB`);
         });
 
         // Handle server errors
@@ -100,6 +94,7 @@ io.use(async (socket, next) => {
 });
 
 const JamUsers = new Map(); // Map<socketId, { jamId, userId, position, rotation, name }>
+const ChatUsers = new Map<string, Set<string>>(); // Map<chatId, Set<userId>>
 
 io.on('connection', (socket) => {
 
@@ -107,7 +102,6 @@ io.on('connection', (socket) => {
 
     userSocketIDs.set(userId.toString(), socket.id);
 
-    console.log("userSocketIDs", userSocketIDs);
     console.log(`User ${userId} connected`);
 
     if (!userId) {
@@ -116,11 +110,42 @@ io.on('connection', (socket) => {
         return;
     }
 
+    // Broadcast user online status
+    io.emit('userStatus', { userId, status: 'online' });
+
+    // Chat related events
+    socket.on('joinChat', ({ chatId }) => {
+        socket.join(chatId);
+        if (!ChatUsers.has(chatId)) {
+            ChatUsers.set(chatId, new Set());
+        }
+        ChatUsers.get(chatId)!.add(userId);
+    });
+
+    socket.on('leaveChat', ({ chatId }) => {
+        socket.leave(chatId);
+        ChatUsers.get(chatId)?.delete(userId);
+        if (ChatUsers.get(chatId)?.size === 0) {
+            ChatUsers.delete(chatId);
+        }
+    });
+
+    socket.on('sendMessage', ({ chatId, message }) => {
+        io.to(chatId).emit('message', message);
+    });
+
+    socket.on('typing', ({ chatId }) => {
+        socket.to(chatId).emit('typing', { userId, chatId });
+    });
+
+    socket.on('stopTyping', ({ chatId }) => {
+        socket.to(chatId).emit('stopTyping', { userId, chatId });
+    });
+
     // Handle user joining a jam
     socket.on('joinJam', ({ jamId, userId, userName, position, rotation, avatarUrl }) => {
         socket.join(jamId); // Join the jam room
 
-        console.log("User joined jam:", jamId, userId);
         JamUsers.set(socket.id, {
             jamId,
             userId,
@@ -246,55 +271,23 @@ io.on('connection', (socket) => {
 
     // Add these voice call related socket events in your io.on('connection') block
 
-    socket.on('voiceOffer', ({ offer, targetUserId }) => {
-        console.log("targetUserId", targetUserId);
+    socket.on('webrtcSignal', (data) => {
+        const { targetUserId, fromUserId, type } = data;
         const targetSocketId = userSocketIDs.get(targetUserId);
-        console.log("userSocketIDs", userSocketIDs);
         if (targetSocketId) {
-            console.log(`Forwarding voice offer from ${socket.id} to ${targetSocketId}`);
-            io.to(targetSocketId).emit('voiceOffer', {
-                offer,
-                fromUserId: userId
-            });
+            io.to(targetSocketId).emit('webrtcSignal', data);
         } else {
-            console.log(`Target user ${targetUserId} not found for voice offer`);
-            // Inform caller that target is not available
-            socket.emit('userUnavailable', { targetUserId });
+            console.error(`No socket found for targetUserId: ${targetUserId}`);
         }
     });
 
-    socket.on('voiceAnswer', ({ answer, targetUserId }) => {
+    socket.on('relayICECandidate', (data) => {
+        const { targetUserId, fromUserId, candidate } = data;
         const targetSocketId = userSocketIDs.get(targetUserId);
         if (targetSocketId) {
-            console.log(`Forwarding voice answer from ${socket.id} to ${targetSocketId}`);
-            io.to(targetSocketId).emit('voiceAnswer', {
-                answer,
-                fromUserId: userId
-            });
+            io.to(targetSocketId).emit('iceCandidate', { fromUserId, candidate });
         } else {
-            console.log(`Target user ${targetUserId} not found for voice answer`);
-        }
-    });
-
-    socket.on('voiceCandidate', ({ candidate, targetUserId }) => {
-
-        const targetSocketId = userSocketIDs.get(targetUserId);
-        if (targetSocketId) {
-            console.log(`Forwarding ICE candidate from ${socket.id} to ${targetSocketId}`);
-            io.to(targetSocketId).emit('voiceCandidate', {
-                candidate,
-                fromUserId: userId
-            });
-        } else {
-            console.log(`Target user ${targetUserId} not found for ICE candidate`);
-        }
-    });
-
-    // Add this to handle disconnects more gracefully
-    socket.on('endCall', ({ targetUserId }) => {
-        const targetSocketId = userSocketIDs.get(targetUserId);
-        if (targetSocketId) {
-            io.to(targetSocketId).emit('callEnded', { fromUserId: userId });
+            console.error(`No socket found for targetUserId: ${targetUserId}`);
         }
     });
 

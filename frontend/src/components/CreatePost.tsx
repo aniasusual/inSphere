@@ -195,8 +195,6 @@ const PostCreationForm = ({ onClose }: Props) => {
         }
       );
 
-      console.log("data: ", data);
-
       if (data.success) {
         toaster.create({
           description: data.message,
@@ -297,11 +295,10 @@ const PostCreationForm = ({ onClose }: Props) => {
                                 py-4 px-6 rounded-xl border-2
                                 transition-all duration-300 ease-out
                                 flex items-center gap-2
-                                ${
-                                  formData.isPrivate
-                                    ? "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700"
-                                    : "bg-gradient-to-br from-red-500 to-red-600 text-white border-transparent"
-                                }
+                                ${formData.isPrivate
+                    ? "bg-white dark:bg-gray-800 border-gray-100 dark:border-gray-700"
+                    : "bg-gradient-to-br from-red-500 to-red-600 text-white border-transparent"
+                  }
                             `}
               >
                 {formData.isPrivate ? (

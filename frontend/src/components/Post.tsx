@@ -40,7 +40,6 @@ interface PostProps {
 }
 
 export function Post({ posts }: PostProps) {
-  console.log("posts: ", posts);
   const [activePostId, setActivePostId] = useState<string | null>(null);
   const [showComments, setShowComments] = useState(false);
 
@@ -284,8 +283,8 @@ function PostItem({
                   size="md"
                   className="border-2 border-blue-500 shadow-lg"
                   placeholder="blur"
-                  onPointerEnterCapture={() => {}}
-                  onPointerLeaveCapture={() => {}}
+                  onPointerEnterCapture={() => { }}
+                  onPointerLeaveCapture={() => { }}
                 />
               </Link>
             </motion.div>
@@ -418,11 +417,10 @@ function PostItem({
               stroke={1.5}
               size={30}
               fill={isBookmarked ? "currentColor" : "none"}
-              className={`hover:cursor-pointer transition-colors ${
-                isBookmarked
+              className={`hover:cursor-pointer transition-colors ${isBookmarked
                   ? "text-purple-500"
                   : "hover:text-purple-500 dark:text-gray-300"
-              }`}
+                }`}
               onClick={(e) => toggleBookmark(e)}
             />
           </motion.div>

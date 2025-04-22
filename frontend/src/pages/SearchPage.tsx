@@ -9,29 +9,29 @@ import { toaster } from "@components/ui/toaster";
 import CryptoCard from "@components/UserCard";
 import BentoGrid from "@components/Grid";
 
-interface SearchResult {
-  _id: string;
-  id?: string; // For Jam type
-  username?: string;
-  firstName?: string;
-  email?: string;
-  avatar?: { url: string };
-  title?: string;
-  description: string;
-  creator?: {
-    _id: string;
-    username: string;
-  };
-  mediaFiles?: { url: string }[];
-  displayImage?: { url: string };
-  name?: string;
-}
+// interface SearchResult {
+//   _id: string;
+//   id: string; // For Jam type
+//   username?: string;
+//   firstName?: string;
+//   email?: string;
+//   avatar?: { url: string };
+//   title?: string;
+//   description: string;
+//   creator?: {
+//     _id: string;
+//     username: string;
+//   };
+//   mediaFiles?: { url: string }[];
+//   displayImage?: { url: string };
+//   name?: string;
+// }
 
 export function Search() {
   const [listView, setListView] = useState(false);
   const [searchCategory, setSearchCategory] = useState("jam");
   const [searchText, setSearchText] = useState("");
-  const [searchResults, setSearchResults] = useState<SearchResult[]>([]);
+  const [searchResults, setSearchResults] = useState<any>([]);
   const [loading, setLoading] = useState(false);
 
   const handleSearchChange = (e: any) => {
@@ -74,9 +74,8 @@ export function Search() {
       try {
         const limit = 10;
         const page = 1;
-        const baseUrl = `${
-          import.meta.env.VITE_API_BACKEND_URL
-        }/api/v1/${searchCategory}/getSearchData`;
+        const baseUrl = `${import.meta.env.VITE_API_BACKEND_URL
+          }/api/v1/${searchCategory}/getSearchData`;
         const params = new URLSearchParams({
           limit: limit.toString(),
           page: page.toString(),
@@ -87,7 +86,6 @@ export function Search() {
           withCredentials: true,
         });
 
-        console.log("Search results:", data.data);
         setSearchResults(data.data || []); // Ensure fallback to empty array if data.data is undefined
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -123,9 +121,8 @@ export function Search() {
               <Button
                 key={category.id}
                 onClick={() => setSearchCategory(category.id)}
-                className={`text-sm p-4 outline-none ${
-                  category.id === searchCategory ? "bg-red-700 text-white" : ""
-                }`}
+                className={`text-sm p-4 outline-none ${category.id === searchCategory ? "bg-red-700 text-white" : ""
+                  }`}
               >
                 {category.label}
               </Button>
@@ -158,13 +155,7 @@ export function Search() {
                   {searchResults.length > 0 ? (
                     <ExpandableCard
                       listView={listView}
-                      jams={searchResults.map((result) => ({
-                        id: result._id,
-                        name: result.name || "",
-                        creator: { username: result.creator?.username || "" },
-                        displayImage: { url: result.displayImage?.url || "" },
-                        description: result.description || "",
-                      }))}
+                      jams={searchResults}
                     />
                   ) : (
                     <p className="text-center text-gray-600 dark:text-gray-400 mt-4">
@@ -180,7 +171,7 @@ export function Search() {
             <div className="w-full gap-2 flex flex-col justify-center items-center">
               <span>showing {searchResults.length} results</span>
               {searchResults.length != 0 &&
-                searchResults.map((item) => {
+                searchResults.map((item: any) => {
                   return <CryptoCard key={item._id} user={item} />;
                 })}
             </div>
@@ -191,12 +182,12 @@ export function Search() {
               <span>showing {searchResults.length} results</span>
               {searchResults.length > 0 ? (
                 <BentoGrid
-                  posts={searchResults.map((result) => ({
+                  posts={searchResults.map((result: any) => ({
                     _id: result._id,
                     title: result.title || "",
                     description: result.description || "",
                     mediaFiles:
-                      result.mediaFiles?.map((file) => ({
+                      result.mediaFiles?.map((file: any) => ({
                         _id: Math.random().toString(36).substr(2, 9),
                         url: file.url || "",
                         type: "image",

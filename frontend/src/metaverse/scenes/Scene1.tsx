@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, useCallback } from "react";
 import * as THREE from "three";
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
@@ -8,7 +8,6 @@ import { Toast } from "@metaverse/components/Toast";
 import logo from "@assets/hyperlocalNobg.png";
 
 import "./Scene1.css";
-import VoiceCall from "@metaverse/components/VoiceCall";
 
 const NEARBY_DISTANCE = 5;
 
@@ -79,9 +78,10 @@ const Scene1 = ({
   const [messageInput, setMessageInput] = useState<string>("");
   const [isHelpOpen] = useState<boolean>(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
-  const [isVoiceChatActive, setIsVoiceChatActive] = useState<boolean>(false);
 
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
+
+  const [isMicOn, setIsMicOn] = useState<boolean>(true);
 
   const mountRef = useRef<HTMLDivElement>(null);
 
@@ -96,6 +96,11 @@ const Scene1 = ({
   const joystickRef = useRef<any>(null);
   const toastIdRef = useRef(0);
 
+  //WebRTC refs
+  const localStreamRef = useRef<MediaStream | null>(null);
+  const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
+
   const cameraAnglesRef = useRef({ yaw: 0, pitch: 0 });
   const cameraDistanceRef = useRef(3);
   const targetDistanceRef = useRef(3);
@@ -106,6 +111,10 @@ const Scene1 = ({
 
   const lastPositionSent = useRef<THREE.Vector3>(new THREE.Vector3());
   const lastRotationSent = useRef<THREE.Euler>(new THREE.Euler());
+
+  // Constants
+  const FLOOR_SIZE = 50;
+  const BUFFER_ZONE = 2;
 
   // Reusable vectors for camera calculations
   const targetPosition = new THREE.Vector3();
@@ -163,13 +172,12 @@ const Scene1 = ({
       const newPosition = new THREE.Vector3()
         .copy(avatarRef.current.position)
         .add(moveVector);
-      const floorSize = 50;
 
       if (
-        newPosition.x >= -floorSize &&
-        newPosition.x <= floorSize &&
-        newPosition.z >= -floorSize &&
-        newPosition.z <= floorSize
+        newPosition.x >= -FLOOR_SIZE / 2 + BUFFER_ZONE &&
+        newPosition.x <= FLOOR_SIZE / 2 - BUFFER_ZONE &&
+        newPosition.z >= -FLOOR_SIZE / 2 + BUFFER_ZONE &&
+        newPosition.z <= FLOOR_SIZE / 2 - BUFFER_ZONE
       ) {
         avatarRef.current.position.copy(newPosition);
 
@@ -540,11 +548,7 @@ const Scene1 = ({
 
           setIsLoading(false);
 
-          const box = new THREE.Box3().setFromObject(avatar);
-          console.log("Avatar bounding box:", {
-            min: box.min.toArray(),
-            max: box.max.toArray(),
-          });
+          new THREE.Box3().setFromObject(avatar);
         },
         undefined,
         (error) => {
@@ -596,6 +600,46 @@ const Scene1 = ({
     updateCameraPosition(deltaTime);
     if (rendererRef.current && cameraRef.current) {
       rendererRef.current.render(sceneRef.current, cameraRef.current);
+    }
+  };
+
+  const handleIncomingCall = async (data: any) => {
+    const { offer, fromUserId } = data;
+    const pc = createPeerConnection(fromUserId);
+
+    try {
+      await pc.setRemoteDescription(new RTCSessionDescription(offer));
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      socket.emit('webrtcSignal', {
+        type: 'answer',
+        answer: pc.localDescription,
+        targetUserId: fromUserId,
+        fromUserId: userId
+      });
+    } catch (error) {
+      console.error("Error handling incoming call:", error);
+    }
+  };
+
+  const handleAnswer = (data: any) => {
+    const { answer, fromUserId } = data;
+    const pc = peerConnectionsRef.current.get(fromUserId);
+
+    if (pc) {
+      pc.setRemoteDescription(new RTCSessionDescription(answer))
+        .catch(error => console.error("Error setting remote description:", error));
+    }
+  };
+
+  const handleNewICECandidate = (data: any) => {
+    const { candidate, fromUserId } = data;
+    const pc = peerConnectionsRef.current.get(fromUserId);
+
+    if (pc) {
+      pc.addIceCandidate(new RTCIceCandidate(candidate))
+        .catch(error => console.error("Error adding ICE candidate:", error));
     }
   };
 
@@ -651,6 +695,18 @@ const Scene1 = ({
         setMessages((prev) => [...prev, newMessage]);
       }
     );
+
+    socket.on('webrtcSignal', (data: any) => {
+      if (data.type === 'offer') {
+        handleIncomingCall(data);
+      } else if (data.type === 'answer') {
+        handleAnswer(data);
+      }
+    });
+
+    socket.on('iceCandidate', (data: any) => {
+      handleNewICECandidate(data);
+    });
   };
 
   const addUserToScene = (userData: any) => {
@@ -700,12 +756,7 @@ const Scene1 = ({
           return newUsers;
         });
       },
-      (progress) => {
-        console.log(
-          `Loading avatar for ${name}:`,
-          (progress.loaded / progress.total) * 100
-        );
-      },
+      undefined,
       (error) => {
         console.error(`Error loading avatar for ${name}:`, error);
         // Create a simple capsule character as fallback
@@ -751,6 +802,12 @@ const Scene1 = ({
         });
       }
     );
+
+    if (localStreamRef.current && userId > id) {
+      initiateCall(id);
+    } else {
+      console.log(`Skipping call initiation to ${id} (waiting for offer)`);
+    }
   };
 
   const findNearbyUsers = () => {
@@ -796,10 +853,6 @@ const Scene1 = ({
     setMessageInput("");
   };
 
-  const toggleVoiceChat = () => {
-    setIsVoiceChatActive(true);
-  };
-
   const handleKeyUp = (event: KeyboardEvent) => {
     keyStateRef.current[event.code] = false;
   };
@@ -818,6 +871,7 @@ const Scene1 = ({
       }, 100);
     }
   };
+
   const handleResize = () => {
     if (cameraRef.current && rendererRef.current) {
       cameraRef.current.aspect = window.innerWidth / window.innerHeight;
@@ -826,14 +880,168 @@ const Scene1 = ({
     }
   };
 
+  const setupMediaStream = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      localStreamRef.current = stream;
+      return stream;
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+      return null;
+    }
+  };
+
+  const toggleMicrophone = async () => {
+    const newMicState = !isMicOn;
+    setIsMicOn(newMicState);
+
+    if (localStreamRef.current) {
+      localStreamRef.current.getAudioTracks().forEach(track => {
+        track.enabled = newMicState;
+      });
+    }
+
+    // If turning on mic and we don't have a stream yet
+    if (newMicState && !localStreamRef.current) {
+      const stream = await setupMediaStream();
+      if (stream) {
+        // Add tracks to all existing peer connections
+        peerConnectionsRef.current.forEach((pc, _) => {
+          stream.getAudioTracks().forEach(track => {
+            pc.addTrack(track, stream);
+          });
+        });
+      }
+    }
+  };
+
+  const createPeerConnection = (targetUserId: string) => {
+    if (peerConnectionsRef.current.has(targetUserId)) {
+      return peerConnectionsRef.current.get(targetUserId)!;
+    }
+
+
+
+    const pc = new RTCPeerConnection({
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun.stunprotocol.org:3478' },
+
+      ]
+    });
+
+
+    // Add local tracks
+    if (localStreamRef.current && isMicOn) {
+      localStreamRef.current.getAudioTracks().forEach(track => {
+        pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    // Handle incoming tracks
+    pc.ontrack = (event) => {
+      const audioElement = document.createElement('audio');
+      audioElement.srcObject = event.streams[0];
+      audioElement.autoplay = true;
+      audioElement.muted = true; // Initially muted
+      audioElementsRef.current.set(targetUserId, audioElement);
+      document.body.appendChild(audioElement);
+    };
+
+    // ICE candidate handling
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit('relayICECandidate', {
+          candidate: event.candidate,
+          targetUserId,
+          fromUserId: userId
+        });
+      } else {
+        console.log(`ICE candidate gathering complete for ${targetUserId}`);
+      }
+    };
+
+    // Connection state monitoring
+    pc.onconnectionstatechange = () => {
+      if (pc.connectionState === 'failed') {
+        console.error(`Connection failed with ${targetUserId}`);
+      }
+    };
+
+    pc.oniceconnectionstatechange = () => {
+      if (pc.iceConnectionState === 'failed') {
+        console.error(`ICE connection failed with ${targetUserId}`);
+      }
+    };
+
+    pc.onicegatheringstatechange = () => {
+      console.log(`ICE gathering state with ${targetUserId}: ${pc.iceGatheringState}`);
+    };
+
+    peerConnectionsRef.current.set(targetUserId, pc);
+    return pc;
+  };
+
+  const initiateCall = async (targetUserId: string) => {
+    const pc = createPeerConnection(targetUserId);
+
+    if (!localStreamRef.current) {
+      console.warn(`No local stream available for ${targetUserId}, attempting to acquire`);
+      const stream = await setupMediaStream();
+      if (!stream) {
+        console.error(`Failed to acquire stream for ${targetUserId}`);
+        return;
+      }
+    }
+
+    try {
+      const offer = await pc.createOffer();
+      await pc.setLocalDescription(offer);
+
+      socket.emit('webrtcSignal', {
+        type: 'offer',
+        offer: pc.localDescription,
+        targetUserId,
+        fromUserId: userId
+      });
+    } catch (error) {
+      console.error("Error creating offer:", error);
+    }
+  };
+
+  const updateAudioBasedOnProximity = useCallback(() => {
+    if (!userPosition) return;
+
+    const myPos = new THREE.Vector3(userPosition.x, userPosition.y, userPosition.z);
+
+    users.forEach(user => {
+      if (user.id !== userId) {
+        const distance = myPos.distanceTo(user.position);
+        const isNearby = distance <= NEARBY_DISTANCE;
+
+        const audioElement = audioElementsRef.current.get(user.id);
+        if (audioElement) {
+          audioElement.muted = !isNearby;
+
+          // Optional: Apply distance-based volume adjustment
+          if (!audioElement.muted) {
+            // Linear falloff from 1.0 (max volume) to 0.2 (min volume)
+            const volume = Math.max(0.2, 1.0 - (distance / NEARBY_DISTANCE) * 0.8);
+            audioElement.volume = volume;
+          }
+        }
+      }
+    });
+  }, [userPosition, users, userId]);
+
   useEffect(() => {
     if (!mountRef.current) return;
 
     const scene = sceneRef.current;
     scene.background = new THREE.Color(0x87ceeb);
 
-    const floorSize = 10;
-    const floorGeometry = new THREE.PlaneGeometry(floorSize, floorSize, 1, 1);
+    const floorGeometry = new THREE.PlaneGeometry(FLOOR_SIZE, FLOOR_SIZE, 1, 1);
     const floorMaterial = new THREE.MeshStandardMaterial({
       color: 0x4a7c59,
       roughness: 0.8,
@@ -891,6 +1099,17 @@ const Scene1 = ({
     if (isConnected) {
       loadAvatar(avatarUrl);
       setupSocketListeners();
+
+      if (!localStreamRef.current) {
+        setupMediaStream().then(stream => {
+          if (stream) {
+            stream.getAudioTracks().forEach(track => {
+              // Start with mic off
+              track.enabled = false;
+            });
+          }
+        });
+      }
     }
 
     animate();
@@ -920,6 +1139,21 @@ const Scene1 = ({
         }
       });
       sceneRef.current.clear();
+
+      if (localStreamRef.current) {
+        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current = null;
+      }
+
+      peerConnectionsRef.current.forEach(pc => {
+        pc.close();
+      });
+      peerConnectionsRef.current.clear();
+
+      audioElementsRef.current.forEach(audio => {
+        document.body.removeChild(audio);
+      });
+      audioElementsRef.current.clear();
     };
   }, [avatarUrl, userId, userName, isConnected, socket]);
 
@@ -950,6 +1184,10 @@ const Scene1 = ({
     };
   }, [socket]);
 
+  useEffect(() => {
+    updateAudioBasedOnProximity();
+  }, [updateAudioBasedOnProximity, nearbyUsers]);
+
   return (
     <div
       className="scene-container"
@@ -976,14 +1214,12 @@ const Scene1 = ({
 
       {/* Online Users */}
       <div
-        className={`user-box online-users ${
-          isOnlineUsersCollapsed ? "collapsed" : ""
-        }`}
+        className={`user-box online-users ${isOnlineUsersCollapsed ? "collapsed" : ""
+          }`}
       >
         <div
-          className={`user-box-header ${
-            isOnlineUsersCollapsed ? "collapsed" : ""
-          }`}
+          className={`user-box-header ${isOnlineUsersCollapsed ? "collapsed" : ""
+            }`}
           onClick={(e) => {
             e.stopPropagation();
             setIsOnlineUsersCollapsed(!isOnlineUsersCollapsed);
@@ -1014,14 +1250,12 @@ const Scene1 = ({
 
       {/* Nearby Users */}
       <div
-        className={`user-box nearby-users ${
-          isNearbyUsersCollapsed ? "collapsed" : ""
-        }`}
+        className={`user-box nearby-users ${isNearbyUsersCollapsed ? "collapsed" : ""
+          }`}
       >
         <div
-          className={`user-box-header ${
-            isNearbyUsersCollapsed ? "collapsed" : ""
-          }`}
+          className={`user-box-header ${isNearbyUsersCollapsed ? "collapsed" : ""
+            }`}
           onClick={(e) => {
             e.stopPropagation();
             setIsNearbyUsersCollapsed(!isNearbyUsersCollapsed);
@@ -1054,9 +1288,8 @@ const Scene1 = ({
         <div className="chat-panel">
           <div className="chat-header">
             <h3
-              className={`text-xl font-bold ${
-                isGlobalChat ? "global-active" : ""
-              }`}
+              className={`text-xl font-bold ${isGlobalChat ? "global-active" : ""
+                }`}
             >
               Chat
             </h3>
@@ -1068,9 +1301,8 @@ const Scene1 = ({
             {messages.map((msg, index) => (
               <div
                 key={`${msg.timestamp}-${index}`}
-                className={`chat-message ${
-                  msg.type === "system" ? "system-message" : msg.type
-                }`}
+                className={`chat-message ${msg.type === "system" ? "system-message" : msg.type
+                  }`}
               >
                 {msg.type === "system" ? (
                   <span>
@@ -1160,26 +1392,13 @@ const Scene1 = ({
             </button>
 
             <button
-              className={`action-btn ${isVoiceChatActive ? "active" : ""}`}
-              onClick={toggleVoiceChat}
-              aria-label="Toggle voice chat"
+              className={`action-btn ${isMicOn ? 'mic-active' : 'mic-inactive'}`}
+              onClick={toggleMicrophone}
             >
-              {isVoiceChatActive ? (
-                <VoiceCall nearbyUsers={nearbyUsers} currentUserId={userId} />
-              ) : (
-                <span className="material-icons">mic_off</span>
-              )}
+              <span className="material-icons">
+                {isMicOn ? 'mic' : 'mic_off'}
+              </span>
             </button>
-
-            {/* Help Button (Mobile Only) */}
-            {/* {window.innerWidth <= 768 && (
-              <button
-                className="action-btn"
-                onClick={() => setIsHelpOpen(!isHelpOpen)}
-              >
-                <span className="material-icons">help_outline</span>
-              </button>
-            )} */}
           </div>
         )}
 
