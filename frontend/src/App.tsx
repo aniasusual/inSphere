@@ -26,9 +26,7 @@ const App: React.FC = () => {
   const { isAuthenticated } = useSelector((state: RootState) => state.user);
 
   useEffect(() => {
-    if (isAuthenticated) {
-      dispatch(loaduser());
-    }
+    dispatch(loaduser());
   }, [dispatch]);
 
   const [stopTracking, setStopTracking] = useState<(() => void) | undefined>();

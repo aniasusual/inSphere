@@ -11,7 +11,7 @@ import {
   ChevronLeft,
   UserCheck,
 } from "lucide-react";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "store";
 import axios from "axios";
@@ -200,6 +200,12 @@ const UserProfile: React.FC = () => {
   const follow = user?.usersFollowed?.includes(id) || false;
   const [isFollowing, setIsFollowing] = useState(follow);
 
+  const navigate = useNavigate();
+
+  const handleMessageIconClick = () => {
+    navigate(`/chat?userId=${id}`)
+  }
+
   useEffect(() => {
     setIsFollowing(follow);
 
@@ -209,8 +215,7 @@ const UserProfile: React.FC = () => {
         setError(null);
         const config = { withCredentials: true };
         const { data } = await axios.get(
-          `${
-            import.meta.env.VITE_API_BACKEND_URL
+          `${import.meta.env.VITE_API_BACKEND_URL
           }/api/v1/user/fetchUserById/${id}`,
           config
         );
@@ -353,10 +358,9 @@ const UserProfile: React.FC = () => {
                   <>
                     <button
                       className={`px-4 py-2 rounded-full flex items-center justify-center min-w-28
-                        ${
-                          isFollowing
-                            ? "bg-card border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
-                            : "bg-primary text-primary-foreground hover:bg-primary/90"
+                        ${isFollowing
+                          ? "bg-card border border-border hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+                          : "bg-primary text-primary-foreground hover:bg-primary/90"
                         } transition-colors`}
                       onClick={toggleFollow}
                       disabled={followingInProgress}
@@ -369,7 +373,7 @@ const UserProfile: React.FC = () => {
                         "Follow"
                       )}
                     </button>
-                    <button className="px-4 py-2 rounded-full bg-card border border-border hover:bg-accent transition-colors">
+                    <button className="px-4 py-2 rounded-full bg-card border border-border hover:bg-accent transition-colors" onClick={handleMessageIconClick}>
                       <MessageSquare size={18} />
                     </button>
                   </>
@@ -474,11 +478,10 @@ const UserProfile: React.FC = () => {
         <div className="mb-6 border-b border-border">
           <div className="flex justify-center items-center">
             <button
-              className={`px-6 py-3 font-medium relative ${
-                activeTab === "all"
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-              }`}
+              className={`px-6 py-3 font-medium relative ${activeTab === "all"
+                ? "text-foreground"
+                : "text-muted-foreground"
+                }`}
               onClick={() => setActiveTab("all")}
             >
               All Posts
@@ -487,11 +490,10 @@ const UserProfile: React.FC = () => {
               )}
             </button>
             <button
-              className={`px-6 py-3 font-medium relative ${
-                activeTab === "public"
-                  ? "text-foreground"
-                  : "text-muted-foreground"
-              }`}
+              className={`px-6 py-3 font-medium relative ${activeTab === "public"
+                ? "text-foreground"
+                : "text-muted-foreground"
+                }`}
               onClick={() => setActiveTab("public")}
             >
               Public
@@ -501,11 +503,10 @@ const UserProfile: React.FC = () => {
             </button>
             {isOwnProfile && (
               <button
-                className={`px-6 py-3 font-medium relative ${
-                  activeTab === "private"
-                    ? "text-foreground"
-                    : "text-muted-foreground"
-                }`}
+                className={`px-6 py-3 font-medium relative ${activeTab === "private"
+                  ? "text-foreground"
+                  : "text-muted-foreground"
+                  }`}
                 onClick={() => setActiveTab("private")}
               >
                 Private
@@ -525,10 +526,10 @@ const UserProfile: React.FC = () => {
             {activeTab === "private"
               ? "You haven't created any private posts yet."
               : activeTab === "public"
-              ? "No public posts to display."
-              : !isOwnProfile
-              ? "This user hasn't shared any posts yet."
-              : "You haven't created any posts yet."}
+                ? "No public posts to display."
+                : !isOwnProfile
+                  ? "This user hasn't shared any posts yet."
+                  : "You haven't created any posts yet."}
           </p>
         </div>
       </div>

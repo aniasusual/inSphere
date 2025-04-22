@@ -22,6 +22,7 @@ const postRouter_1 = __importDefault(require("./routers/postRouter"));
 const commentRouter_1 = __importDefault(require("./routers/commentRouter"));
 const jamsRouter_1 = __importDefault(require("./routers/jamsRouter"));
 const messageRouter_1 = __importDefault(require("./routers/messageRouter"));
+const chatRouter_1 = __importDefault(require("./routers/chatRouter"));
 const app = (0, express_1.default)();
 app.use((0, express_session_1.default)({
     secret: "abe lode sun",
@@ -55,6 +56,7 @@ app.use("/api/v1/channel", channelRouter_1.default);
 app.use("/api/v1/post", postRouter_1.default);
 app.use("/api/v1/comment", commentRouter_1.default);
 app.use("/api/v1/jam", jamsRouter_1.default);
-app.use('/api/v1/messages', messageRouter_1.default);
+app.use('/api/v1/message', messageRouter_1.default);
+app.use('/api/v1/chat', chatRouter_1.default);
 app.use(error_1.errorMiddleware);
 exports.default = app;

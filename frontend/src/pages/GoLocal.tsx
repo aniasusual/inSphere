@@ -57,8 +57,7 @@ export function Golocal() {
         };
 
         const { data } = await axios.post(
-          `${
-            import.meta.env.VITE_API_BACKEND_URL
+          `${import.meta.env.VITE_API_BACKEND_URL
           }/api/v1/user/find-user-around`,
           {
             longitude: parsedData.longitude,
@@ -95,8 +94,7 @@ export function Golocal() {
         };
 
         const { data } = await axios.post(
-          `${
-            import.meta.env.VITE_API_BACKEND_URL
+          `${import.meta.env.VITE_API_BACKEND_URL
           }/api/v1/post/find-post-around`,
           {
             longitude: parsedData.longitude,
@@ -106,7 +104,6 @@ export function Golocal() {
           config
         );
 
-        console.log("data for posts: ", data);
 
         setFetchedData({
           ...fetchedData,
@@ -144,14 +141,12 @@ export function Golocal() {
           config
         );
 
-        console.log("jams: ", data.jams);
 
         setFetchedData({
           ...fetchedData,
           jams: data.jams,
         });
 
-        console.log("fetchedDdata.jams: ", fetchedData.jams);
         // Handle the data here
       } catch (error) {
         console.error("Error fetching users:", error);

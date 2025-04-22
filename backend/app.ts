@@ -17,6 +17,7 @@ import postRouter from "./routers/postRouter";
 import commentRouter from "./routers/commentRouter";
 import jamRouter from "./routers/jamsRouter";
 import messageRouter from "./routers/messageRouter";
+import chatRouter from "./routers/chatRouter";
 
 
 const app = express();
@@ -61,7 +62,8 @@ app.use("/api/v1/channel", channelRouter);
 app.use("/api/v1/post", postRouter);
 app.use("/api/v1/comment", commentRouter);
 app.use("/api/v1/jam", jamRouter);
-app.use('/api/v1/messages', messageRouter);
+app.use('/api/v1/message', messageRouter);
+app.use('/api/v1/chat', chatRouter);
 
 app.use(errorMiddleware)
 

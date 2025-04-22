@@ -181,7 +181,6 @@ const VoiceCall: React.FC<VoiceCallProps> = ({ nearbyUsers }) => {
 
     const handleVoiceOffer = async ({ offer, fromUserId }: VoiceOffer) => {
       try {
-        console.log("Received voice offer from:", fromUserId);
         setConnectedUsers((prev) => new Set([...prev, fromUserId]));
 
         const newPC = await createPeerConnection(fromUserId);
@@ -191,7 +190,6 @@ const VoiceCall: React.FC<VoiceCallProps> = ({ nearbyUsers }) => {
         const answer = await newPC.createAnswer();
         await newPC.setLocalDescription(answer);
 
-        console.log("Sending voice answer to:", fromUserId);
         socket.emit("voiceAnswer", {
           answer,
           targetUserId: fromUserId,
@@ -208,7 +206,6 @@ const VoiceCall: React.FC<VoiceCallProps> = ({ nearbyUsers }) => {
 
     const handleVoiceAnswer = async ({ answer, fromUserId }: VoiceAnswer) => {
       try {
-        console.log("Received voice answer");
         if (
           peerConnections.has(fromUserId) &&
           peerConnections.get(fromUserId)?.signalingState !== "stable"
@@ -227,7 +224,6 @@ const VoiceCall: React.FC<VoiceCallProps> = ({ nearbyUsers }) => {
       fromUserId,
     }: VoiceCandidate) => {
       try {
-        console.log("Received ICE candidate");
         if (
           peerConnections.has(fromUserId) &&
           peerConnections.get(fromUserId)?.remoteDescription
@@ -270,10 +266,9 @@ const VoiceCall: React.FC<VoiceCallProps> = ({ nearbyUsers }) => {
       <button
         onClick={toggleMicrophone}
         className={`flex items-center justify-center w-12 h-12 rounded-full transition-colors duration-200 focus:outline-none
-          ${
-            isAudioEnabled
-              ? "bg-green-500 hover:bg-green-600"
-              : "bg-red-500 hover:bg-red-600"
+          ${isAudioEnabled
+            ? "bg-green-500 hover:bg-green-600"
+            : "bg-red-500 hover:bg-red-600"
           }`}
         title={isAudioEnabled ? "Disable Microphone" : "Enable Microphone"}
       >
