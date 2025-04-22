@@ -94,6 +94,7 @@ io.use(async (socket, next) => {
 });
 
 const JamUsers = new Map(); // Map<socketId, { jamId, userId, position, rotation, name }>
+const ChatUsers = new Map<string, Set<string>>(); // Map<chatId, Set<userId>>
 
 io.on('connection', (socket) => {
 
@@ -108,6 +109,38 @@ io.on('connection', (socket) => {
         socket.disconnect();
         return;
     }
+
+    // Broadcast user online status
+    io.emit('userStatus', { userId, status: 'online' });
+
+    // Chat related events
+    socket.on('joinChat', ({ chatId }) => {
+        socket.join(chatId);
+        if (!ChatUsers.has(chatId)) {
+            ChatUsers.set(chatId, new Set());
+        }
+        ChatUsers.get(chatId)!.add(userId);
+    });
+
+    socket.on('leaveChat', ({ chatId }) => {
+        socket.leave(chatId);
+        ChatUsers.get(chatId)?.delete(userId);
+        if (ChatUsers.get(chatId)?.size === 0) {
+            ChatUsers.delete(chatId);
+        }
+    });
+
+    socket.on('sendMessage', ({ chatId, message }) => {
+        io.to(chatId).emit('message', message);
+    });
+
+    socket.on('typing', ({ chatId }) => {
+        socket.to(chatId).emit('typing', { userId, chatId });
+    });
+
+    socket.on('stopTyping', ({ chatId }) => {
+        socket.to(chatId).emit('stopTyping', { userId, chatId });
+    });
 
     // Handle user joining a jam
     socket.on('joinJam', ({ jamId, userId, userName, position, rotation, avatarUrl }) => {

@@ -12,6 +12,7 @@ import {
 import axios from "axios";
 import logo from "@assets/hyperlocalNobg.png";
 import defaultImage from "@assets/defaultImage.jpg";
+import { useSocket } from "socket";
 
 interface Chat {
   id: string;
@@ -49,22 +50,24 @@ const ChatPage = () => {
   const [loadingMessages, setLoadingMessages] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [typingUsers, setTypingUsers] = useState<Set<string>>(new Set());
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const location = useLocation();
   const navigate = useNavigate();
+
+  const { socket, isConnected } = useSocket();
 
   // Fetch chats from backend
   useEffect(() => {
     const fetchChats = async () => {
       setLoadingChats(true);
       setError(null);
-
       try {
         const response = await axios.get(
           `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/chat/all`,
           { withCredentials: true }
         );
-
         if (Array.isArray(response.data)) {
           setChats(response.data);
         } else {
@@ -86,56 +89,59 @@ const ChatPage = () => {
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const userId = params.get("userId");
+    const chatId = params.get("chatId");
 
-    // Clear selections if no userId in URL
-    if (!userId) {
-      setSelectedChat(null);
-      setSelectedUser(null);
-      setMessages([]);
-      return;
-    }
-
-    // Skip processing if chats are still loading
-    if (loadingChats) return;
-
-    // Check if a chat exists with this user
-    const existingChat = chats.find((chat) => chat.userId === userId);
-
-    if (existingChat) {
-      // Select existing chat
-      setSelectedChat(existingChat.id);
-      setSelectedUser({
-        id: existingChat.userId,
-        name: existingChat.name,
-        avatar: existingChat.avatar?.url || defaultImage,
-        status: existingChat.status,
-      });
-    } else {
-      // Initialize new chat (no messages yet)
-      setSelectedChat(null);
-      setMessages([]);
-      // Fetch user details for new chat
-      const fetchUser = async () => {
-        try {
-          const response = await axios.get(
-            `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/chat/user/${userId}`,
-            { withCredentials: true }
-          );
+    // Only initialize if no selection is active already
+    if (!selectedChat && !selectedUser) {
+      if (chatId) {
+        // Handle direct chat ID selection
+        setSelectedChat(chatId);
+        const chat = chats.find(c => c.id === chatId);
+        if (chat) {
           setSelectedUser({
-            id: response.data.id,
-            name: response.data.name,
-            avatar: response.data.avatar?.url || defaultImage,
-            status: response.data.status,
+            id: chat.userId,
+            name: chat.name,
+            avatar: chat.avatar || { url: defaultImage },
+            status: chat.status,
           });
-        } catch (err) {
-          setError("Failed to load user");
-          console.error(err);
-          setSelectedUser(null);
         }
-      };
-      fetchUser();
+      } else if (userId) {
+        // Handle user selection
+        if (loadingChats) return;
+
+        const existingChat = chats.find((chat) => chat.userId === userId);
+        if (existingChat) {
+          setSelectedChat(existingChat.id);
+          setSelectedUser({
+            id: existingChat.userId,
+            name: existingChat.name,
+            avatar: existingChat.avatar || { url: defaultImage },
+            status: existingChat.status,
+          });
+        } else {
+          const fetchUser = async () => {
+            try {
+              const response = await axios.get(
+                `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/chat/user/${userId}`,
+                { withCredentials: true }
+              );
+              setSelectedUser({
+                id: response.data.id,
+                name: response.data.name,
+                avatar: response.data.avatar || { url: defaultImage },
+                status: response.data.status,
+              });
+            } catch (err) {
+              setError("Failed to load user");
+              console.error(err);
+              setSelectedUser(null);
+            }
+          };
+          fetchUser();
+        }
+      }
     }
-  }, [location.search, chats, loadingChats]);
+  }, [location.search, chats, loadingChats, selectedChat, selectedUser]);
 
   // Fetch messages when selectedChat changes
   useEffect(() => {
@@ -159,11 +165,16 @@ const ChatPage = () => {
         } finally {
           setLoadingMessages(false);
         }
-      } else {
+      } else if (selectedChat) {
+        // We have a selectedChat but it's not in our chats array yet
+        // This could happen with a new chat
         setMessages([]);
       }
     };
-    fetchMessages();
+
+    if (selectedChat) {
+      fetchMessages();
+    }
   }, [selectedChat, chats]);
 
   // Handle responsive view
@@ -181,6 +192,93 @@ const ChatPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Socket.IO event handlers
+  useEffect(() => {
+    if (!socket || !isConnected || !selectedChat) return;
+
+    socket.emit("joinChat", { chatId: selectedChat });
+
+    const handleNewMessage = (message: Message) => {
+      setMessages((prev) => [...prev, message]);
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.id === selectedChat
+            ? {
+              ...chat,
+              lastMessage: message.text,
+              timestamp: message.timestamp,
+            }
+            : chat
+        )
+      );
+    };
+
+    const handleTyping = ({ userId, chatId }: { userId: string; chatId: string }) => {
+      if (chatId === selectedChat) {
+        setTypingUsers((prev) => {
+          const newSet = new Set(prev);
+          newSet.add(userId);
+          return newSet;
+        });
+      }
+    };
+
+    const handleStopTyping = ({ userId, chatId }: { userId: string; chatId: string }) => {
+      if (chatId === selectedChat) {
+        setTypingUsers((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(userId);
+          return newSet;
+        });
+      }
+    };
+
+    const handleUserStatus = ({ userId, status }: { userId: string; status: "online" | "offline" }) => {
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.userId === userId ? { ...chat, status } : chat
+        )
+      );
+      if (selectedUser && selectedUser.id === userId) {
+        setSelectedUser((prev) => (prev ? { ...prev, status } : prev));
+      }
+    };
+
+    socket.on("message", handleNewMessage);
+    socket.on("typing", handleTyping);
+    socket.on("stopTyping", handleStopTyping);
+    socket.on("userStatus", handleUserStatus);
+
+    return () => {
+      socket.emit("leaveChat", { chatId: selectedChat });
+      socket.off("message", handleNewMessage);
+      socket.off("typing", handleTyping);
+      socket.off("stopTyping", handleStopTyping);
+      socket.off("userStatus", handleUserStatus);
+    };
+  }, [socket, isConnected, selectedChat, selectedUser]);
+
+  // Handle typing indicator
+  useEffect(() => {
+    if (!socket || !isConnected || !selectedChat || !newMessage) return;
+
+    socket.emit("typing", { chatId: selectedChat });
+
+    if (typingTimeoutRef.current) {
+      clearTimeout(typingTimeoutRef.current);
+    }
+
+    typingTimeoutRef.current = setTimeout(() => {
+      socket.emit("stopTyping", { chatId: selectedChat });
+    }, 2000);
+
+    return () => {
+      if (typingTimeoutRef.current) {
+        clearTimeout(typingTimeoutRef.current);
+      }
+    };
+  }, [newMessage, socket, isConnected, selectedChat]);
+
   const handleSend = async (e: any) => {
     e.preventDefault();
     if (!newMessage.trim()) return;
@@ -191,12 +289,10 @@ const ChatPage = () => {
     });
 
     let chatId = selectedChat;
-    let isNewChat =
-      Array.isArray(chats) && !chats.find((chat) => chat.id === selectedChat);
+    let isNewChat = !chatId && selectedUser;
 
     try {
       if (isNewChat && selectedUser) {
-        // Create new chat
         const config = {
           headers: { "Content-Type": "application/json" },
           withCredentials: true,
@@ -208,30 +304,40 @@ const ChatPage = () => {
         );
         chatId = chatResponse.data.id;
 
-        // Update chats list
         const newChat: Chat = {
           id: chatId as string,
           name: selectedUser.name,
-          avatar: selectedUser.avatar?.url,
+          avatar: selectedUser.avatar,
           lastMessage: newMessage,
           timestamp: "Just now",
           status: selectedUser.status,
           userId: selectedUser.id,
         };
+
         setChats((prev) => [newChat, ...prev]);
         setSelectedChat(chatId);
+
+        // Important: Update URL but don't trigger navigation that would reset state
+        window.history.replaceState(null, '', `/chat?chatId=${chatId}`);
+      }
+
+      // Ensure we have a valid chat ID
+      if (!chatId) {
+        console.error("No chat ID available for sending message");
+        return;
       }
 
       const config = {
         headers: { "Content-Type": "application/json" },
         withCredentials: true,
       };
-      // Send message
+
       const messageResponse = await axios.post(
         `${import.meta.env.VITE_API_BACKEND_URL}/api/v1/chat/${chatId}/messages`,
         { text: newMessage },
         config
       );
+
       const newMsg: Message = {
         id: messageResponse.data.id,
         text: newMessage,
@@ -240,26 +346,25 @@ const ChatPage = () => {
         status: "sent",
       };
 
-      // Update messages
+      if (socket && isConnected) {
+        socket.emit("sendMessage", {
+          chatId,
+          message: newMsg,
+        });
+      }
+
       setMessages((prev) => [...prev, newMsg]);
 
-      // Update chat's last message and timestamp
-      if (!isNewChat) {
-        setChats((prev) =>
-          prev.map((chat) =>
-            chat.id === chatId
-              ? { ...chat, lastMessage: newMessage, timestamp: "Just now" }
-              : chat
-          )
-        );
-      }
+      // Update the last message in chat list
+      setChats((prev) =>
+        prev.map((chat) =>
+          chat.id === chatId
+            ? { ...chat, lastMessage: newMessage, timestamp: "Just now" }
+            : chat
+        )
+      );
 
       setNewMessage("");
-
-      // Update URL for new chat
-      if (isNewChat) {
-        navigate(`/chat?chatId=${chatId}`, { replace: true });
-      }
     } catch (err) {
       setError("Failed to send message");
       console.error(err);
@@ -276,17 +381,29 @@ const ChatPage = () => {
   const handleBackToChats = () => {
     setSelectedChat(null);
     setSelectedUser(null);
+    setMessages([]);
     navigate("/chat", { replace: true });
+  };
+
+  const selectChat = (chat: Chat) => {
+    setSelectedChat(chat.id);
+    setSelectedUser({
+      id: chat.userId,
+      name: chat.name,
+      avatar: chat.avatar || { url: defaultImage },
+      status: chat.status,
+    });
+
+    // Update URL without triggering a full navigation
+    window.history.replaceState(null, '', `/chat?chatId=${chat.id}`);
   };
 
   return (
     <div className="flex h-[97.5vh] box-border bg-gradient-to-br from-gray-100 to-cream-100 dark:from-gray-900 dark:to-charcoal-900 overflow-hidden box">
-      {/* Chat List Sidebar */}
       <div
         className={`w-full sm:w-80 lg:w-96 bg-cream-50/90 dark:bg-charcoal-800/90 backdrop-blur-md border-r border-cream-200/50 dark:border-charcoal-700/50 flex flex-col transition-all duration-300 ${isMobileView && selectedChat ? "hidden" : "block"
           }`}
       >
-        {/* Search Header */}
         <div className="flex flex-row justify-between items-center p-4 border-b border-cream-200/50 dark:border-charcoal-700/50">
           <a
             href="/"
@@ -307,8 +424,6 @@ const ChatPage = () => {
             </div>
           </div>
         </div>
-
-        {/* Chat List */}
         <div className="flex-1 overflow-y-auto">
           {loadingChats ? (
             <div className="p-4 text-center text-gray-600 dark:text-cream-300">
@@ -324,15 +439,7 @@ const ChatPage = () => {
             chats.map((chat) => (
               <button
                 key={chat.id}
-                onClick={() => {
-                  setSelectedChat(chat.id);
-                  setSelectedUser({
-                    id: chat.userId,
-                    name: chat.name,
-                    avatar: chat.avatar?.url || defaultImage,
-                    status: chat.status,
-                  });
-                }}
+                onClick={() => selectChat(chat)}
                 className={`w-full p-4 flex items-center gap-4 hover:bg-gradient-to-r hover:from-cream-100 hover:to-gold-50 dark:hover:from-charcoal-700 dark:hover:to-navy-800 transition-all duration-300 ${selectedChat === chat.id
                   ? "bg-gradient-to-r from-cream-100 to-gold-50 dark:from-charcoal-700 dark:to-navy-800"
                   : ""
@@ -382,15 +489,12 @@ const ChatPage = () => {
           )}
         </div>
       </div>
-
-      {/* Main Chat Area */}
       <div
         className={`flex-1 flex flex-col ${isMobileView && !selectedChat ? "hidden" : "block"
           }`}
       >
-        {selectedUser ? (
+        {selectedChat && selectedUser ? (
           <>
-            {/* Chat Header */}
             <div className="h-16 flex items-center justify-between px-4 bg-gradient-to-r from-navy-800 to-navy-900 text-cream-200 shadow-md">
               <div className="flex items-center gap-4">
                 {isMobileView && (
@@ -425,8 +529,6 @@ const ChatPage = () => {
                 </div>
               </div>
             </div>
-
-            {/* Messages */}
             <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-4 bg-gradient-to-b from-cream-100 to-gray-100 dark:from-charcoal-900 dark:to-navy-950">
               {loadingMessages ? (
                 <div className="text-center text-gray-600 dark:text-cream-300">
@@ -475,8 +577,6 @@ const ChatPage = () => {
               )}
               <div ref={messagesEndRef} />
             </div>
-
-            {/* Input Area */}
             <div className="p-3 md:p-4 bg-cream-50/90 dark:bg-charcoal-800/90 backdrop-blur-md border-t border-cream-200/50 dark:border-charcoal-700/50">
               <div className="flex items-end gap-2 md:gap-4">
                 <div className="flex-1 bg-cream-100/50 dark:bg-charcoal-700/50 rounded-xl p-2 shadow-md">
