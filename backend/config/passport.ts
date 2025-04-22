@@ -37,14 +37,23 @@ passport.use(
                     return done(null, user); // Log the user in
                 } else {
                     // Create a new user if the email doesn't exist
-                    const baseUsername = profile.displayName?.split(" ").join("").toLowerCase() || "user";
-                    let username = baseUsername;
-                    let count = 1;
+                    function generateRandomUsername(): string {
+                        const adjectives = ["fast", "cool", "smart", "brave", "funny", "sneaky", "happy"];
+                        const animals = ["tiger", "panda", "eagle", "lion", "shark", "wolf", "koala"];
+                        const randomAdj = adjectives[Math.floor(Math.random() * adjectives.length)];
+                        const randomAnimal = animals[Math.floor(Math.random() * animals.length)];
+                        const randomNum = Math.floor(Math.random() * 10000);
 
-                    // Keep trying until you find an available username
-                    while (await userModel.findOne({ username })) {
-                        username = `${baseUsername}${count++}`;
+                        return `${randomAdj}${randomAnimal}${randomNum}`;
                     }
+
+                    const username = generateRandomUsername();
+                    // let count = 1;
+
+                    // // Keep trying until you find an available username
+                    // while (await userModel.findOne({ username })) {
+                    //     username = `${baseUsername}${count++}`;
+                    // }
 
                     user = await userModel.create({
                         email,

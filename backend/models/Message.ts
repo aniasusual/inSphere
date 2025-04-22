@@ -30,7 +30,7 @@ export interface IMessage extends Document {
 
 // Create the Mongoose Schema
 const MessageSchema: Schema = new Schema({
-    jam: { type: Schema.Types.ObjectId, ref: 'Jam', required: true },
+    jam: { type: Schema.Types.ObjectId, ref: 'Jam' },
     conversationId: {
         type: Schema.Types.ObjectId,
         ref: 'Conversation',

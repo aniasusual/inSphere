@@ -103,16 +103,16 @@ const fetchMyFeedPosts = (req, res) => __awaiter(void 0, void 0, void 0, functio
         // Fetch posts, sorted by creation time (newest first)
         const posts = yield Post_1.Post
             .find({
-            creator: { $in: followedUserIds },
-            accessibility: 'public'
-        })
+                creator: { $in: followedUserIds },
+                accessibility: 'public'
+            })
             .sort({ createdAt: -1 }) // Ensures newest posts first, mixed across all users
             .skip(skip)
             .limit(limit)
             .populate({
-            path: 'creator',
-            select: 'username avatar firstName lastName _id'
-        })
+                path: 'creator',
+                select: 'username avatar firstName lastName _id'
+            })
             .lean();
         // Total count for pagination
         const totalPosts = yield Post_1.Post.countDocuments({
@@ -255,9 +255,9 @@ const getPostDetails = (req, res) => __awaiter(void 0, void 0, void 0, function*
         // Fetch the post and populate the creator field
         const post = yield Post_1.Post.findById(postId)
             .populate({
-            path: "creator",
-            select: "firstName username avatar", // Only fetch necessary fields
-        })
+                path: "creator",
+                select: "firstName username avatar", // Only fetch necessary fields
+            })
             .lean(); // Use lean() for better performance if you don't need a Mongoose document
         if (!post) {
             res.status(404).json({
@@ -318,11 +318,9 @@ const getPostDetails = (req, res) => __awaiter(void 0, void 0, void 0, function*
 });
 exports.getPostDetails = getPostDetails;
 const getSearchData = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("reaches here");
     try {
         // Extract query parameters
         const { q, creator, accessibility, location, radius, limit = "10", page = "1", } = req.query;
-        console.log("reaches here");
         // Build the MongoDB query
         const query = {};
         // Text search across title, description, and hashtags

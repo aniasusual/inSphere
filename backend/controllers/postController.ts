@@ -362,7 +362,6 @@ interface SearchQuery {
 }
 
 export const getSearchData = async (req: Request, res: Response) => {
-    console.log("reaches here")
     try {
         // Extract query parameters
         const {
@@ -374,8 +373,6 @@ export const getSearchData = async (req: Request, res: Response) => {
             limit = "10",
             page = "1",
         } = req.query as SearchQuery;
-
-        console.log("reaches here")
 
         // Build the MongoDB query
         const query: any = {};
@@ -505,7 +502,6 @@ export const findPostsAround = async (req: Request, res: Response) => {
             .populate('comments') // Optional: populate comments
             .lean(); // Convert to plain JavaScript objects
 
-        console.log("Posts found:", posts.length);
         // Return success response with found posts
         res.status(200).json({
             success: true,

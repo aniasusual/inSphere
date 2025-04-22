@@ -4,11 +4,11 @@ export interface IChat extends Document {
     type: 'single' | 'group' | 'jam' | 'channel';
     participants: mongoose.Types.ObjectId[];
     name?: string;
-    avatar?: string;
     lastMessage?: mongoose.Types.ObjectId;
     createdBy: mongoose.Types.ObjectId;
     admins?: mongoose.Types.ObjectId[];
     isActive: boolean;
+    updatedAt: Date;
 }
 
 const ChatSchema = new Schema({
@@ -30,7 +30,7 @@ const ChatSchema = new Schema({
             return this.type === 'group' || this.type === 'jam' || this.type === 'channel';
         }
     },
-    avatar: { type: String },
+    // avatar: { type: String },
     lastMessage: {
         type: Schema.Types.ObjectId,
         ref: 'Message'
@@ -47,6 +47,9 @@ const ChatSchema = new Schema({
     isActive: {
         type: Boolean,
         default: true
+    },
+    updatedAt: {
+        type: Date
     }
 }, { timestamps: true });
 
