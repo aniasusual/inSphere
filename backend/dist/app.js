@@ -12,7 +12,7 @@ const userRouter_1 = __importDefault(require("./routers/userRouter"));
 const dotenv_1 = __importDefault(require("dotenv"));
 // Config
 if (process.env.NODE_ENV !== 'production') {
-    dotenv_1.default.config({ path: 'backend/config/config.env' });
+    dotenv_1.default.config({ path: 'config/config.env' });
 }
 const express_session_1 = __importDefault(require("express-session"));
 require("./config/passport");

@@ -7,7 +7,7 @@ import userRouter from "./routers/userRouter";
 import dotenv from 'dotenv';
 // Config
 if (process.env.NODE_ENV !== 'production') {
-    dotenv.config({ path: 'backend/config/config.env' });
+    dotenv.config({ path: 'config/config.env' });
 }
 import session from "express-session"
 import "./config/passport";
