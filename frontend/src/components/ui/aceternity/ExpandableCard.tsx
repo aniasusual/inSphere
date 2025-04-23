@@ -99,6 +99,12 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
         }
     };
 
+    // Handle navigation to join link
+    const handleJoinClick = (e: React.MouseEvent, link: string) => {
+        e.stopPropagation(); // Prevent card expansion when clicking the button
+        window.location.href = link; // Navigate in the same tab
+    };
+
     return (
         <>
             <AnimatePresence>
@@ -178,18 +184,17 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
                                         </motion.p>
                                     </div>
 
-                                    <motion.a
+                                    <motion.button
                                         layout
                                         initial={{ opacity: 0, y: 10 }}
                                         animate={{ opacity: 1, y: 0 }}
                                         exit={{ opacity: 0, y: 10 }}
                                         transition={{ delay: 0.1 }}
-                                        href={active.ctaLink}
-                                        target="_blank"
+                                        onClick={(e) => handleJoinClick(e, active.ctaLink)}
                                         className="px-5 py-3 text-sm font-semibold rounded-full bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white shadow-md hover:shadow-lg transform hover:-translate-y-1 transition-all duration-200"
                                     >
                                         {active.ctaText}
-                                    </motion.a>
+                                    </motion.button>
                                 </div>
 
                                 <div className="pt-2 relative px-6 pb-6">
@@ -251,8 +256,13 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
                                             {card.description}
                                         </motion.p>
 
-                                        <div className="mt-3 w-full flex justify-center items-center opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                                            <span className="text-xs font-medium text-green-600 dark:text-green-400">Click to view details</span>
+                                        <div className="mt-3 w-full flex justify-center items-center">
+                                            <button
+                                                onClick={(e) => handleJoinClick(e, card.ctaLink)}
+                                                className="px-4 py-2 text-sm rounded-full font-medium bg-green-500 hover:bg-green-600 text-white transition-colors duration-300"
+                                            >
+                                                {card.ctaText}
+                                            </button>
                                         </div>
                                     </div>
                                 </div>
@@ -298,6 +308,7 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
 
                                 <motion.button
                                     layoutId={`button-${card.title}-${id}`}
+                                    onClick={(e) => handleJoinClick(e, card.ctaLink)}
                                     className="px-4 py-2 text-sm rounded-full font-medium bg-gray-100 dark:bg-gray-800 hover:bg-green-500 hover:text-white dark:hover:bg-green-600 text-gray-800 dark:text-gray-200 mt-4 md:mt-0 transition-colors duration-300"
                                 >
                                     {card.ctaText}
