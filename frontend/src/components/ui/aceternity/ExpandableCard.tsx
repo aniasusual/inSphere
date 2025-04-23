@@ -2,6 +2,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useOutsideClick } from "@hooks/use-outside-click";
+import { useNavigate } from "react-router-dom";
 
 // Define the shape of a Jam object
 interface Jam {
@@ -33,7 +34,7 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
     const id = useId();
     const ref = useRef<HTMLDivElement>(null);
 
-    console.log("jams in expandable: ", jams);
+    const navigate = useNavigate();
 
     // Guard against invalid jams prop
     const cards: Card[] = jams?.map((jam) => ({
@@ -102,7 +103,8 @@ export function ExpandableCard({ listView, jams }: ExpandableCardProps) {
     // Handle navigation to join link
     const handleJoinClick = (e: React.MouseEvent, link: string) => {
         e.stopPropagation(); // Prevent card expansion when clicking the button
-        window.location.href = link; // Navigate in the same tab
+        // window.location.href = link; // Navigate in the same tab
+        navigate(link);
     };
 
     return (
