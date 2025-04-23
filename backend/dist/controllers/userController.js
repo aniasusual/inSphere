@@ -143,12 +143,14 @@ const logout = (req, res, next) => {
         res.clearCookie("connect.sid", {
             secure: process.env.NODE_ENV === "production" ? true : false,
             httpOnly: process.env.NODE_ENV === "production" ? true : false,
-            sameSite: process.env.NODE_ENV === "production" ? "none" : false,
+            sameSite: process.env.NODE_ENV === "production" ? 'none' : false,
         });
         // Clear the token cookie
         res.cookie("token", "", {
             expires: new Date(Date.now()), // Set the cookie to expire immediately
             httpOnly: true,
+            secure: true,
+            sameSite: 'none',
         });
         res.status(200).json({
             message: "Logged Out",
