@@ -93,9 +93,10 @@ export const fetchCoords = async (isAuthenticated: boolean): Promise<(() => void
           "userCoordinates",
           JSON.stringify({ latitude, longitude })
         );
-        if (isAuthenticated) {
-          updateUserLocation(longitude, latitude);
-        }
+        // if (isAuthenticated) {
+        //   console.log("lode ka: ", isAuthenticated);
+        // }
+        updateUserLocation(longitude, latitude);
 
 
         // toaster.create({
