@@ -93,9 +93,9 @@ export const fetchCoords = async (isAuthenticated: boolean): Promise<(() => void
           "userCoordinates",
           JSON.stringify({ latitude, longitude })
         );
-        // if (isAuthenticated) {
-        //   console.log("lode ka: ", isAuthenticated);
-        // }
+        if (isAuthenticated) {
+          console.log("lode ka: ", isAuthenticated);
+        }
         updateUserLocation(longitude, latitude);
 
 
