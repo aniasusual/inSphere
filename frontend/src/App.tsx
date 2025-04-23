@@ -111,8 +111,11 @@ const App: React.FC = () => {
               </MainLayout>
             }
           />
-          <Route path="/chat" element={<ChatPage />} />
-          <Route path="/join/jam/:jamId" element={<JamPage />} />
+          <Route path="/chat" element={!isAuthenticated ? <LoginFormDemo /> : <ChatPage />} />
+          <Route
+            path="/join/jam/:jamId"
+            element={!isAuthenticated ? <LoginFormDemo /> : <JamPage />}
+          />
           {/* <Route path="/channel/:id" element={<ChannelPage />} /> */}
         </Routes>
       </BrowserRouter>
