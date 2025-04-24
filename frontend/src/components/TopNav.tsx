@@ -1,4 +1,4 @@
-import { Drawer } from "./Drawer";
+// import { Drawer } from "./Drawer";
 import logo from "@assets/hyperlocalNobg.png";
 
 import { IconMoon, IconBrightnessDown } from "@tabler/icons-react";
@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 // import { Toaster, toaster } from "@components/ui/toaster"
 import { MessageCircle } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Badge } from "./ui/shadcn/badge";
+// import { Badge } from "./ui/shadcn/badge";
 
 export function TopNav() {
   const [darkMode, setdarkmode] = useState(() => {
@@ -44,16 +44,16 @@ export function TopNav() {
       <div className="flex flex-row justify-center items-center gap-5">
         {/* <Switch className="mr-5">Location</Switch> */}
         <button className="relative text-sm font-small text-black dark:text-white p-1 rounded-full">
-          <Badge className="absolute top-0 right-0 h-5 min-w-[10px] bg-red-600 dark:bg-red-600 text-black dark:bg-white translate-x-2/3 -translate-y-2/3 shadow-md">
+          {/* <Badge className="absolute top-0 right-0 h-5 min-w-[10px] bg-red-600 dark:bg-red-600 text-black dark:bg-white translate-x-2/3 -translate-y-2/3 shadow-md">
             3
-          </Badge>
+          </Badge> */}
           <Link to={"/chat"}>
             <MessageCircle size={26} />
           </Link>
         </button>
-        <div>
+        {/* <div>
           <Drawer />
-        </div>
+        </div> */}
 
         <button className="text-sm font-small relative dark:border-white/[0.2] text-black dark:text-white p-2 m-2 rounded-full">
           <span>

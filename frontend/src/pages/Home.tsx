@@ -1,5 +1,5 @@
 import { Post } from "@components/Post";
-import StoriesComponent from "@components/Stories";
+// import StoriesComponent from "@components/Stories";
 // import MyFeedJams from "@components/ui/Jams/MyFeed";
 import { IconListDetails } from "@tabler/icons-react";
 import { useEffect, useState } from "react";
@@ -47,7 +47,7 @@ function Home() {
   return (
     <div className="flex justify-center w-full">
       <div className="max-w-xl">
-        <StoriesComponent />
+        {/* <StoriesComponent /> */}
         {/* <StoriesComponent initialStories={myStories} /> */}
 
         <div className="text-white max-w-xl flex flex-row justify-center items-center gap-2 rounded-lg text-md text-left bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500/200 p-4">

@@ -266,11 +266,10 @@ export const Drawer: React.FC = () => {
                   {notifications.all.map((notification) => (
                     <div
                       key={notification.id}
-                      className={`flex items-start gap-4 p-4 rounded-2xl transition-all hover:shadow-lg hover:-translate-y-1 ${
-                        notification.read
+                      className={`flex items-start gap-4 p-4 rounded-2xl transition-all hover:shadow-lg hover:-translate-y-1 ${notification.read
                           ? "bg-white dark:bg-gray-900"
                           : "bg-gray-50 dark:bg-gray-800/50"
-                      }`}
+                        }`}
                     >
                       <div className="relative group">
                         <Avatar className="h-14 w-14 border-4 border-white dark:border-gray-900 shadow-lg group-hover:scale-105 transition-transform duration-300">
