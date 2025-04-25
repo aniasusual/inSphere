@@ -22,11 +22,11 @@ import chatRouter from "./routers/chatRouter";
 
 const app = express();
 
-app.use(session({
-    secret: "abe lode sun",
-    resave: false,
-    saveUninitialized: false
-}))
+// app.use(session({
+//     secret: "abe lode sun",
+//     resave: false,
+//     saveUninitialized: false
+// }))
 
 app.use(express.json());
 app.use(cookieParser());
