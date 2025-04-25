@@ -23,6 +23,8 @@ export const isAuthenticated = async (req: Request, res: Response, next: NextFun
         const googleToken = req.cookies["connect.sid"];
         const sessionUser = req.user; // Passport stores user in req.user
 
+        console.log("sessionUser: ", sessionUser);
+
         if (token) {
             try {
                 const decodedData = jwt.verify(token, process.env.JWT_SECRET as string) as DecodedData;
