@@ -18,6 +18,7 @@ import commentRouter from "./routers/commentRouter";
 import jamRouter from "./routers/jamsRouter";
 import messageRouter from "./routers/messageRouter";
 import chatRouter from "./routers/chatRouter";
+import MongoStore from 'connect-mongo';
 
 
 const app = express();
@@ -32,18 +33,25 @@ app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));
 
-app.use(
-    session({
-        secret: process.env.SESSION_SECRET as string,
-        resave: true,
-        saveUninitialized: false,
-        cookie: {
-            httpOnly: true,
-            secure: process.env.NODE_ENV === "production",
-            maxAge: 1000 * 60 * 60 * 24, // 1 day
-        },
-    })
-);
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
+
+app.use(session({
+    secret: process.env.SESSION_SECRET as string,
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGO_URI,
+        ttl: 24 * 60 * 60 * 5 // 1 day
+    }),
+    cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 1000 * 60 * 60 * 24 * 5,
+    },
+}));
 
 // initialize passport
 app.use(passport.initialize());
