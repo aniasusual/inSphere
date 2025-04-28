@@ -901,14 +901,14 @@ const Scene1 = ({
   const toggleMicrophone = async () => {
     const newMicState = !isMicOn;
     setIsMicOn(newMicState);
-  
+
     // Update voice call audio stream
     if (localStreamRef.current) {
       localStreamRef.current.getAudioTracks().forEach((track) => {
         track.enabled = newMicState;
       });
     }
-  
+
     // Update screen-sharing microphone audio stream (but not screen audio)
     if (localScreenStreamRef.current) {
       localScreenStreamRef.current.getAudioTracks().forEach((track) => {
@@ -919,7 +919,7 @@ const Scene1 = ({
         }
       });
     }
-  
+
     // If turning on mic and no voice call stream exists, acquire one
     if (newMicState && !localStreamRef.current) {
       const stream = await setupMediaStream();
@@ -951,7 +951,7 @@ const Scene1 = ({
     if (peerConnectionsRef.current.has(targetUserId)) {
       return peerConnectionsRef.current.get(targetUserId)!;
     }
-  
+
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -959,26 +959,26 @@ const Scene1 = ({
         { urls: "stun:stun.stunprotocol.org:3478" },
       ],
     });
-  
+
     // Add voice call audio tracks
     if (localStreamRef.current && isMicOn) {
       localStreamRef.current.getAudioTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current!);
       });
     }
-  
+
     // Add screen-sharing tracks (video, screen audio, microphone audio)
     if (localScreenStreamRef.current) {
       localScreenStreamRef.current.getTracks().forEach((track) => {
         pc.addTrack(track, localScreenStreamRef.current!);
       });
     }
-  
+
     // Handle incoming tracks
     pc.ontrack = (event) => {
       console.log("Received new track:", event.track.kind, "from", targetUserId);
       const incomingStream = event.streams[0];
-  
+
       if (event.track.kind === "audio") {
         // Create a unique audio element for each audio track
         const audioElement = document.createElement("audio");
@@ -988,7 +988,7 @@ const Scene1 = ({
         audioElementsRef.current.set(`${targetUserId}-${event.track.id}`, audioElement); // Use track ID to differentiate
         document.body.appendChild(audioElement);
       }
-  
+
       if (event.track.kind === "video") {
         setRemoteScreenStreams((prev) => {
           const newMap = new Map(prev);
@@ -997,7 +997,7 @@ const Scene1 = ({
         });
       }
     };
-  
+
     // ICE candidate handling
     pc.onicecandidate = (event) => {
       if (event.candidate) {
@@ -1008,7 +1008,7 @@ const Scene1 = ({
         });
       }
     };
-  
+
     // Connection state monitoring
     pc.onconnectionstatechange = () => {
       if (pc.connectionState === "failed") {
@@ -1016,14 +1016,14 @@ const Scene1 = ({
         pc.restartIce(); // Attempt to recover
       }
     };
-  
+
     pc.oniceconnectionstatechange = () => {
       if (pc.iceConnectionState === "failed") {
         console.error(`ICE connection failed with ${targetUserId}`);
         pc.restartIce(); // Attempt to recover
       }
     };
-  
+
     peerConnectionsRef.current.set(targetUserId, pc);
     return pc;
   };
@@ -1057,14 +1057,14 @@ const Scene1 = ({
 
   const updateAudioBasedOnProximity = useCallback(() => {
     if (!userPosition) return;
-  
+
     const myPos = new THREE.Vector3(userPosition.x, userPosition.y, userPosition.z);
-  
+
     users.forEach((user) => {
       if (user.id !== userId) {
         const distance = myPos.distanceTo(user.position);
         const isNearby = distance <= NEARBY_DISTANCE;
-  
+
         // Update all audio elements for this user
         audioElementsRef.current.forEach((audioElement, key) => {
           if (key.startsWith(user.id)) {
@@ -1082,15 +1082,15 @@ const Scene1 = ({
 
   const updateVideoBasedOnProximity = useCallback(() => {
     if (!userPosition) return;
-  
+
     const myPos = new THREE.Vector3(userPosition.x, userPosition.y, userPosition.z);
-  
+
     remoteScreenStreams.forEach((_, targetUserId) => {
       const user = Array.from(users.values()).find((u) => u.id === targetUserId);
       if (user) {
         const distance = myPos.distanceTo(user.position);
         const isNearby = distance <= NEARBY_DISTANCE;
-  
+
         const videoElement = document.getElementById(`video-${targetUserId}`) as HTMLVideoElement;
         if (videoElement) {
           videoElement.style.display = isNearby ? "block" : "none";
@@ -1106,17 +1106,17 @@ const Scene1 = ({
         video: true,
         audio: true, // Include screen audio if available
       });
-  
+
       // Get microphone audio stream
       const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-  
+
       // Combine tracks: screen video, screen audio (if available), and microphone audio
       const combinedStream = new MediaStream([
         ...screenStream.getVideoTracks(), // Screen video
         ...screenStream.getAudioTracks(), // Screen audio (may be empty if not supported)
         ...audioStream.getAudioTracks(),  // Microphone audio
       ]);
-  
+
       return combinedStream;
     } catch (error) {
       console.error("Error setting up screen share stream:", error);
@@ -1126,7 +1126,7 @@ const Scene1 = ({
 
   const handleScreenShare = async (e: any) => {
     e.preventDefault();
-  
+
     try {
       if (isScreenSharing) {
         // === STOP SCREEN SHARING ===
@@ -1134,12 +1134,12 @@ const Scene1 = ({
           // Stop all tracks in the screen-sharing stream
           localScreenStreamRef.current.getTracks().forEach((track) => track.stop());
           localScreenStreamRef.current = null;
-  
+
           // Clear local screen video element
           if (screenVideoRef.current) {
             screenVideoRef.current.srcObject = null;
           }
-  
+
           // Remove screen-sharing tracks from peer connections and renegotiate
           const renegotiationPromises = Array.from(peerConnectionsRef.current.entries()).map(
             async ([targetUserId, pc]) => {
@@ -1149,11 +1149,11 @@ const Scene1 = ({
                   pc.removeTrack(sender);
                 }
               });
-  
+
               // Renegotiate: Create new offer
               const offer = await pc.createOffer();
               await pc.setLocalDescription(offer);
-  
+
               // Send offer to peer
               socket.emit("webrtcSignal", {
                 type: "offer",
@@ -1163,11 +1163,11 @@ const Scene1 = ({
               });
             }
           );
-  
+
           await Promise.all(renegotiationPromises);
           console.log("Screen sharing stopped and renegotiation completed.");
         }
-  
+
         setIsScreenSharing(false);
       } else {
         // === START SCREEN SHARING ===
@@ -1177,9 +1177,9 @@ const Scene1 = ({
           setIsScreenSharing(false);
           return;
         }
-  
+
         localScreenStreamRef.current = screenStream;
-  
+
         // Add screen-sharing tracks to all peer connections and renegotiate
         const renegotiationPromises = Array.from(peerConnectionsRef.current.entries()).map(
           async ([targetUserId, pc]) => {
@@ -1187,11 +1187,11 @@ const Scene1 = ({
             screenStream.getTracks().forEach((track) => {
               pc.addTrack(track, screenStream);
             });
-  
+
             // Renegotiate: Create new offer
             const offer = await pc.createOffer();
             await pc.setLocalDescription(offer);
-  
+
             // Send offer to peer
             socket.emit("webrtcSignal", {
               type: "offer",
@@ -1201,22 +1201,22 @@ const Scene1 = ({
             });
           }
         );
-  
+
         await Promise.all(renegotiationPromises);
-  
+
         // Optional: Display local screen share preview
         if (screenVideoRef.current) {
           screenVideoRef.current.srcObject = screenStream;
         }
-  
+
         setIsScreenSharing(true);
-  
+
         // Handle manual stop (user clicks "Stop Sharing" in browser)
         screenStream.getVideoTracks()[0].addEventListener("ended", () => {
           console.log("Screen sharing manually stopped by user.");
-          handleScreenShare({ preventDefault: () => {} }); // Trigger stop logic
+          handleScreenShare({ preventDefault: () => { } }); // Trigger stop logic
         });
-  
+
         console.log("Screen sharing started and renegotiation completed.");
       }
     } catch (error) {
@@ -1339,19 +1339,36 @@ const Scene1 = ({
       sceneRef.current.clear();
 
       if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
         localStreamRef.current = null;
       }
 
-      peerConnectionsRef.current.forEach(pc => {
+      if (localScreenStreamRef.current) {
+        localScreenStreamRef.current.getTracks().forEach((track) => track.stop());
+        localScreenStreamRef.current = null;
+      }
+
+      peerConnectionsRef.current.forEach((pc) => {
         pc.close();
       });
       peerConnectionsRef.current.clear();
 
-      audioElementsRef.current.forEach(audio => {
+      audioElementsRef.current.forEach((audio) => {
         document.body.removeChild(audio);
       });
       audioElementsRef.current.clear();
+
+      remoteScreenStreams.forEach((_, userId) => {
+        const videoEl = document.getElementById(`video-${userId}`) as HTMLVideoElement;
+        if (videoEl) {
+          videoEl.srcObject = null;
+        }
+      });
+      setRemoteScreenStreams(new Map());
+
+      if (screenVideoRef.current) {
+        screenVideoRef.current.srcObject = null;
+      }
     };
   }, [avatarUrl, userId, userName, isConnected, socket]);
 
@@ -1647,45 +1664,62 @@ const Scene1 = ({
         </button>
       </div>
 
+      {isScreenSharing && localScreenStreamRef.current && (
+        <div className="fixed bottom-4 left-4 flex flex-col gap-2 z-50">
+          <div className="relative bg-black rounded-lg shadow-lg overflow-hidden">
+            <video
+              autoPlay
+              muted
+              playsInline
+              className="w-64 h-36 object-cover rounded-md"
+              ref={screenVideoRef}
+            />
+            <div className="absolute top-2 left-2 bg-blue-500 text-white text-sm px-2 py-1 rounded">
+              You are sharing your screen
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="fixed bottom-4 right-4 flex flex-col gap-4 z-50">
-  {Array.from(remoteScreenStreams.entries()).map(([userId, stream]) => (
-    <div
-      key={userId}
-      className="relative bg-black rounded-lg shadow-lg overflow-hidden"
-      style={{
-        display: nearbyUsers.some((user) => user.id === userId) ? "block" : "none",
-      }}
-    >
-      <video
-        autoPlay
-        muted
-        playsInline
-        className="w-64 h-36 object-cover rounded-md"
-        id={`video-${userId}`}
-        ref={(videoEl) => {
-          if (videoEl && stream) {
-            videoEl.srcObject = stream;
-          }
-        }}
-      />
-      <button
-        className="absolute top-1 right-1 bg-white bg-opacity-75 rounded-full p-1"
-        onClick={() => {
-          const videoEl = document.getElementById(`video-${userId}`) as HTMLVideoElement;
-          if (videoEl) {
-            if (videoEl.requestFullscreen) {
-              videoEl.requestFullscreen();
-            } else if ((videoEl as any).webkitRequestFullscreen) {
-              (videoEl as any).webkitRequestFullscreen();
-            }
-          }
-        }}
-      >
-        <span className="material-icons text-black text-xl">fullscreen</span>
-      </button>
-    </div>
-  ))}
-</div>
+        {Array.from(remoteScreenStreams.entries()).map(([userId, stream]) => (
+          <div
+            key={userId}
+            className="relative bg-black rounded-lg shadow-lg overflow-hidden"
+            style={{
+              display: nearbyUsers.some((user) => user.id === userId) && stream ? "block" : "none",
+            }}
+          >
+            <video
+              autoPlay
+              muted
+              playsInline
+              className="w-64 h-36 object-cover rounded-md"
+              id={`video-${userId}`}
+              ref={(videoEl) => {
+                if (videoEl && stream) {
+                  videoEl.srcObject = stream;
+                }
+              }}
+            />
+            <button
+              className="absolute top-1 right-1 bg-white bg-opacity-75 rounded-full p-1"
+              onClick={() => {
+                const videoEl = document.getElementById(`video-${userId}`) as HTMLVideoElement;
+                if (videoEl) {
+                  if (videoEl.requestFullscreen) {
+                    videoEl.requestFullscreen();
+                  } else if ((videoEl as any).webkitRequestFullscreen) {
+                    (videoEl as any).webkitRequestFullscreen();
+                  }
+                }
+              }}
+            >
+              <span className="material-icons text-black text-xl">fullscreen</span>
+            </button>
+          </div>
+        ))}
+      </div>
 
 
       <div className="toast-container">
