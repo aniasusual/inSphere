@@ -21,7 +21,6 @@ const isAuthenticated = (req, res, next) => __awaiter(void 0, void 0, void 0, fu
         const { token } = req.cookies;
         const googleToken = req.cookies["connect.sid"];
         const sessionUser = req.user; // Passport stores user in req.user
-        console.log("sessionUser: ", sessionUser);
         if (token) {
             try {
                 const decodedData = jsonwebtoken_1.default.verify(token, process.env.JWT_SECRET);

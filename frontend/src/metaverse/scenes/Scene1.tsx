@@ -83,6 +83,7 @@ const Scene1 = ({
   const [isCameraON, setIsCameraON] = useState<boolean>(false);
   const [remoteScreenStreams, setRemoteScreenStreams] = useState<Map<string, MediaStream>>(new Map());
 
+  const [isScreenShareMenuOpen, setIsScreenShareMenuOpen] = useState<boolean>(false);
 
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
 
@@ -1225,6 +1226,11 @@ const Scene1 = ({
     }
   };
 
+  const getUserNameById = (id: string) => {
+    const user = Array.from(users.values()).find((u) => u.id === id);
+    return user ? user.name : "Unknown";
+  };
+
 
   const handleToggleCamera = (e: any) => {
     e.preventDefault();
@@ -1664,61 +1670,106 @@ const Scene1 = ({
         </button>
       </div>
 
-      {isScreenSharing && localScreenStreamRef.current && (
-        <div className="fixed bottom-4 left-4 flex flex-col gap-2 z-50">
-          <div className="relative bg-black rounded-lg shadow-lg overflow-hidden">
-            <video
-              autoPlay
-              muted
-              playsInline
-              className="w-64 h-36 object-cover rounded-md"
-              ref={screenVideoRef}
-            />
-            <div className="absolute top-2 left-2 bg-blue-500 text-white text-sm px-2 py-1 rounded">
-              You are sharing your screen
-            </div>
-          </div>
-        </div>
-      )}
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col justify-center items-center gap-4 z-50">
 
-      <div className="fixed bottom-4 right-4 flex flex-col gap-4 z-50">
-        {Array.from(remoteScreenStreams.entries()).map(([userId, stream]) => (
-          <div
-            key={userId}
-            className="relative bg-black rounded-lg shadow-lg overflow-hidden"
-            style={{
-              display: nearbyUsers.some((user) => user.id === userId) && stream ? "block" : "none",
-            }}
-          >
-            <video
-              autoPlay
-              muted
-              playsInline
-              className="w-64 h-36 object-cover rounded-md"
-              id={`video-${userId}`}
-              ref={(videoEl) => {
-                if (videoEl && stream) {
-                  videoEl.srcObject = stream;
-                }
-              }}
-            />
-            <button
-              className="absolute top-1 right-1 bg-white bg-opacity-75 rounded-full p-1"
-              onClick={() => {
-                const videoEl = document.getElementById(`video-${userId}`) as HTMLVideoElement;
-                if (videoEl) {
-                  if (videoEl.requestFullscreen) {
-                    videoEl.requestFullscreen();
-                  } else if ((videoEl as any).webkitRequestFullscreen) {
-                    (videoEl as any).webkitRequestFullscreen();
-                  }
-                }
-              }}
-            >
-              <span className="material-icons text-black text-xl">fullscreen</span>
-            </button>
+        <button
+          className="bg-red-500 text-white sm:text-xs md:text-sm px-2 py-2 rounded-lg flex items-center gap-2"
+          onClick={() => setIsScreenShareMenuOpen(!isScreenShareMenuOpen)}
+        >
+          <span className="material-icons">screen_share</span>
+          <span>Screen Shares ({remoteScreenStreams.size + (isScreenSharing ? 1 : 0)})</span>
+          <span className="material-icons">
+            {isScreenShareMenuOpen ? "expand_less" : "expand_more"}
+          </span>
+        </button>
+
+        {isScreenShareMenuOpen && (
+          <div className="bg-gray-800 rounded-lg shadow-lg p-4 max-w-md w-full">
+            {/* Local Screen Share (Always at Top) */}
+            {isScreenSharing && localScreenStreamRef.current && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-white font-bold">Your Screen</h3>
+                  <button
+                    className="bg-white bg-opacity-75 rounded-full p-1"
+                    onClick={() => {
+                      const videoEl = screenVideoRef.current;
+                      if (videoEl) {
+                        if (videoEl.requestFullscreen) {
+                          videoEl.requestFullscreen();
+                        } else if ((videoEl as any).webkitRequestFullscreen) {
+                          (videoEl as any).webkitRequestFullscreen();
+                        }
+                      }
+                    }}
+                  >
+                    <span className="material-icons text-black text-xl">fullscreen</span>
+                  </button>
+                </div>
+                <div className="relative bg-black rounded-lg overflow-hidden">
+                  <video
+                    autoPlay
+                    playsInline
+                    className="w-full h-36 object-cover rounded-md"
+                    ref={(el) => {
+                      screenVideoRef.current = el;
+                      if (el && localScreenStreamRef.current) {
+                        el.srcObject = localScreenStreamRef.current;
+                      }
+                    }}
+                  />
+                  <div className="absolute top-2 left-2 bg-blue-500 text-white text-sm px-2 py-1 rounded">
+                    You are sharing your screen
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Remote Screen Shares */}
+            {Array.from(remoteScreenStreams.entries()).map(([userId, stream]) => {
+              const userName = getUserNameById(userId);
+              const isNearby = nearbyUsers.some((user) => user.id === userId);
+              return (
+                <div key={userId} className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-white font-bold">{userName}'s Screen</h3>
+                    <button
+                      className="bg-white bg-opacity-75 rounded-full p-1"
+                      onClick={() => {
+                        const videoEl = document.getElementById(`video-${userId}`) as HTMLVideoElement;
+                        if (videoEl) {
+                          if (videoEl.requestFullscreen) {
+                            videoEl.requestFullscreen();
+                          } else if ((videoEl as any).webkitRequestFullscreen) {
+                            (videoEl as any).webkitRequestFullscreen();
+                          }
+                        }
+                      }}
+                    >
+                      <span className="material-icons text-black text-xl">fullscreen</span>
+                    </button>
+                  </div>
+                  <div
+                    className="relative bg-black rounded-lg overflow-hidden"
+                    style={{ display: isNearby && stream ? "block" : "none" }}
+                  >
+                    <video
+                      autoPlay
+                      playsInline
+                      className="w-full h-36 object-cover rounded-md"
+                      id={`video-${userId}`}
+                      ref={(videoEl) => {
+                        if (videoEl && stream) {
+                          videoEl.srcObject = stream;
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
           </div>
-        ))}
+        )}
       </div>
 
 
