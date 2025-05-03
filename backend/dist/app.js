@@ -23,23 +23,32 @@ const commentRouter_1 = __importDefault(require("./routers/commentRouter"));
 const jamsRouter_1 = __importDefault(require("./routers/jamsRouter"));
 const messageRouter_1 = __importDefault(require("./routers/messageRouter"));
 const chatRouter_1 = __importDefault(require("./routers/chatRouter"));
+const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const app = (0, express_1.default)();
-app.use((0, express_session_1.default)({
-    secret: "abe lode sun",
-    resave: false,
-    saveUninitialized: false
-}));
+// app.use(session({
+//     secret: "abe lode sun",
+//     resave: false,
+//     saveUninitialized: false
+// }))
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 app.use(body_parser_1.default.urlencoded({ extended: true }));
+if (process.env.NODE_ENV === 'production') {
+    app.set('trust proxy', 1);
+}
 app.use((0, express_session_1.default)({
     secret: process.env.SESSION_SECRET,
-    resave: true,
+    resave: false,
     saveUninitialized: false,
+    store: connect_mongo_1.default.create({
+        mongoUrl: process.env.MONGO_URI,
+        ttl: 24 * 60 * 60 * 5 // 1 day
+    }),
     cookie: {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
-        maxAge: 1000 * 60 * 60 * 24, // 1 day
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+        maxAge: 1000 * 60 * 60 * 24 * 5,
     },
 }));
 // initialize passport

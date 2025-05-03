@@ -79,6 +79,12 @@ const Scene1 = ({
   const [isHelpOpen] = useState<boolean>(false);
   const [isActionMenuOpen, setIsActionMenuOpen] = useState<boolean>(false);
 
+  const [isScreenSharing, setIsScreenSharing] = useState<boolean>(false);
+  const [isCameraON, setIsCameraON] = useState<boolean>(false);
+  const [remoteScreenStreams, setRemoteScreenStreams] = useState<Map<string, MediaStream>>(new Map());
+
+  const [isScreenShareMenuOpen, setIsScreenShareMenuOpen] = useState<boolean>(false);
+
   const [nearbyUsers, setNearbyUsers] = useState<User[]>([]);
 
   const [isMicOn, setIsMicOn] = useState<boolean>(true);
@@ -98,6 +104,8 @@ const Scene1 = ({
 
   //WebRTC refs
   const localStreamRef = useRef<MediaStream | null>(null);
+  const localScreenStreamRef = useRef<MediaStream | null>(null);
+  const screenVideoRef = useRef<HTMLVideoElement | null>(null);
   const peerConnectionsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
   const audioElementsRef = useRef<Map<string, HTMLAudioElement>>(new Map());
 
@@ -895,21 +903,46 @@ const Scene1 = ({
     const newMicState = !isMicOn;
     setIsMicOn(newMicState);
 
+    // Update voice call audio stream
     if (localStreamRef.current) {
-      localStreamRef.current.getAudioTracks().forEach(track => {
+      localStreamRef.current.getAudioTracks().forEach((track) => {
         track.enabled = newMicState;
       });
     }
 
-    // If turning on mic and we don't have a stream yet
+    // Update screen-sharing microphone audio stream (but not screen audio)
+    if (localScreenStreamRef.current) {
+      localScreenStreamRef.current.getAudioTracks().forEach((track) => {
+        // Only toggle tracks that are likely from getUserMedia (microphone)
+        // Note: This is heuristic; browsers don't provide direct API to distinguish
+        if (!track.label.includes("screen") && !track.label.includes("system")) {
+          track.enabled = newMicState;
+        }
+      });
+    }
+
+    // If turning on mic and no voice call stream exists, acquire one
     if (newMicState && !localStreamRef.current) {
       const stream = await setupMediaStream();
       if (stream) {
-        // Add tracks to all existing peer connections
-        peerConnectionsRef.current.forEach((pc, _) => {
-          stream.getAudioTracks().forEach(track => {
+        localStreamRef.current = stream;
+        // Add voice call audio tracks to all peer connections
+        peerConnectionsRef.current.forEach((pc, targetUserId) => {
+          stream.getAudioTracks().forEach((track) => {
             pc.addTrack(track, stream);
           });
+          // Renegotiate after adding new tracks
+          pc.createOffer()
+            .then((offer) => pc.setLocalDescription(offer))
+            .then(() => {
+              socket.emit("webrtcSignal", {
+                type: "offer",
+                offer: pc.localDescription,
+                targetUserId,
+                fromUserId: userId,
+              });
+            })
+            .catch((error) => console.error("Error renegotiating after adding audio:", error));
         });
       }
     }
@@ -920,63 +953,76 @@ const Scene1 = ({
       return peerConnectionsRef.current.get(targetUserId)!;
     }
 
-
-
     const pc = new RTCPeerConnection({
       iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun.stunprotocol.org:3478' },
-
-      ]
+        { urls: "stun:stun.l.google.com:19302" },
+        { urls: "stun:stun1.l.google.com:19302" },
+        { urls: "stun:stun.stunprotocol.org:3478" },
+      ],
     });
 
-
-    // Add local tracks
+    // Add voice call audio tracks
     if (localStreamRef.current && isMicOn) {
-      localStreamRef.current.getAudioTracks().forEach(track => {
+      localStreamRef.current.getAudioTracks().forEach((track) => {
         pc.addTrack(track, localStreamRef.current!);
+      });
+    }
+
+    // Add screen-sharing tracks (video, screen audio, microphone audio)
+    if (localScreenStreamRef.current) {
+      localScreenStreamRef.current.getTracks().forEach((track) => {
+        pc.addTrack(track, localScreenStreamRef.current!);
       });
     }
 
     // Handle incoming tracks
     pc.ontrack = (event) => {
-      const audioElement = document.createElement('audio');
-      audioElement.srcObject = event.streams[0];
-      audioElement.autoplay = true;
-      audioElement.muted = true; // Initially muted
-      audioElementsRef.current.set(targetUserId, audioElement);
-      document.body.appendChild(audioElement);
+      console.log("Received new track:", event.track.kind, "from", targetUserId);
+      const incomingStream = event.streams[0];
+
+      if (event.track.kind === "audio") {
+        // Create a unique audio element for each audio track
+        const audioElement = document.createElement("audio");
+        audioElement.srcObject = incomingStream;
+        audioElement.autoplay = true;
+        audioElement.muted = false; // Play remote audio
+        audioElementsRef.current.set(`${targetUserId}-${event.track.id}`, audioElement); // Use track ID to differentiate
+        document.body.appendChild(audioElement);
+      }
+
+      if (event.track.kind === "video") {
+        setRemoteScreenStreams((prev) => {
+          const newMap = new Map(prev);
+          newMap.set(targetUserId, incomingStream);
+          return newMap;
+        });
+      }
     };
 
     // ICE candidate handling
     pc.onicecandidate = (event) => {
       if (event.candidate) {
-        socket.emit('relayICECandidate', {
+        socket.emit("relayICECandidate", {
           candidate: event.candidate,
           targetUserId,
-          fromUserId: userId
+          fromUserId: userId,
         });
-      } else {
-        console.log(`ICE candidate gathering complete for ${targetUserId}`);
       }
     };
 
     // Connection state monitoring
     pc.onconnectionstatechange = () => {
-      if (pc.connectionState === 'failed') {
+      if (pc.connectionState === "failed") {
         console.error(`Connection failed with ${targetUserId}`);
+        pc.restartIce(); // Attempt to recover
       }
     };
 
     pc.oniceconnectionstatechange = () => {
-      if (pc.iceConnectionState === 'failed') {
+      if (pc.iceConnectionState === "failed") {
         console.error(`ICE connection failed with ${targetUserId}`);
+        pc.restartIce(); // Attempt to recover
       }
-    };
-
-    pc.onicegatheringstatechange = () => {
-      console.log(`ICE gathering state with ${targetUserId}: ${pc.iceGatheringState}`);
     };
 
     peerConnectionsRef.current.set(targetUserId, pc);
@@ -1015,25 +1061,183 @@ const Scene1 = ({
 
     const myPos = new THREE.Vector3(userPosition.x, userPosition.y, userPosition.z);
 
-    users.forEach(user => {
+    users.forEach((user) => {
       if (user.id !== userId) {
         const distance = myPos.distanceTo(user.position);
         const isNearby = distance <= NEARBY_DISTANCE;
 
-        const audioElement = audioElementsRef.current.get(user.id);
-        if (audioElement) {
-          audioElement.muted = !isNearby;
-
-          // Optional: Apply distance-based volume adjustment
-          if (!audioElement.muted) {
-            // Linear falloff from 1.0 (max volume) to 0.2 (min volume)
-            const volume = Math.max(0.2, 1.0 - (distance / NEARBY_DISTANCE) * 0.8);
-            audioElement.volume = volume;
+        // Update all audio elements for this user
+        audioElementsRef.current.forEach((audioElement, key) => {
+          if (key.startsWith(user.id)) {
+            audioElement.muted = !isNearby;
+            if (!audioElement.muted) {
+              // Linear falloff for volume
+              const volume = Math.max(0.2, 1.0 - (distance / NEARBY_DISTANCE) * 0.8);
+              audioElement.volume = volume;
+            }
           }
-        }
+        });
       }
     });
   }, [userPosition, users, userId]);
+
+  const updateVideoBasedOnProximity = useCallback(() => {
+    if (!userPosition) return;
+
+    const myPos = new THREE.Vector3(userPosition.x, userPosition.y, userPosition.z);
+
+    remoteScreenStreams.forEach((_, targetUserId) => {
+      const user = Array.from(users.values()).find((u) => u.id === targetUserId);
+      if (user) {
+        const distance = myPos.distanceTo(user.position);
+        const isNearby = distance <= NEARBY_DISTANCE;
+
+        const videoElement = document.getElementById(`video-${targetUserId}`) as HTMLVideoElement;
+        if (videoElement) {
+          videoElement.style.display = isNearby ? "block" : "none";
+        }
+      }
+    });
+  }, [userPosition, users, remoteScreenStreams, userId]);
+
+  const setUpScreenShareStream = async (): Promise<MediaStream | null> => {
+    try {
+      // Get screen-sharing stream (video and audio)
+      const screenStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true, // Include screen audio if available
+      });
+
+      // Get microphone audio stream
+      const audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+      // Combine tracks: screen video, screen audio (if available), and microphone audio
+      const combinedStream = new MediaStream([
+        ...screenStream.getVideoTracks(), // Screen video
+        ...screenStream.getAudioTracks(), // Screen audio (may be empty if not supported)
+        ...audioStream.getAudioTracks(),  // Microphone audio
+      ]);
+
+      return combinedStream;
+    } catch (error) {
+      console.error("Error setting up screen share stream:", error);
+      return null;
+    }
+  };
+
+  const handleScreenShare = async (e: any) => {
+    e.preventDefault();
+
+    try {
+      if (isScreenSharing) {
+        // === STOP SCREEN SHARING ===
+        if (localScreenStreamRef.current) {
+          // Stop all tracks in the screen-sharing stream
+          localScreenStreamRef.current.getTracks().forEach((track) => track.stop());
+          localScreenStreamRef.current = null;
+
+          // Clear local screen video element
+          if (screenVideoRef.current) {
+            screenVideoRef.current.srcObject = null;
+          }
+
+          // Remove screen-sharing tracks from peer connections and renegotiate
+          const renegotiationPromises = Array.from(peerConnectionsRef.current.entries()).map(
+            async ([targetUserId, pc]) => {
+              // Remove screen-sharing tracks (video and both audio tracks)
+              pc.getSenders().forEach((sender) => {
+                if (sender.track && localScreenStreamRef.current?.getTracks().includes(sender.track)) {
+                  pc.removeTrack(sender);
+                }
+              });
+
+              // Renegotiate: Create new offer
+              const offer = await pc.createOffer();
+              await pc.setLocalDescription(offer);
+
+              // Send offer to peer
+              socket.emit("webrtcSignal", {
+                type: "offer",
+                offer: pc.localDescription,
+                targetUserId,
+                fromUserId: userId,
+              });
+            }
+          );
+
+          await Promise.all(renegotiationPromises);
+          console.log("Screen sharing stopped and renegotiation completed.");
+        }
+
+        setIsScreenSharing(false);
+      } else {
+        // === START SCREEN SHARING ===
+        const screenStream = await setUpScreenShareStream();
+        if (!screenStream) {
+          console.error("Failed to start screen sharing.");
+          setIsScreenSharing(false);
+          return;
+        }
+
+        localScreenStreamRef.current = screenStream;
+
+        // Add screen-sharing tracks to all peer connections and renegotiate
+        const renegotiationPromises = Array.from(peerConnectionsRef.current.entries()).map(
+          async ([targetUserId, pc]) => {
+            // Add new screen-sharing tracks (video, screen audio, microphone audio)
+            screenStream.getTracks().forEach((track) => {
+              pc.addTrack(track, screenStream);
+            });
+
+            // Renegotiate: Create new offer
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            // Send offer to peer
+            socket.emit("webrtcSignal", {
+              type: "offer",
+              offer: pc.localDescription,
+              targetUserId,
+              fromUserId: userId,
+            });
+          }
+        );
+
+        await Promise.all(renegotiationPromises);
+
+        // Optional: Display local screen share preview
+        if (screenVideoRef.current) {
+          screenVideoRef.current.srcObject = screenStream;
+        }
+
+        setIsScreenSharing(true);
+
+        // Handle manual stop (user clicks "Stop Sharing" in browser)
+        screenStream.getVideoTracks()[0].addEventListener("ended", () => {
+          console.log("Screen sharing manually stopped by user.");
+          handleScreenShare({ preventDefault: () => { } }); // Trigger stop logic
+        });
+
+        console.log("Screen sharing started and renegotiation completed.");
+      }
+    } catch (error) {
+      console.error("Error in handleScreenShare:", error);
+      setIsScreenSharing(false);
+    }
+  };
+
+  const getUserNameById = (id: string) => {
+    const user = Array.from(users.values()).find((u) => u.id === id);
+    return user ? user.name : "Unknown";
+  };
+
+
+  const handleToggleCamera = (e: any) => {
+    e.preventDefault();
+
+    setIsCameraON(!isCameraON);
+  }
+
 
   useEffect(() => {
     if (!mountRef.current) return;
@@ -1141,19 +1345,36 @@ const Scene1 = ({
       sceneRef.current.clear();
 
       if (localStreamRef.current) {
-        localStreamRef.current.getTracks().forEach(track => track.stop());
+        localStreamRef.current.getTracks().forEach((track) => track.stop());
         localStreamRef.current = null;
       }
 
-      peerConnectionsRef.current.forEach(pc => {
+      if (localScreenStreamRef.current) {
+        localScreenStreamRef.current.getTracks().forEach((track) => track.stop());
+        localScreenStreamRef.current = null;
+      }
+
+      peerConnectionsRef.current.forEach((pc) => {
         pc.close();
       });
       peerConnectionsRef.current.clear();
 
-      audioElementsRef.current.forEach(audio => {
+      audioElementsRef.current.forEach((audio) => {
         document.body.removeChild(audio);
       });
       audioElementsRef.current.clear();
+
+      remoteScreenStreams.forEach((_, userId) => {
+        const videoEl = document.getElementById(`video-${userId}`) as HTMLVideoElement;
+        if (videoEl) {
+          videoEl.srcObject = null;
+        }
+      });
+      setRemoteScreenStreams(new Map());
+
+      if (screenVideoRef.current) {
+        screenVideoRef.current.srcObject = null;
+      }
     };
   }, [avatarUrl, userId, userName, isConnected, socket]);
 
@@ -1186,7 +1407,8 @@ const Scene1 = ({
 
   useEffect(() => {
     updateAudioBasedOnProximity();
-  }, [updateAudioBasedOnProximity, nearbyUsers]);
+    updateVideoBasedOnProximity();
+  }, [updateAudioBasedOnProximity, updateVideoBasedOnProximity, nearbyUsers, remoteScreenStreams]);
 
   return (
     <div
@@ -1392,6 +1614,41 @@ const Scene1 = ({
             </button>
 
             <button
+              className="action-btn"
+              onClick={(e) => {
+                handleScreenShare(e);
+              }}
+            >
+              {isScreenSharing ? (
+                <span className="material-icons">
+                  screen_share
+                </span>
+
+              ) : (
+                <span className="material-icons">
+                  stop_screen_share
+                </span>
+              )}
+            </button>
+            <button
+              className="action-btn"
+              onClick={(e) => {
+                handleToggleCamera(e);
+              }}
+            >
+              {isCameraON ? (
+                <span className="material-icons">
+                  photo_camera
+                </span>
+
+              ) : (
+                <span className="material-icons">
+                  no_photography
+                </span>
+              )}
+            </button>
+
+            <button
               className={`action-btn ${isMicOn ? 'mic-active' : 'mic-inactive'}`}
               onClick={toggleMicrophone}
             >
@@ -1412,6 +1669,109 @@ const Scene1 = ({
           </span>
         </button>
       </div>
+
+      <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 flex flex-col justify-center items-center gap-4 z-50">
+
+        <button
+          className="bg-red-500 text-white sm:text-xs md:text-sm px-2 py-2 rounded-lg flex items-center gap-2"
+          onClick={() => setIsScreenShareMenuOpen(!isScreenShareMenuOpen)}
+        >
+          <span className="material-icons">screen_share</span>
+          <span>Screen Shares ({remoteScreenStreams.size + (isScreenSharing ? 1 : 0)})</span>
+          <span className="material-icons">
+            {isScreenShareMenuOpen ? "expand_less" : "expand_more"}
+          </span>
+        </button>
+
+        {isScreenShareMenuOpen && (
+          <div className="bg-gray-800 rounded-lg shadow-lg p-4 max-w-md w-full">
+            {/* Local Screen Share (Always at Top) */}
+            {isScreenSharing && localScreenStreamRef.current && (
+              <div className="mb-4">
+                <div className="flex items-center justify-between mb-2">
+                  <h3 className="text-white font-bold">Your Screen</h3>
+                  <button
+                    className="bg-white bg-opacity-75 rounded-full p-1"
+                    onClick={() => {
+                      const videoEl = screenVideoRef.current;
+                      if (videoEl) {
+                        if (videoEl.requestFullscreen) {
+                          videoEl.requestFullscreen();
+                        } else if ((videoEl as any).webkitRequestFullscreen) {
+                          (videoEl as any).webkitRequestFullscreen();
+                        }
+                      }
+                    }}
+                  >
+                    <span className="material-icons text-black text-xl">fullscreen</span>
+                  </button>
+                </div>
+                <div className="relative bg-black rounded-lg overflow-hidden">
+                  <video
+                    autoPlay
+                    playsInline
+                    className="w-full h-36 object-cover rounded-md"
+                    ref={(el) => {
+                      screenVideoRef.current = el;
+                      if (el && localScreenStreamRef.current) {
+                        el.srcObject = localScreenStreamRef.current;
+                      }
+                    }}
+                  />
+                  <div className="absolute top-2 left-2 bg-blue-500 text-white text-sm px-2 py-1 rounded">
+                    You are sharing your screen
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Remote Screen Shares */}
+            {Array.from(remoteScreenStreams.entries()).map(([userId, stream]) => {
+              const userName = getUserNameById(userId);
+              const isNearby = nearbyUsers.some((user) => user.id === userId);
+              return (
+                <div key={userId} className="mb-4">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-white font-bold">{userName}'s Screen</h3>
+                    <button
+                      className="bg-white bg-opacity-75 rounded-full p-1"
+                      onClick={() => {
+                        const videoEl = document.getElementById(`video-${userId}`) as HTMLVideoElement;
+                        if (videoEl) {
+                          if (videoEl.requestFullscreen) {
+                            videoEl.requestFullscreen();
+                          } else if ((videoEl as any).webkitRequestFullscreen) {
+                            (videoEl as any).webkitRequestFullscreen();
+                          }
+                        }
+                      }}
+                    >
+                      <span className="material-icons text-black text-xl">fullscreen</span>
+                    </button>
+                  </div>
+                  <div
+                    className="relative bg-black rounded-lg overflow-hidden"
+                    style={{ display: isNearby && stream ? "block" : "none" }}
+                  >
+                    <video
+                      autoPlay
+                      playsInline
+                      className="w-full h-36 object-cover rounded-md"
+                      id={`video-${userId}`}
+                      ref={(videoEl) => {
+                        if (videoEl && stream) {
+                          videoEl.srcObject = stream;
+                        }
+                      }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
 
       <div className="toast-container">
         {toasts.map((toast) => (
