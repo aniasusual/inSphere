@@ -69,7 +69,7 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
     {
         googleId: {
             type: String,
-            unique: true
+            // unique: true
         },
         firstName: {
             type: String,
