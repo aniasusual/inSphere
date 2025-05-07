@@ -476,3 +476,34 @@ export const getSearchData = async (req: Request, res: Response) => {
         });
     }
 };
+
+export const updateUserAvatar = async (req: Request, res: Response) => {
+    try {
+        const userId = req.user._id;
+        const { avatarUrl } = req.body;
+
+        const user = await userModel.findById(userId);
+
+        if (user) {
+            user.avatar3D = avatarUrl;
+            user.save();
+            res.status(200).json({
+                success: true,
+                user,
+                message: "user found and updated"
+            })
+        }
+        else {
+            res.status(400).json({
+                success: false,
+                message: "No user found"
+            })
+        }
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error
+        })
+    }
+}

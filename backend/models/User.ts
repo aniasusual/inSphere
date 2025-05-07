@@ -5,7 +5,7 @@ import validator from "validator";
 
 interface IUser extends Document {
     _id: mongoose.Types.ObjectId;
-    googleId: string;
+    googleId?: string;
     firstName?: string;
     lastName?: string;
     email: string;
@@ -42,6 +42,8 @@ interface IUser extends Document {
         public_id: string;
         url: string;
     };
+
+    avatar3D: string;
 
     // Added coverPhoto field
     coverPhoto?: {
@@ -172,6 +174,9 @@ const userSchema: Schema<IUser> = new mongoose.Schema(
                 type: String,
             },
         },
+        avatar3D: {
+            type: String,
+        },
         // Added coverPhoto field to schema
         coverPhoto: {
             public_id: {
@@ -240,6 +245,12 @@ userSchema.methods.getJWTToken = function (): string {
 userSchema.methods.comparePassword = async function (password: string): Promise<boolean> {
     return await bcrypt.compare(password, this.password);
 };
+
+userSchema.index(
+    { googleId: 1 },
+    { unique: true, partialFilterExpression: { googleId: { $exists: true, $ne: null } } }
+);
+
 
 // Password Hashing Middleware
 userSchema.pre("save", async function (next) {

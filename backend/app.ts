@@ -23,12 +23,6 @@ import MongoStore from 'connect-mongo';
 
 const app = express();
 
-// app.use(session({
-//     secret: "abe lode sun",
-//     resave: false,
-//     saveUninitialized: false
-// }))
-
 app.use(express.json());
 app.use(cookieParser());
 app.use(bodyParser.urlencoded({ extended: true }));

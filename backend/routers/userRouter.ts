@@ -1,4 +1,4 @@
-import { fetchUserById, findUsersAround, followUser, getSearchData, getUserDetails, loginUser, logout, registerUser, updateUserLocation } from "../controllers/userController";
+import { fetchUserById, findUsersAround, followUser, getSearchData, getUserDetails, loginUser, logout, registerUser, updateUserAvatar, updateUserLocation } from "../controllers/userController";
 import { isAuthenticated } from "../middleware/auth";
 import { NextFunction, Request, Response, Router } from "express";
 import passport from "passport";
@@ -20,6 +20,7 @@ userRouter.route("/update-user-location").post(isAuthenticated, updateUserLocati
 userRouter.route("/fetchUserById/:id").get(fetchUserById);
 userRouter.route("/follow/:id").get(isAuthenticated, followUser);
 userRouter.route("/getSearchData").get(getSearchData);
+userRouter.route("/update-avatar").post(isAuthenticated, updateUserAvatar);
 
 
 // GOOGLE

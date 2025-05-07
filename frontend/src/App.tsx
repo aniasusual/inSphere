@@ -19,6 +19,8 @@ import ChatPage from "@pages/Chat";
 import UserProfile from "@pages/UserProfile";
 import { SinglePost } from "@pages/SinglePost";
 import { JamPage } from "@pages/Jam";
+import ChooseAvatar from "@pages/ChooseAvatar";
+import { AvatarCreator } from "@pages/AvatarCreator";
 
 const App: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -111,7 +113,26 @@ const App: React.FC = () => {
               </MainLayout>
             }
           />
-          <Route path="/chat" element={!isAuthenticated ? <LoginFormDemo /> : <ChatPage />} />
+          <Route
+            path="/chat"
+            element={!isAuthenticated ? <LoginFormDemo /> : <ChatPage />}
+          />
+          <Route
+            path="/choose-avatar"
+            element={
+              !isAuthenticated ? (
+                <LoginFormDemo />
+              ) : (
+                <MainLayout>
+                  <ChooseAvatar />
+                </MainLayout>
+              )
+            }
+          />
+          <Route
+            path="/create-avatar"
+            element={!isAuthenticated ? <LoginFormDemo /> : <AvatarCreator />}
+          />
           <Route
             path="/join/jam/:jamId"
             element={!isAuthenticated ? <LoginFormDemo /> : <JamPage />}
