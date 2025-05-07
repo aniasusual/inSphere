@@ -25,11 +25,7 @@ const messageRouter_1 = __importDefault(require("./routers/messageRouter"));
 const chatRouter_1 = __importDefault(require("./routers/chatRouter"));
 const connect_mongo_1 = __importDefault(require("connect-mongo"));
 const app = (0, express_1.default)();
-// app.use(session({
-//     secret: "abe lode sun",
-//     resave: false,
-//     saveUninitialized: false
-// }))
+
 app.use(express_1.default.json());
 app.use((0, cookie_parser_1.default)());
 app.use(body_parser_1.default.urlencoded({ extended: true }));
